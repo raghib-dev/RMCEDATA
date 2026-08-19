@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CustomsVault - Professional Trade Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Excel Library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Supabase Library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ink:#0F1E2B; --ink-2:#16293A; --ink-3:#1D3448;
+    --paper:#ECE6D6; --paper-dim:#93A6B3;
+    --brass:#C9A227; --brass-dim:#8A742A;
+    --stamp:#B8503F; --stamp-dim:#7A4038;
+    --green:#5C9382; --hairline:rgba(201,162,39,0.22);
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:radial-gradient(ellipse at top left, rgba(201,162,39,0.06), transparent 55%), var(--ink);
+    color:var(--paper); font-family:'IBM Plex Sans', sans-serif; min-height:100vh;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* Auth Overlay */
+  #authOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--ink); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+  .auth-box { background: var(--ink-2); padding: 32px; border-radius: var(--radius); border: 1px solid var(--hairline); width: 100%; max-width: 360px; text-align: center; }
+  .auth-box input { width: 100%; background: var(--ink); border: 1px solid var(--hairline); color: var(--paper); padding: 12px; margin-bottom: 12px; border-radius: 2px; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px;}
+  .auth-box input:focus { outline: none; border-color: var(--brass); }
+  .auth-box button { width: 100%; padding: 12px; font-size: 14px; margin-top: 5px; }
+  .auth-msg { font-size: 12.5px; margin-top: 12px; color: var(--stamp); }
+
+  /* Header */
+  header{ display:flex;align-items:flex-end;justify-content:space-between; border-bottom:1px solid var(--hairline); padding-bottom:18px;margin-bottom:22px;flex-wrap:wrap;gap:14px; }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .stamp-mark{width:52px;height:52px;flex-shrink:0;}
+  h1{ font-family:'Source Serif 4', serif; font-weight:700;font-size:28px;letter-spacing:0.3px;margin:0;color:var(--paper); }
+  .sub{font-size:12.5px;color:var(--paper-dim);margin-top:3px;letter-spacing:0.4px;}
+  .tabs{display:flex;gap:2px;background:var(--ink-2);padding:3px;border-radius:var(--radius);border:1px solid var(--hairline);}
+  .tab-btn{ font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.6px;text-transform:uppercase; background:transparent;border:none;color:var(--paper-dim);padding:9px 16px;border-radius:2px;cursor:pointer; transition:all .15s ease; }
+  .tab-btn.active{background:var(--brass);color:var(--ink);font-weight:600;}
+  .tab-btn:not(.active):hover{color:var(--paper);}
+  
+  .panel{display:none;} .panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  /* Card */
+  .card{ background:var(--ink-2);border:1px solid var(--hairline);border-radius:var(--radius); padding:22px;margin-bottom:18px; }
+  .card h2{ font-family:'Source Serif 4',serif;font-size:16px;margin:0 0 14px;color:var(--paper); display:flex;align-items:center;gap:8px; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--brass);letter-spacing:1.2px; text-transform:uppercase;margin-bottom:6px;display:block; }
+
+  /* Dropzone */
+  .dropzone{ border:1.5px dashed var(--hairline);border-radius:var(--radius); padding:36px 20px;text-align:center;cursor:pointer;transition:.15s ease;background:rgba(201,162,39,0.03); }
+  .dropzone:hover, .dropzone.drag{border-color:var(--brass);background:rgba(201,162,39,0.07);}
+  .dropzone .icon{font-size:26px;margin-bottom:8px;opacity:.85;}
+  .dropzone .main-txt{font-size:14px;color:var(--paper);}
+  .dropzone .sub-txt{font-size:12px;color:var(--paper-dim);margin-top:4px;}
+  input[type=file]{display:none;}
+
+  .file-chip{ display:inline-flex;align-items:center;gap:10px;background:var(--ink-3);border:1px solid var(--hairline); border-radius:var(--radius);padding:8px 14px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;margin-top:12px; }
+  .file-chip button{background:none;border:none;color:var(--stamp);cursor:pointer;font-size:13px;}
+
+  button.primary{ font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px; background:var(--brass);color:var(--ink);border:none;padding:11px 20px;border-radius:var(--radius); cursor:pointer;letter-spacing:.2px;transition:.15s; }
+  button.primary:hover{background:#DDB53A;}
+  button.primary:disabled{background:#5a5540;color:#9a9578;cursor:not-allowed;}
+  button.ghost{ background:transparent;border:1px solid var(--hairline);color:var(--paper-dim); padding:10px 16px;border-radius:var(--radius);cursor:pointer;font-size:12.5px;font-family:'IBM Plex Mono',monospace; }
+  button.ghost:hover{color:var(--paper);border-color:var(--brass-dim);}
+
+  .actions-row{display:flex;gap:10px;margin-top:16px;align-items:center;}
+  .status-line{font-size:12.5px;color:var(--paper-dim);font-family:'IBM Plex Mono',monospace;}
+  .status-line.err{color:var(--stamp);} .status-line.ok{color:var(--green);}
+
+  /* extracted preview */
+  .rec-head{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:16px;}
+  .field{min-width:140px; flex:1;}
+  .field label{display:block;font-size:10px;color:var(--paper-dim);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;font-family:'IBM Plex Mono',monospace;}
+  .field input{ background:var(--ink);border:1px solid var(--hairline);color:var(--paper);border-radius:2px; padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;width:100%; }
+  .field input:focus{outline:none;border-color:var(--brass);}
+
+  .item-block{ border-top:1px dashed var(--hairline);padding-top:14px;margin-top:14px; }
+  .item-block .tag{ font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--brass);letter-spacing:1px; text-transform:uppercase;margin-bottom:10px;display:inline-block; }
+  .item-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;}
+  .item-grid .field.span2{grid-column:1/-1;}
+
+  /* Search */
+  .search-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .search-bar input[type=text]{ flex:1;min-width:220px;background:var(--ink);border:1px solid var(--hairline);color:var(--paper); padding:11px 14px;border-radius:var(--radius);font-size:13.5px;font-family:'IBM Plex Sans',sans-serif; }
+  .search-bar input:focus{outline:none;border-color:var(--brass);}
+  .filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .filter-chips button{ background:var(--ink-3);border:1px solid var(--hairline);color:var(--paper-dim); padding:9px 13px;border-radius:20px;font-size:11px;font-family:'IBM Plex Mono',monospace;cursor:pointer; }
+  .filter-chips button.active{background:var(--brass);color:var(--ink);border-color:var(--brass);font-weight:600;}
+  .result-count{font-size:11.5px;color:var(--paper-dim);font-family:'IBM Plex Mono',monospace;margin:2px 0 14px;}
+  .section-title{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;border-bottom:1px solid var(--hairline);padding-bottom:4px;}
+  .section-title.excel{color:var(--green);}
+
+  /* Compact Result Cards */
+  .result-item-card{ background:rgba(0,0,0,0.18);border:1px solid var(--hairline);border-radius:var(--radius);padding:10px;margin-bottom:8px; }
+  .result-item-card.excel{border-color:rgba(92,147,130,0.4);background:rgba(92,147,130,0.03);}
+  .ric-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:6px;}
+  .ric-gd{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--brass);font-weight:600;}
+  .result-item-card.excel .ric-gd{color:var(--green);}
+  .ric-meta{font-size:11px;color:var(--paper-dim);font-family:'IBM Plex Mono',monospace;}
+  
+  .ric-desc{font-size:12px;color:var(--paper);margin-bottom:8px;line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ric-grid{display:grid;grid-template-columns:repeat(5, 1fr);gap:4px;background:var(--ink);padding:6px;border-radius:2px;}
+  .ric-field label{display:block;font-size:9px;color:var(--paper-dim);text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:2px;}
+  .ric-field span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--paper);font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;}
+
+  /* Info Boxes */
+  .info-box{border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;flex-direction:column;}
+  .info-box-header{display:flex;justify-content:space-between;width:100%;align-items:center;}
+  .local-excel-box{background:rgba(92,147,130,0.08);border:1px solid rgba(92,147,130,0.3);}
+  .local-excel-info{font-size:12.5px;font-family:'IBM Plex Mono',monospace;color:var(--green); word-break: break-word;}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--paper-dim);}
+  .empty-state .icon{font-size:30px;margin-bottom:10px;opacity:.6;}
+  .empty-state .t1{font-size:14px;color:var(--paper);margin-bottom:4px;}
+  .empty-state .t2{font-size:12px;}
+  .loader{ display:inline-block;width:13px;height:13px;border:2px solid rgba(236,230,214,0.25); border-top-color:var(--brass);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px; }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .footer-note{font-size:11px;color:var(--paper-dim);text-align:center;margin-top:26px;letter-spacing:.3px; line-height:1.6;}
+  .footer-note button{background:none;border:none;color:var(--stamp-dim);text-decoration:underline;cursor:pointer;font-size:11px;font-family:inherit;}
+
+  @media (max-width:640px){
+    .ric-grid{grid-template-columns:repeat(2, 1fr);}
+    header{align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTHENTICATION OVERLAY -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <svg class="stamp-mark" viewBox="0 0 100 100" fill="none" style="width:70px;height:70px;margin:0 auto 16px;">
+      <rect x="20" y="25" width="60" height="55" rx="6" stroke="#C9A227" stroke-width="3" opacity="0.8"/>
+      <circle cx="50" cy="52" r="10" stroke="#C9A227" stroke-width="2" stroke-dasharray="3 2"/>
+      <circle cx="50" cy="52" r="3" fill="#C9A227"/>
+      <path d="M35 15 L65 15 L65 25 L35 25 Z" fill="#C9A227" opacity="0.4"/>
+    </svg>
+    <h2 style="font-family:'Source Serif 4',serif; margin:0 0 20px; color:var(--paper);">CustomsVault</h2>
+    
+    <input type="text" id="authUsername" placeholder="Username">
+    <input type="password" id="authPassword" placeholder="Password">
+    
+    <button class="primary" id="loginBtn">Secure Login</button>
+    <div class="auth-msg" id="authMsg"></div>
+    
+    <div style="margin-top:20px; font-size:12px; color:var(--paper-dim); text-align:center; background:rgba(0,0,0,0.2); padding:12px; border-radius:3px; line-height:1.6; border:1px solid rgba(201,162,39,0.1);">
+      For trial please contact on:<br>
+      <span style="color:var(--brass); font-weight:600; font-size:14px; display:inline-block; margin:4px 0;">+92 300 7011611</span><br>
+      <i>(Please don't call, just WhatsApp)</i>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg class="stamp-mark" viewBox="0 0 100 100" fill="none">
+        <rect x="20" y="25" width="60" height="55" rx="6" stroke="#C9A227" stroke-width="3" opacity="0.8"/>
+        <circle cx="50" cy="52" r="10" stroke="#C9A227" stroke-width="2" stroke-dasharray="3 2"/>
+        <circle cx="50" cy="52" r="3" fill="#C9A227"/>
+        <path d="M35 15 L65 15 L65 25 L35 25 Z" fill="#C9A227" opacity="0.4"/>
+        <text x="50" y="86" text-anchor="middle" fill="#C9A227" font-family="IBM Plex Mono, monospace" font-size="8" letter-spacing="1">VAULT</text>
+      </svg>
+      <div>
+        <h1>CustomsVault</h1>
+        <div class="sub">Professional Customs &amp; Trade Ledger (Powered by Supabase)</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn" data-tab="upload" id="tabUploadBtn">Upload Data</button>
+      <button class="tab-btn active" data-tab="search" id="tabSearchBtn">Search Vault</button>
+    </div>
+  </header>
+
+  <!-- UPLOAD PANEL (ADMIN ONLY) -->
+  <div class="panel" id="panel-upload">
+    <div class="card">
+      <span class="eyebrow">Step 1</span>
+      <h2>Load a Company GD PDF</h2>
+      <div class="dropzone" id="dropzone">
+        <div class="icon">&#128196;</div>
+        <div class="main-txt">Click to choose a GD PDF, or drop it here</div>
+        <div class="sub-txt">Saved safely to Supabase Cloud for Subscribed Users</div>
+        <input type="file" id="fileInput" accept="application/pdf">
+      </div>
+      <div id="fileChipHolder"></div>
+      <div class="actions-row">
+        <button class="primary" id="extractBtn" disabled>Extract GD Data</button>
+        <span class="status-line" id="extractStatus"></span>
+      </div>
+    </div>
+
+    <!-- Naya Supabase Excel Cloud Upload -->
+    <div class="card" id="adminExcelCard">
+      <span class="eyebrow">Cloud Bulk Database</span>
+      <h2>Upload Customs Excel/CSV Data to Cloud</h2>
+      <div class="local-excel-info" id="adminLocalExcelStatus" style="margin-bottom:10px;">📊 100% Online Limitless Storage.</div>
+      <div style="display:flex; gap:10px;">
+        <button class="primary" id="adminLoadExcelBtn" style="background:var(--green); color:#fff;">Upload Excel to Cloud</button>
+        <button class="ghost" id="adminClearExcelBtn">Clear Cloud Excel Data</button>
+      </div>
+      <input type="file" id="adminLocalExcelInput" accept=".xlsx, .xls, .csv" multiple>
+    </div>
+
+    <div class="card" id="previewCard" style="display:none;">
+      <span class="eyebrow">Step 2</span>
+      <h2>Review before saving to cloud</h2>
+      <div id="previewHolder"></div>
+      <div class="actions-row">
+        <button class="primary" id="saveBtn">Save to Cloud Vault</button>
+        <button class="ghost" id="discardBtn">Discard</button>
+        <span class="status-line" id="saveStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH PANEL -->
+  <div class="panel active" id="panel-search">
+    <div class="card">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder=" Type to search GD No, description, HS code or importer...">
+      </div>
+      <div class="filter-chips" id="filterChips">
+        <button class="active" data-f="all">All fields</button>
+        <button data-f="gd_no">GD No</button>
+        <button data-f="description">Item description</button>
+        <button data-f="hs_code">HS Code</button>
+        <button data-f="importer_name">Importer</button>
+      </div>
+      <div class="result-count" id="resultCount"></div>
+      <div id="resultsHolder"></div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    &copy; 2026 CustomsVault &middot; <b>Developed by Raghib Mendha</b><br><br>
+    <button id="resetBtn">Clear Cloud PDFs</button> &nbsp;•&nbsp; 
+    <button id="resetApiBtn">Reset AI Key</button> &nbsp;•&nbsp; 
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  // ==========================================
+  // SUPABASE CONFIGURATION (YAHAN APNI KEYS DAALEN)
+  // ==========================================
+  const SUPABASE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
+  const SUPABASE_ANON_KEY = 'Yahan_Apni_Publishable_Key_Paste_Karein';
+  
+  if(typeof supabase === 'undefined') {
+      alert("Internet disconnected or Supabase blocked."); return;
+  }
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // ==========================================
+
+  const authOverlay = document.getElementById('authOverlay');
+  const authUser = document.getElementById('authUsername');
+  const authPass = document.getElementById('authPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const authMsg = document.getElementById('authMsg');
+  
+  const tabUploadBtn = document.getElementById('tabUploadBtn');
+  const tabSearchBtn = document.getElementById('tabSearchBtn');
+  const panelUpload = document.getElementById('panel-upload');
+  const panelSearch = document.getElementById('panel-search');
+
+  const searchInput = document.getElementById('searchInput');
+  const filterChips = document.getElementById('filterChips');
+  const resultsHolder = document.getElementById('resultsHolder');
+  const resultCount = document.getElementById('resultCount');
+
+  const state = { file:null, base64:null, extracted:null };
+  let activeFilter = 'all';
+
+  // --- AUTHENTICATION ---
+  loginBtn.addEventListener('click', () => {
+    const u = authUser.value.trim().toLowerCase();
+    const p = authPass.value.trim();
+    if (u === 'admin' && p === 'admin123') {
+      localStorage.setItem('cv_role', 'admin');
+      applyRole('admin');
+    } else if (u === 'test' && p === 'test123') {
+      localStorage.setItem('cv_role', 'viewer');
+      applyRole('viewer');
+    } else {
+      authMsg.textContent = 'Invalid credentials. Please contact support.';
+    }
+  });
+
+  function applyRole(role) {
+    authOverlay.style.display = 'none';
+    if (role === 'viewer') {
+      tabUploadBtn.style.display = 'none';
+      tabUploadBtn.classList.remove('active');
+      panelUpload.classList.remove('active');
+      tabSearchBtn.classList.add('active');
+      panelSearch.classList.add('active');
+    } else {
+      tabUploadBtn.style.display = 'block';
+    }
+    runSearch();
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('cv_role');
+    location.reload();
+  });
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab==='search') runSearch();
+    });
+  });
+
+  // --- PDF UPLOAD & EXTRACTION ---
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileChipHolder = document.getElementById('fileChipHolder');
+  const extractBtn = document.getElementById('extractBtn');
+  const extractStatus = document.getElementById('extractStatus');
+
+  dropzone.addEventListener('click', ()=>fileInput.click());
+  dropzone.addEventListener('dragover', e=>{e.preventDefault();dropzone.classList.add('drag');});
+  dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e=>{ e.preventDefault();dropzone.classList.remove('drag'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+  function handleFile(file){
+    if(file.type !== 'application/pdf'){ extractStatus.textContent = 'Please choose a PDF file.'; extractStatus.className='status-line err'; return; }
+    state.file = file; fileChipHolder.innerHTML = '';
+    const chip = document.createElement('div'); chip.className='file-chip'; chip.innerHTML = '<span>&#128206; '+file.name+'</span>';
+    const rm = document.createElement('button'); rm.textContent='remove';
+    rm.onclick = ()=>{state.file=null;state.base64=null;fileChipHolder.innerHTML='';extractBtn.disabled=true;};
+    chip.appendChild(rm); fileChipHolder.appendChild(chip);
+    extractBtn.disabled = false; extractStatus.textContent='';
+    const reader = new FileReader();
+    reader.onload = ()=>{ state.base64 = reader.result.split(',')[1]; };
+    reader.readAsDataURL(file);
+  }
+
+  extractBtn.addEventListener('click', async ()=>{
+    if(!state.base64) return;
+    let apiKey = localStorage.getItem('gemini_key');
+    if(!apiKey){
+      apiKey = prompt("Please enter Google Gemini API Key:");
+      if(!apiKey) return;
+      localStorage.setItem('gemini_key', apiKey);
+    }
+    extractBtn.disabled = true; extractStatus.innerHTML = '<span class="loader"></span>Extracting via AI...'; extractStatus.className='status-line';
+    
+    const promptText = `Extract structured data from a Pakistan Customs Goods Declaration (GD) PDF. Return STRICT JSON matching:
+{
+  "gd_no": "format KAPW-HC-XXXXX-DD-MM-YYYY",
+  "gd_date": "date of GD",
+  "importer_name": "importer name",
+  "items": [
+    {
+      "item_no": "item no", "hs_code": "hs code", "description": "description",
+      "origin": "origin country", "uom_qty": "qty and uom",
+      "unit_value_declared": "declared val", "unit_value_assessed": "assessed val"
+    }
+  ]
+} Return pure JSON only.`;
+
+    try{
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ contents: [{ parts: [ { text: promptText }, { inlineData: { mimeType: "application/pdf", data: state.base64 } } ] }] })
+      });
+      const data = await response.json();
+      if(data.error) throw new Error(data.error.message);
+      
+      let clean = data.candidates[0].content.parts[0].text.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      let parsed = JSON.parse(clean);
+      parsed.items = Array.isArray(parsed.items) ? parsed.items : [];
+      state.extracted = parsed;
+      extractStatus.textContent = 'Extraction complete.'; extractStatus.className='status-line ok';
+      await renderPreview(parsed);
+    }catch(err){
+      extractStatus.textContent = 'Extraction failed. ' + err.message; extractStatus.className='status-line err';
+    }finally{ extractBtn.disabled = false; }
+  });
+
+  const previewCard = document.getElementById('previewCard');
+  const previewHolder = document.getElementById('previewHolder');
+  const saveBtn = document.getElementById('saveBtn');
+  const discardBtn = document.getElementById('discardBtn');
+  const saveStatus = document.getElementById('saveStatus');
+
+  async function renderPreview(rec){
+    previewCard.style.display = 'block'; previewHolder.innerHTML = '';
+    const head = document.createElement('div'); head.className='rec-head';
+    head.innerHTML = fieldHtml('gd_no','GD No', rec.gd_no) + fieldHtml('gd_date','Date', rec.gd_date) + fieldHtml('importer_name','Importer', rec.importer_name);
+    previewHolder.appendChild(head);
+    rec.items.forEach((it, idx)=>{
+      const block = document.createElement('div'); block.className='item-block';
+      block.innerHTML = `<span class="tag">Item ${it.item_no || (idx+1)}</span>
+        <div class="item-grid">
+          ${fieldHtml('hs_code','HS Code', it.hs_code, idx)}
+          ${fieldHtml('origin','Origin', it.origin, idx)}
+          ${fieldHtml('uom_qty','UOM/Qty', it.uom_qty, idx)}
+          ${fieldHtml('unit_value_declared','Dec Val', it.unit_value_declared, idx)}
+          ${fieldHtml('unit_value_assessed','Ass Val', it.unit_value_assessed, idx)}
+          <div class="field span2"><label>Item Description</label><input data-item="${idx}" data-key="description" value="${escapeAttr(it.description)}"></div>
+        </div>`;
+      previewHolder.appendChild(block);
+    });
+  }
+  function fieldHtml(key,label,val,idx){
+    const attr = idx===undefined ? `data-key="${key}"` : `data-item="${idx}" data-key="${key}"`;
+    return `<div class="field"><label>${label}</label><input ${attr} value="${escapeAttr(val)}"></div>`;
+  }
+  function escapeAttr(v){ return (v||'').toString().replace(/"/g,'&quot;'); }
+
+  discardBtn.addEventListener('click', ()=>{
+    state.extracted=null; state.file=null; state.base64=null;
+    previewCard.style.display='none'; fileChipHolder.innerHTML=''; extractBtn.disabled=true;
+    document.getElementById('extractStatus').textContent='';
+  });
+
+  saveBtn.addEventListener('click', async ()=>{
+    const rec = { gd_no:'', gd_date:'', importer_name:'', items:[] };
+    previewHolder.querySelectorAll('[data-key]').forEach(inp=>{ if(inp.dataset.item === undefined) rec[inp.dataset.key] = inp.value.trim(); });
+    for(let i=0;i<state.extracted.items.length;i++){ rec.items.push({ item_no: String(i+1), hs_code:'', origin:'', uom_qty:'', description:'', unit_value_declared:'', unit_value_assessed:'' }); }
+    previewHolder.querySelectorAll('[data-item]').forEach(inp=>{ rec.items[parseInt(inp.dataset.item,10)][inp.dataset.key] = inp.value.trim(); });
+    
+    if(!rec.gd_no){ saveStatus.textContent = 'GD No required.'; saveStatus.className='status-line err'; return; }
+    saveBtn.disabled = true;
+    saveStatus.innerHTML = '<span class="loader"></span>Saving to Supabase...';
+    
+    // Format for Supabase SQL Table
+    const dbRecords = rec.items.map(it => ({
+       gd_no: rec.gd_no, gd_date: rec.gd_date, importer_name: rec.importer_name, 
+       file_name: state.file ? state.file.name : 'Manual GD', is_excel: false,
+       item_no: it.item_no, hs_code: it.hs_code, description: it.description,
+       origin: it.origin, uom_qty: it.uom_qty, unit_value_declared: it.unit_value_declared,
+       unit_value_assessed: it.unit_value_assessed
+    }));
+
+    const { error } = await db.from('customs_data').insert(dbRecords);
+
+    if(error){ saveStatus.textContent = 'Save failed: ' + error.message; saveStatus.className='status-line err'; }
+    else {
+      saveStatus.textContent = 'Saved!'; saveStatus.className='status-line ok';
+      setTimeout(()=>{ previewCard.style.display='none'; state.extracted=null; state.file=null; fileChipHolder.innerHTML=''; extractBtn.disabled=true; saveStatus.textContent=''; }, 1500);
+    }
+    saveBtn.disabled = false;
+  });
+
+  // --- SUPABASE EXCEL UPLOAD (CHUNKED) ---
+  const adminLoadExcelBtn = document.getElementById('adminLoadExcelBtn');
+  const adminClearExcelBtn = document.getElementById('adminClearExcelBtn');
+  const adminLocalExcelInput = document.getElementById('adminLocalExcelInput');
+  const adminLocalExcelStatus = document.getElementById('adminLocalExcelStatus');
+
+  adminLoadExcelBtn.addEventListener('click', ()=>adminLocalExcelInput.click());
+  adminLocalExcelInput.addEventListener('change', async e => { if(e.target.files.length > 0) await uploadExcelToCloud(e.target.files); });
+
+  async function uploadExcelToCloud(files) {
+    adminLocalExcelStatus.innerHTML = `<span class="loader"></span>Reading Excel files...`;
+    let allNewRows = [];
+    try {
+      for(let i=0; i < files.length; i++) {
+        let file = files[i]; 
+        let data = await new Promise((resolve) => { let reader = new FileReader(); reader.onload = (e) => resolve(new Uint8Array(e.target.result)); reader.readAsArrayBuffer(file); });
+        let workbook = XLSX.read(data, {type: 'array'});
+        let worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        let json = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Parse and format for SQL table
+        const formatted = json.map((r, index) => {
+          const gdNo = String(r['GD Number'] || r['GD No'] || `EXCEL-ROW-${index}`).trim();
+          let gdDate = ''; const parts = gdNo.split('-'); if(parts.length >= 5) gdDate = parts.slice(parts.length - 3).join('-');
+          return {
+            gd_no: gdNo, gd_date: gdDate, 
+            importer_name: String(r['Importer Name '] || r['Importer Name'] || r['Importer'] || 'Bulk Import').trim(), 
+            file_name: file.name, is_excel: true, item_no: '1', 
+            hs_code: String(r['Assessed HS Code'] || r['HS Code'] || '').trim(), 
+            description: String(r['Item Description'] || r['Description'] || '').trim(), 
+            origin: String(r['Origin'] || r['Country of Origin'] || '').trim(), 
+            uom_qty: String(r['Qty'] || r['Quantity'] || r['UOM'] || r['Declared Quantity'] || '').trim(), 
+            unit_value_declared: String(r['Dec Unit Value'] || r['Declared Value'] || '').trim(), 
+            unit_value_assessed: String(r['Assessed Unit Value'] || r['Assessed Value'] || '').trim()
+          };
+        });
+        allNewRows = allNewRows.concat(formatted);
+      }
+
+      // Chunk upload to avoid crashing Supabase
+      const chunkSize = 2000;
+      let successCount = 0;
+      for (let c = 0; c < allNewRows.length; c += chunkSize) {
+          const chunk = allNewRows.slice(c, c + chunkSize);
+          let percent = Math.floor((c / allNewRows.length) * 100);
+          adminLocalExcelStatus.innerHTML = `<span class="loader"></span>Uploading to Cloud DB... ${percent}%`;
+          
+          const { error } = await db.from('customs_data').insert(chunk);
+          if(error) {
+              adminLocalExcelStatus.innerHTML = `❌ Upload Error: ${error.message}`;
+              return;
+          }
+          successCount += chunk.length;
+      }
+      adminLocalExcelStatus.innerHTML = `✅ Successfully saved ${successCount} rows online!`;
+      
+    } catch(err) { adminLocalExcelStatus.innerHTML = `❌ File error: Invalid Excel format.`; }
+  }
+
+  adminClearExcelBtn.addEventListener('click', async () => {
+    if(!confirm("Delete ALL Excel bulk data from the Cloud?")) return;
+    adminLocalExcelStatus.innerHTML = `<span class="loader"></span>Deleting cloud data...`;
+    const { error } = await db.from('customs_data').delete().eq('is_excel', true);
+    if(error) { adminLocalExcelStatus.innerHTML = `❌ Error: ${error.message}`; } 
+    else { adminLocalExcelStatus.innerHTML = `🗑️ Cloud Excel data cleared.`; runSearch(); }
+  });
+
+  // --- SERVER-SIDE SEARCH (Super Fast SQL Search) ---
+  filterChips.addEventListener('click', e=>{
+    if(e.target.tagName!=='BUTTON') return;
+    filterChips.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active'); activeFilter = e.target.dataset.f; runSearch();
+  });
+  searchInput.addEventListener('input', debounce(runSearch, 400));
+  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
+  function parseValForSort(v) {
+    if(!v) return 0;
+    const parsed = parseFloat(v.toString().replace(/[^0-9.]/g, ''));
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  async function runSearch(){
+    const q = searchInput.value.trim();
+    resultsHolder.innerHTML = '';
+    if(!q){
+      resultCount.textContent = 'Type anything to search Vault instantly...';
+      resultsHolder.innerHTML = `<div class="empty-state"><div class="icon">&#128269;</div><div class="t1">Cloud Vault Ready</div><div class="t2">Search by description, HS code, or GD.</div></div>`;
+      return;
+    }
+
+    resultCount.innerHTML = `<span class="loader"></span> Searching Live Database...`;
+    
+    // Prepare Supabase Query
+    let query = db.from('customs_data').select('*');
+    
+    if(activeFilter === 'all') {
+        // ILIKE = case-insensitive search
+        query = query.or(`gd_no.ilike.%${q}%,importer_name.ilike.%${q}%,description.ilike.%${q}%,hs_code.ilike.%${q}%`);
+    } else {
+        query = query.ilike(activeFilter, `%${q}%`);
+    }
+
+    // Limit to 200 to keep UI extremely fast
+    const { data, error } = await query.limit(200);
+
+    if (error) { resultCount.textContent = `Search error: ${error.message}`; return; }
+    if (data.length === 0) { resultCount.textContent = 'No match found.'; return; }
+
+    resultCount.textContent = `Found results. Sorted Lowest to Highest Assessed Value (Showing up to 200 limits)`;
+
+    let appMatches = data.filter(d => !d.is_excel);
+    let excelMatches = data.filter(d => d.is_excel);
+
+    // Sort client side
+    appMatches.sort((a,b) => parseValForSort(a.unit_value_assessed) - parseValForSort(b.unit_value_assessed));
+    excelMatches.sort((a,b) => parseValForSort(a.unit_value_assessed) - parseValForSort(b.unit_value_assessed));
+
+    if(appMatches.length > 0){
+      const tdiv = document.createElement('div'); tdiv.className = 'section-title'; tdiv.textContent = `Company GD Ledger Records`; resultsHolder.appendChild(tdiv);
+      appMatches.forEach(m => resultsHolder.appendChild(createItemCard(m)));
+    }
+    if(excelMatches.length > 0){
+      const tdiv = document.createElement('div'); tdiv.className = 'section-title excel'; tdiv.textContent = `Customs Bulk Data`; resultsHolder.appendChild(tdiv);
+      excelMatches.forEach(m => resultsHolder.appendChild(createItemCard(m)));
+    }
+  }
+
+  function createItemCard(m){
+    const card = document.createElement('div');
+    card.className = m.is_excel ? 'result-item-card excel' : 'result-item-card';
+    const sourceLabel = m.is_excel ? `[Vault DB: ${m.file_name}]` : `[Cloud GD]`;
+    card.innerHTML = `
+      <div class="ric-top">
+        <span class="ric-gd">${m.gd_no || '—'} <span style="font-size:10px; color:${m.is_excel?'var(--green)':'var(--brass)'}">${sourceLabel}</span></span>
+        <span class="ric-meta">${m.importer_name || '—'} &middot; ${m.gd_date || '—'} &middot; Item #${m.item_no || '1'}</span>
+      </div>
+      <div class="ric-desc" title="${escapeAttr(m.description)}">${m.description || 'No description available'}</div>
+      <div class="ric-grid">
+        <div class="ric-field"><label>HS Code</label><span>${m.hs_code || '—'}</span></div>
+        <div class="ric-field"><label>Origin</label><span>${m.origin || '—'}</span></div>
+        <div class="ric-field"><label>UOM / Qty</label><span>${m.uom_qty || '—'}</span></div>
+        <div class="ric-field"><label>Dec Val</label><span>${m.unit_value_declared || '—'}</span></div>
+        <div class="ric-field"><label>Ass Val</label><span style="color:var(--brass); font-weight:700;">${m.unit_value_assessed || '—'}</span></div>
+      </div>`;
+    return card;
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', async ()=>{
+    let currentRole = localStorage.getItem('cv_role');
+    if(currentRole !== 'admin') { alert("Only admins can delete cloud records."); return; }
+    if(!confirm('Delete ALL PDF cloud records?')) return;
+    const { error } = await db.from('customs_data').delete().eq('is_excel', false);
+    if(!error) { alert('Cleared.'); runSearch(); }
+  });
+
+  document.getElementById('resetApiBtn').addEventListener('click', ()=>{ localStorage.removeItem('gemini_key'); alert("AI Key removed."); });
+
+  let savedRole = localStorage.getItem('cv_role') || null;
+  if (savedRole) { applyRole(savedRole); }
+
+})();
+</script>
+</body>
+</html>
