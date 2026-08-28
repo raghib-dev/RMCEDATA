@@ -1011,7 +1011,41 @@
   
   window.toggleAccount = async function(u, active) { await db.from('user_accounts').update({ is_active: active }).eq('username', u); loadSubscriptionsList(); };
   window.renewAccount = async function(u) { const exp = new Date(); exp.setDate(exp.getDate() + 30); await db.from('user_accounts').update({ expiry_date: exp.toISOString(), is_active: true }).eq('username', u); loadSubscriptionsList(); };
+// --- SESSION & AUTO-LOGOUT LOGIC ---
+  let inactivityTimer;
+  const INACTIVITY_TIME = 15 * 60 * 1000; // 15 minute ka timer (milliseconds mein)
 
+  function autoLogout() {
+      alert("Inactivity ki wajah se aap ka session expire ho gaya hai. Barae meharbani dobara login karein.");
+      localStorage.clear();
+      location.reload();
+  }
+
+  function resetTimer() {
+      clearTimeout(inactivityTimer);
+      const role = localStorage.getItem('cv_role');
+      
+      // Auto-logout sirf clients (viewer) par apply hoga, admin par nahi
+      if (role === 'viewer') {
+          inactivityTimer = setTimeout(autoLogout, INACTIVITY_TIME);
+      }
+  }
+
+  // User ki kisi bhi activity par timer wapas 0 se shuru ho jayega
+  ['mousemove', 'keydown', 'click', 'scroll'].forEach(event => {
+      document.addEventListener(event, resetTimer);
+  });
+
+  // Page refresh hone par check karein ke user pehle se login toh nahi
+  window.addEventListener('DOMContentLoaded', () => {
+      const role = localStorage.getItem('cv_role');
+      const user = localStorage.getItem('cv_username');
+      if (role && user) {
+          applyRole(role, user); // UI ko update kar dega
+          resetTimer(); // Timer shuru kar dega
+      }
+  });
+  
 })();
 </script>
 </body>
