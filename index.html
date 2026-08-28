@@ -875,7 +875,7 @@
     document.getElementById('detailModalBody').innerHTML = `
       <div style="margin-bottom:18px; padding:16px; background:rgba(201,162,39,0.06); border:1px solid var(--hairline); border-radius:3px;"><div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--brass); text-transform:uppercase; margin-bottom:6px;">Full Item Description</div><div style="font-size:15px; line-height:1.5;">${m.item_description||'—'}</div></div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:16px;">
-        ${['GD Number','assessed_hs_code','importer_name','supplier_name','agent_name','channel','origin','quantity','uom','currency','dec_unit_value','assessed_unit_value','bl_number'].map(k => {
+        ${['gd_number','assessed_hs_code','importer_name','supplier_name','agent_name','channel','origin','quantity','uom','currency','dec_unit_value','assessed_unit_value','bl_number'].map(k => {
           let label = k.replace(/_/g, ' ').toUpperCase(); let val = m[k] || m[k.toLowerCase()] || '—';
           let border = k === 'assessed_unit_value' ? 'border-color:var(--brass); background:rgba(201,162,39,0.04);' : ''; let valStyle = k === 'assessed_unit_value' ? 'color:var(--brass); font-weight:700; font-size:16px;' : '';
           return `<div style="background:rgba(15, 30, 43, 0.5); border:1px solid rgba(201, 162, 39, 0.15); padding:14px; border-radius:4px; ${border}"><div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--paper-dim); text-transform:uppercase; margin-bottom:6px;">${label}</div><div style="font-size:14px; word-wrap:break-word; ${valStyle}">${val}</div></div>`;
