@@ -845,7 +845,7 @@
       const searchTerms = rawQ.split(/\s+/).filter(w => w.length > 0); let query = db.from('customs_data').select('*');
       if (activeFilter === 'all') { if (searchTerms.length > 1) { searchTerms.forEach(t => { query = query.ilike('item_description', `%${t.replace(/'/g, '')}%`); }); } else { let t = searchTerms[0].replace(/'/g, ''); query = query.or(`item_description.ilike.%${t}%,assessed_hs_code.ilike.%${t}%,gd_number.ilike.%${t}%,importer_name.ilike.%${t}%`); }
       } else { searchTerms.forEach(t => { query = query.ilike(activeFilter, `%${t.replace(/'/g, '')}%`); }); }
-      let { data, error } = await query.limit(200);
+      let { data, error } = await query.limit(1000);
       if (currentSearchId !== searchId) return;
       if (error) throw new Error(error.message);
       if (!data || data.length === 0) { resultCount.textContent = 'No match found.'; return; }
