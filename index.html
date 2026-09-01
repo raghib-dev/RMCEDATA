@@ -776,9 +776,22 @@
           <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp);">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
         </div>
       </div>
-      <div style="background:rgba(0,0,0,0.2); border:1px dashed var(--hairline); border-radius:4px; padding:12px; margin-top:10px;">
-         <div class="calc-results-row" style="border:none; padding:0;"><span style="color:var(--paper-dim);">Item Landed Cost: <b style="color:var(--paper); margin-left:10px;">Rs. ${formatCurr(data.totalLandedCost)}</b></span><span style="color:var(--green);">Per ${data.uom}: Rs. ${formatCurr(data.costPerKg)}</span></div>
-      </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px dashed rgba(201,162,39,0.3); border-radius: 4px; background: rgba(201,162,39,0.04); font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;">
+        <!-- LEFT SIDE: Total Landed Cost -->
+        <div style="flex: 1; text-align: left; color: var(--paper-dim);">
+            Item Landed Cost: <strong style="color: var(--paper); font-size: 14px; margin-left: 6px;">Rs. ${formatCurr(data.totalLandedCost)}</strong>
+        </div>
+        
+        <!-- CENTER: Product Cost + Duty Per KG -->
+        <div style="flex: 1; text-align: center; color: var(--paper-dim);">
+            PRODUCT COST + DUTY = PER KGs: <strong style="color: var(--paper); margin-left: 6px;">Rs. ${formatCurr(data.costPerKg)}</strong>
+        </div>
+        
+        <!-- RIGHT SIDE: Only Duty Per KG -->
+        <div style="flex: 1; text-align: right; color: var(--paper-dim);">
+            Duty Per KG: <strong style="color: #e57373; margin-left: 6px;">Rs. ${formatCurr(data.dutyPerKg)}</strong>
+        </div>
+    </div>
     `;
   }
 
