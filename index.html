@@ -515,10 +515,7 @@
     if (role === 'admin') { document.getElementById('tabUploadBtn').style.display = 'inline-block'; document.getElementById('tabSubBtn').style.display = 'inline-block'; }
   }
   document.getElementById('headerLogoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
-  
-  if(document.getElementById('logoutBtn')) {
-      document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
-  }
+  if(document.getElementById('logoutBtn')) { document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); }); }
 
   // 4. SIGNUP TRIAL
   document.getElementById('openSignupBtn').addEventListener('click', () => { document.getElementById('signupModalOverlay').style.display = 'flex'; });
@@ -556,7 +553,6 @@
   }
   loadTariffFromCloud();
 
-  // Load VRs dynamically from Cloud DB
   async function loadVrFromCloud() {
       try {
           const { data, error } = await db.from('vr_matrix').select('*');
@@ -565,35 +561,23 @@
               let uniqueVrs = new Map();
 
               data.forEach(row => {
-                  let hs = row.hs_code.replace(/\D/g, "");
+                  if(!row.hs_code) return;
+                  let hs = String(row.hs_code).replace(/\D/g, "");
                   if (!VR_MATRIX_DB[hs]) {
                       VR_MATRIX_DB[hs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
                   }
-                  VR_MATRIX_DB[hs].options.push({
-                      id: row.id,
-                      label: row.category,
-                      value: row.vr_value
-                  });
+                  VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
                   
-                  // Prep for VR Directory Search Tab
-                  let key = row.vr_no.toLowerCase();
+                  let key = String(row.vr_no).toLowerCase();
                   if(!uniqueVrs.has(key)) {
-                      uniqueVrs.set(key, {
-                          vr_no: row.vr_no,
-                          title: "Applicable on HS: " + hs,
-                          date: "Cloud DB",
-                          link: row.pdf_link || "#"
-                      });
+                      uniqueVrs.set(key, { vr_no: row.vr_no, title: "Applicable on HS: " + hs, date: "Cloud DB", link: row.pdf_link || "#" });
                   } else {
                        let existing = uniqueVrs.get(key);
                        if(!existing.title.includes(hs)) existing.title += ", " + hs;
                   }
               });
               vrDataList = Array.from(uniqueVrs.values());
-              
-              if(localStorage.getItem('cv_role') === 'admin') {
-                  renderAdminVrList(data);
-              }
+              if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
           }
       } catch(e) {}
   }
@@ -615,10 +599,7 @@
     let slab = AUTO_HS_DUTY_SLABS[hsCode];
     if(!slab && hsCode.length >= 6) slab = AUTO_HS_DUTY_SLABS[hsCode.substring(0, 6)];
     
-    if (!slab) { 
-        showHsSlabMessage("⚠️ HS Code not found in Tariff Database. Manual rates will be auto-saved upon calculation.", "error"); 
-        return; 
-    }
+    if (!slab) { showHsSlabMessage("⚠️ HS Code not found in Tariff Database. Manual rates will be auto-saved upon calculation.", "error"); return; }
 
     let finalAst = slab.addSt !== undefined ? slab.addSt : 3;
     let finalIt = slab.it !== undefined ? slab.it : 6;
@@ -645,57 +626,33 @@
   document.getElementById("calcHsCode").addEventListener("input", function() {
       const hs = this.value.trim().replace(/\D/g, "");
       let slab = AUTO_HS_DUTY_SLABS[hs] || (hs.length >= 6 ? AUTO_HS_DUTY_SLABS[hs.substring(0, 6)] : null);
+      let msg = ""; let type = "normal";
       
-      let msg = "";
-      let type = "normal";
-      
-      if(!slab && hs.length >= 4) {
-          msg = "⚠️ HS Code not found. Manual rates will be auto-saved.";
-          type = "error";
-      } else if(slab) {
-          msg = "✓ Slab ready for HS Code " + hs;
-          type = "success";
-      }
+      if(!slab && hs.length >= 4) { msg = "⚠️ HS Code not found. Manual rates will be auto-saved."; type = "error"; } 
+      else if(slab) { msg = "✓ Slab ready for HS Code " + hs; type = "success"; }
 
-      // SMART MATRIX VR CLOUD CHECK
-      const vrDropdown = document.getElementById('vrMatrixDropdown');
-      const vrBadge = document.getElementById('vrBadge');
-      
-      // Match 8 digit or 6 digit
+      const vrDropdown = document.getElementById('vrMatrixDropdown'); const vrBadge = document.getElementById('vrBadge');
       let matrixData = VR_MATRIX_DB[hs];
       if(!matrixData && hs.length >= 6) matrixData = VR_MATRIX_DB[hs.substring(0, 6)];
 
       if (matrixData) {
           vrBadge.innerHTML = `(<a href="${matrixData.link}" target="_blank" style="color:var(--green); text-decoration:underline;">VR: ${matrixData.vr_no} PDF</a>)`;
           vrBadge.style.display = 'inline';
-          
           let optionsHtml = `<option value="">Select Origin / Material...</option>`;
-          matrixData.options.forEach(opt => {
-              optionsHtml += `<option value="${opt.value}">${opt.label} - $${opt.value}/KG</option>`;
-          });
-          vrDropdown.innerHTML = optionsHtml;
-          vrDropdown.style.display = 'block';
-          
-          if(msg) msg += ` | 📜 VR ${matrixData.vr_no} Applicable! Select category.`;
-          else msg = `📜 VR ${matrixData.vr_no} Applicable! Select category.`;
+          matrixData.options.forEach(opt => { optionsHtml += `<option value="${opt.value}">${opt.label} - $${opt.value}/KG</option>`; });
+          vrDropdown.innerHTML = optionsHtml; vrDropdown.style.display = 'block';
+          if(msg) msg += ` | 📜 VR ${matrixData.vr_no} Applicable! Select category.`; else msg = `📜 VR ${matrixData.vr_no} Applicable! Select category.`;
           type = "success";
       } else {
           vrBadge.style.display = 'none';
-          if(vrDropdown) {
-              vrDropdown.style.display = 'none';
-              vrDropdown.innerHTML = '';
-          }
+          if(vrDropdown) { vrDropdown.style.display = 'none'; vrDropdown.innerHTML = ''; }
           document.getElementById('calcVrValue').value = '';
       }
-
       if(msg) showHsSlabMessage(msg, type);
   });
 
   document.getElementById('vrMatrixDropdown').addEventListener('change', function() {
-      if(this.value) {
-          document.getElementById('calcVrValue').value = this.value;
-          calculateDuty(); // Update calculation immediately
-      }
+      if(this.value) { document.getElementById('calcVrValue').value = this.value; calculateDuty(); }
   });
 
   async function autoSaveCurrentSlab(hsCode) {
@@ -703,25 +660,12 @@
       const cleanHs = hsCode.replace(/\D/g, "");
       const currentDesc = document.getElementById('calcDesc').value.trim();
       let existingDesc = AUTO_HS_DUTY_SLABS[cleanHs] ? AUTO_HS_DUTY_SLABS[cleanHs].description : currentDesc;
-
       const slabData = {
-          hs_code: cleanHs,
-          description: existingDesc,
-          cd: parseFloat(document.getElementById('calcDuty').value)||0,
-          acd: parseFloat(document.getElementById('calcAcd').value)||0,
-          rd: parseFloat(document.getElementById('calcRd').value)||0,
-          st: parseFloat(document.getElementById('calcSt').value)||0,
-          ast: parseFloat(document.getElementById('calcAddSt').value)||0,
-          it: parseFloat(document.getElementById('calcIt').value)||0,
-          anti_dumping: parseFloat(document.getElementById('calcAd').value)||0
+          hs_code: cleanHs, description: existingDesc,
+          cd: parseFloat(document.getElementById('calcDuty').value)||0, acd: parseFloat(document.getElementById('calcAcd').value)||0, rd: parseFloat(document.getElementById('calcRd').value)||0, st: parseFloat(document.getElementById('calcSt').value)||0, ast: parseFloat(document.getElementById('calcAddSt').value)||0, it: parseFloat(document.getElementById('calcIt').value)||0, anti_dumping: parseFloat(document.getElementById('calcAd').value)||0
       };
-
       AUTO_HS_DUTY_SLABS[cleanHs] = { description: existingDesc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Auto-Saved" };
-
-      try {
-          await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' });
-          if(localStorage.getItem('cv_role') === 'admin') loadAdminTariffList();
-      } catch(e) {}
+      try { await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' }); if(localStorage.getItem('cv_role') === 'admin') loadAdminTariffList(); } catch(e) {}
   }
 
   document.getElementById('calcType').addEventListener('change', function() {
@@ -748,36 +692,16 @@
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
       container.innerHTML = '<div class="loader"></div> Loading tariff slabs...';
-      
       const { data, error } = await db.from('tariff_rates').select('*').order('hs_code', { ascending: true });
       if(error || !data) { container.innerHTML = `<span style="color:var(--stamp);">Error loading slabs or table not created.</span>`; return; }
       if(data.length === 0) { container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px;">No tariff slabs saved yet.</div>`; return; }
-
       let html = `<table class="sub-table"><tr><th>HS Code</th><th>Description</th><th>CD %</th><th>ACD %</th><th>RD %</th><th>ST %</th><th>AST %</th><th>IT %</th><th>AD %</th><th>Actions</th></tr>`;
       data.forEach(row => {
-          let descText = row.description || '—';
-          html += `<tr>
-              <td><b>${row.hs_code}</b></td>
-              <td>${descText}</td>
-              <td>${row.cd}%</td>
-              <td>${row.acd}%</td>
-              <td>${row.rd}%</td>
-              <td>${row.st}%</td>
-              <td>${row.ast}%</td>
-              <td>${row.it}%</td>
-              <td>${row.anti_dumping||0}%</td>
-              <td>
-                <button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--brass); border-color:var(--brass-dim); margin-right:4px;" onclick="editTariffSlab('${row.hs_code}', '${(row.description||'').replace(/'/g, "\\'")}', ${row.cd}, ${row.acd}, ${row.rd}, ${row.st}, ${row.ast}, ${row.it}, ${row.anti_dumping||0})">Edit</button>
-                <button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteTariffSlab('${row.hs_code}')">Delete</button>
-              </td>
-          </tr>`;
+          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.description || '—'}</td><td>${row.cd}%</td><td>${row.acd}%</td><td>${row.rd}%</td><td>${row.st}%</td><td>${row.ast}%</td><td>${row.it}%</td><td>${row.anti_dumping||0}%</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--brass); border-color:var(--brass-dim); margin-right:4px;" onclick="editTariffSlab('${row.hs_code}', '${(row.description||'').replace(/'/g, "\\'")}', ${row.cd}, ${row.acd}, ${row.rd}, ${row.st}, ${row.ast}, ${row.it}, ${row.anti_dumping||0})">Edit</button><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteTariffSlab('${row.hs_code}')">Delete</button></td></tr>`;
       });
       container.innerHTML = html + `</table>`;
-      
-      loadVrFromCloud();
   }
 
-  // --- NEW: VR ADMIN PANEL LOGIC ---
   if(document.getElementById('saveVrBtn')) {
       document.getElementById('saveVrBtn').addEventListener('click', async () => {
           const hs = String(document.getElementById('addVrHs').value).replace(/\D/g, "");
@@ -785,97 +709,36 @@
           const category = document.getElementById('addVrCategory').value.trim();
           const val = parseFloat(document.getElementById('addVrValue').value);
           const link = document.getElementById('addVrLink').value.trim();
-
           if(!hs || !vrNo || !category || isNaN(val)) { alert("Please fill HS Code, VR Number, Category, and Value."); return; }
-
           const statusEl = document.getElementById('saveVrStatus'); statusEl.innerHTML = '<span class="loader"></span> Saving...';
-          const { error } = await db.from('vr_matrix').insert([{
-              hs_code: hs, vr_no: vrNo, category: category, vr_value: val, pdf_link: link
-          }]);
-          
-          if(error) { 
-              statusEl.textContent = "Error: Ensure 'vr_matrix' table is created."; statusEl.className = "status-line err"; 
-          } else { 
-              statusEl.textContent = "✓ VR Option Saved Successfully!"; statusEl.className = "status-line ok"; 
-              document.getElementById('addVrCategory').value = '';
-              document.getElementById('addVrValue').value = '';
-              loadVrFromCloud(); 
-          }
+          const { error } = await db.from('vr_matrix').insert([{ hs_code: hs, vr_no: vrNo, category: category, vr_value: val, pdf_link: link }]);
+          if(error) { statusEl.textContent = "Error: Ensure 'vr_matrix' table is created."; statusEl.className = "status-line err"; } 
+          else { statusEl.textContent = "✓ VR Option Saved!"; statusEl.className = "status-line ok"; document.getElementById('addVrCategory').value = ''; document.getElementById('addVrValue').value = ''; loadVrFromCloud(); }
       });
   }
 
   function renderAdminVrList(data) {
-      const container = document.getElementById('adminVrListContainer');
-      if(!container) return;
+      const container = document.getElementById('adminVrListContainer'); if(!container) return;
       if(data.length === 0) { container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px;">No VR data saved yet.</div>`; return; }
-
       let html = `<table class="sub-table"><tr><th>HS Code</th><th>VR No</th><th>Category / Origin</th><th>Value (USD)</th><th>PDF Link</th><th>Action</th></tr>`;
       data.sort((a,b) => a.hs_code.localeCompare(b.hs_code)).forEach(row => {
-          html += `<tr>
-              <td><b>${row.hs_code}</b></td>
-              <td>${row.vr_no}</td>
-              <td>${row.category}</td>
-              <td style="color:var(--brass); font-weight:bold;">$${row.vr_value}</td>
-              <td><a href="${row.pdf_link}" target="_blank" style="color:var(--paper-dim);">Link</a></td>
-              <td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button></td>
-          </tr>`;
+          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.vr_no}</td><td>${row.category}</td><td style="color:var(--brass); font-weight:bold;">$${row.vr_value}</td><td><a href="${row.pdf_link}" target="_blank" style="color:var(--paper-dim);">Link</a></td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button></td></tr>`;
       });
       container.innerHTML = html + `</table>`;
   }
 
-  window.deleteVrRecord = async function(id) {
-      if(!confirm(`Delete this VR record from cloud?`)) return;
-      await db.from('vr_matrix').delete().eq('id', id);
-      loadVrFromCloud();
-  };
-  // --- END VR ADMIN LOGIC ---
-
-  window.editTariffSlab = function(hs, desc, cd, acd, rd, st, ast, it, ad) {
-      document.getElementById('addTariffHs').value = hs;
-      document.getElementById('addTariffDesc').value = desc !== '—' ? desc : '';
-      document.getElementById('addTariffCd').value = cd;
-      document.getElementById('addTariffAcd').value = acd;
-      document.getElementById('addTariffRd').value = rd;
-      document.getElementById('addTariffSt').value = st;
-      document.getElementById('addTariffAst').value = ast;
-      document.getElementById('addTariffIt').value = it;
-      document.getElementById('addTariffAd').value = ad;
-      window.scrollTo({ top: document.getElementById('adminTariffCard').offsetTop - 20, behavior: 'smooth' });
-  };
-
-  window.deleteTariffSlab = async function(hsCode) {
-      if(!confirm(`Delete tariff slab for HS Code ${hsCode}?`)) return;
-      await db.from('tariff_rates').delete().eq('hs_code', hsCode);
-      delete AUTO_HS_DUTY_SLABS[hsCode];
-      loadAdminTariffList();
-  };
+  window.deleteVrRecord = async function(id) { if(!confirm(`Delete this VR record from cloud?`)) return; await db.from('vr_matrix').delete().eq('id', id); loadVrFromCloud(); };
+  window.editTariffSlab = function(hs, desc, cd, acd, rd, st, ast, it, ad) { document.getElementById('addTariffHs').value = hs; document.getElementById('addTariffDesc').value = desc !== '—' ? desc : ''; document.getElementById('addTariffCd').value = cd; document.getElementById('addTariffAcd').value = acd; document.getElementById('addTariffRd').value = rd; document.getElementById('addTariffSt').value = st; document.getElementById('addTariffAst').value = ast; document.getElementById('addTariffIt').value = it; document.getElementById('addTariffAd').value = ad; window.scrollTo({ top: document.getElementById('adminTariffCard').offsetTop - 20, behavior: 'smooth' }); };
+  window.deleteTariffSlab = async function(hsCode) { if(!confirm(`Delete tariff slab for HS Code ${hsCode}?`)) return; await db.from('tariff_rates').delete().eq('hs_code', hsCode); delete AUTO_HS_DUTY_SLABS[hsCode]; loadAdminTariffList(); };
 
   if(document.getElementById('saveTariffBtn')) {
     document.getElementById('saveTariffBtn').addEventListener('click', async () => {
-      const hs = String(document.getElementById('addTariffHs').value).replace(/\D/g, "");
-      const desc = document.getElementById('addTariffDesc').value.trim();
-      if(!hs) { alert("Please enter HS Code"); return; }
-      
-      const slabData = {
-        hs_code: hs,
-        description: desc,
-        cd: parseFloat(document.getElementById('addTariffCd').value)||0,
-        acd: parseFloat(document.getElementById('addTariffAcd').value)||0,
-        rd: parseFloat(document.getElementById('addTariffRd').value)||0,
-        st: parseFloat(document.getElementById('addTariffSt').value)||0,
-        ast: parseFloat(document.getElementById('addTariffAst').value)||0,
-        it: parseFloat(document.getElementById('addTariffIt').value)||0,
-        anti_dumping: parseFloat(document.getElementById('addTariffAd').value)||0,
-      };
-      
+      const hs = String(document.getElementById('addTariffHs').value).replace(/\D/g, ""); const desc = document.getElementById('addTariffDesc').value.trim(); if(!hs) { alert("Please enter HS Code"); return; }
+      const slabData = { hs_code: hs, description: desc, cd: parseFloat(document.getElementById('addTariffCd').value)||0, acd: parseFloat(document.getElementById('addTariffAcd').value)||0, rd: parseFloat(document.getElementById('addTariffRd').value)||0, st: parseFloat(document.getElementById('addTariffSt').value)||0, ast: parseFloat(document.getElementById('addTariffAst').value)||0, it: parseFloat(document.getElementById('addTariffIt').value)||0, anti_dumping: parseFloat(document.getElementById('addTariffAd').value)||0 };
       const statusEl = document.getElementById('saveTariffStatus'); statusEl.innerHTML = '<span class="loader"></span> Saving...';
       const { error } = await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' });
       if(error) { statusEl.textContent = "Error: Ensure 'tariff_rates' table exists."; statusEl.className = "status-line err"; } 
-      else { 
-          statusEl.textContent = "✓ Slab Saved Successfully!"; statusEl.className = "status-line ok"; 
-          AUTO_HS_DUTY_SLABS[hs] = { description: desc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Cloud DB" };
-          loadAdminTariffList();
-      }
+      else { statusEl.textContent = "✓ Slab Saved Successfully!"; statusEl.className = "status-line ok"; AUTO_HS_DUTY_SLABS[hs] = { description: desc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Cloud DB" }; loadAdminTariffList(); }
     });
   }
 
@@ -891,47 +754,21 @@
   function getCalcData() {
     const obj = {
       type: document.getElementById('calcType').value, hsCode: document.getElementById('calcHsCode').value, desc: document.getElementById('calcDesc').value, origin: document.getElementById('calcOrigin').value,
-      unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0,
-      vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0,
-      qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
+      unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0, vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0, qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
       dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
     const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
-    // Customs rule: Take higher of Unit Price or VR Value
     let assessedUnitPrice = obj.vrValue > obj.unitPrice ? obj.vrValue : obj.unitPrice;
-
-    // 1. Calculate Base USD (with 1% Insurance + 1% Landing)
-    let baseUsd = assessedUnitPrice * obj.qty;
-    let insUsd = baseUsd * 0.01;
-    let landingUsd = (baseUsd + insUsd) * 0.01;
-    obj.impValUsd = baseUsd + insUsd + landingUsd;
-
-    // 2. Convert to PKR
+    let baseUsd = assessedUnitPrice * obj.qty; let insUsd = baseUsd * 0.01; let landingUsd = (baseUsd + insUsd) * 0.01; obj.impValUsd = baseUsd + insUsd + landingUsd;
     obj.impValRs = obj.impValUsd * obj.exRate;
-
-    // 3. Calculate Duty, ACD, RD on Base Value
-    obj.dutyAmt = obj.impValRs * dRate;
-    obj.acdAmt = obj.impValRs * acdRate;
-    obj.rdAmt = obj.impValRs * rdRate;
-
-    // 4. Calculate Sales Taxes (Base + CD + ACD + RD)
-    let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt;
-    obj.stAmt = valueForSt * stRate;
-    obj.addStAmt = valueForSt * addStRate;
-
-    // 5. Calculate Income Tax (Base + CD + ACD + RD + ST + AddST)
-    let valueForIt = valueForSt + obj.stAmt + obj.addStAmt;
-    obj.itAmt = valueForIt * itRate;
-
-    // 6. Anti-Dumping
+    obj.dutyAmt = obj.impValRs * dRate; obj.acdAmt = obj.impValRs * acdRate; obj.rdAmt = obj.impValRs * rdRate;
+    let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt; obj.stAmt = valueForSt * stRate; obj.addStAmt = valueForSt * addStRate;
+    let valueForIt = valueForSt + obj.stAmt + obj.addStAmt; obj.itAmt = valueForIt * itRate;
     obj.adAmt = obj.impValRs * adRate;
-
-    // 7. Calculate Totals
     obj.totalDutyTaxes = obj.dutyAmt + obj.acdAmt + obj.rdAmt + obj.stAmt + obj.addStAmt + obj.itAmt + obj.adAmt;
     obj.totalLandedCost = obj.impValRs + obj.totalDutyTaxes;
-    obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); 
-    obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
+    obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
     return obj;
   }
 
@@ -962,20 +799,9 @@
         </div>
       </div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px solid #000000; border-radius: 4px; background: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;">
-        <!-- LEFT SIDE: Total Landed Cost -->
-        <div style="flex: 1; text-align: left; color: #000000; font-weight: 600;">
-            Item Landed Cost: <strong style="color: #000000; font-size: 14px; margin-left: 6px;">Rs. ${formatCurr(data.totalLandedCost)}</strong>
-        </div>
-        
-        <!-- CENTER: Product Cost + Duty Per KG -->
-        <div style="flex: 1; text-align: center; color: #000000; font-weight: 600;">
-            PRODUCT COST + DUTY = PER KGs: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.costPerKg)}</strong>
-        </div>
-        
-        <!-- RIGHT SIDE: Only Duty Per KG -->
-        <div style="flex: 1; text-align: right; color: #000000; font-weight: 600;">
-            Duty Per KG: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.dutyPerKg)}</strong>
-        </div>
+        <div style="flex: 1; text-align: left; color: #000000; font-weight: 600;">Item Landed Cost: <strong style="color: #000000; font-size: 14px; margin-left: 6px;">Rs. ${formatCurr(data.totalLandedCost)}</strong></div>
+        <div style="flex: 1; text-align: center; color: #000000; font-weight: 600;">PRODUCT COST + DUTY = PER KGs: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.costPerKg)}</strong></div>
+        <div style="flex: 1; text-align: right; color: #000000; font-weight: 600;">Duty Per KG: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.dutyPerKg)}</strong></div>
     </div>
     `;
   }
@@ -984,11 +810,7 @@
 
   document.getElementById('addToInvoiceBtn').addEventListener('click', () => {
     const data = getCalcData(); if(!data.desc) { alert('Please enter an Item Description first.'); return; }
-    
-    if(data.hsCode) { 
-        autoSaveCurrentSlab(data.hsCode); 
-    }
-
+    if(data.hsCode) { autoSaveCurrentSlab(data.hsCode); }
     invoiceItems.push(data); document.getElementById('invoiceListContainer').style.display = 'block'; renderInvoiceList();
     document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcVrValue').value = ''; showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); calculateDuty();
   });
@@ -1023,8 +845,7 @@
   document.getElementById('printCalcBtn').addEventListener('click', () => { 
     if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
     calcSerialNo++; localStorage.setItem('ig_calc_serial', calcSerialNo);
-    document.getElementById('printSerial').textContent = "Assessment Slip No: IG-" + calcSerialNo;
-    document.getElementById('printDate').textContent = "Generated on: " + new Date().toLocaleString();
+    document.getElementById('printSerial').textContent = "Assessment Slip No: IG-" + calcSerialNo; document.getElementById('printDate').textContent = "Generated on: " + new Date().toLocaleString();
     window.print(); 
   });
 
@@ -1109,7 +930,7 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 10. VALUATION RULINGS SEARCH (Now Dynamic)
+  // 10. VALUATION RULINGS SEARCH
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => i.title.toLowerCase().includes(q) || i.vr_no.toLowerCase().includes(q));
@@ -1120,9 +941,7 @@
             tableHtml += `<tr><td><b>${item.vr_no}</b><br><span style="color:var(--paper-dim); font-size:10.5px;">${item.title}</span></td><td><span style="color:var(--green); font-size:11px;">${item.date}</span></td><td><a href="${item.link}" target="_blank" style="color:var(--brass);">Download PDF</a></td></tr>`; 
         }); 
         document.getElementById('vrResultsHolder').innerHTML = tableHtml + `</table>`; 
-    } else {
-        document.getElementById('vrResultsHolder').innerHTML = '';
-    }
+    } else { document.getElementById('vrResultsHolder').innerHTML = ''; }
   }
   document.getElementById('vrSearchInput').addEventListener('input', debounce(runVrSearch, 300));
 
@@ -1150,4 +969,122 @@
         try{
           const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ contents: [{ parts: [ { text: `Extract GD PDF structured data. Return ONLY JSON: {"GD Number":"","Importer Name":"","Supplier Name":"","Currency":"","BL Number":"","Agent Name":"","Channel":"","items":[{"item_no":"","Assessed HS Code":"","Item Description":"","Origin":"","Quantity":"","UOM":"","Dec Unit Value":"","Assessed Unit Value":""}]}` }, { inlineData: { mimeType: "application/pdf", data: extractState.base64 } } ] }] }) });
           const data = await response.json(); if(data.error) throw new Error(data.error.message);
-          let clean = data.candidates[0].content.parts[0].text.replace(/^```json/i,'').replace(/^
+          let clean = data.candidates[0].content.parts[0].text.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim(); extractState.parsed = JSON.parse(clean); document.getElementById('extractStatus').textContent = 'Extraction complete!'; renderPreview(extractState.parsed);
+        }catch(err){ document.getElementById('extractStatus').textContent = 'Error: ' + err.message; extractBtn.disabled = false; }
+      });
+  }
+
+  function renderPreview(rec){
+    document.getElementById('previewCard').style.display = 'block';
+    let html = `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">${['GD Number','Importer Name','Supplier Name','Currency','BL Number','Agent Name','Channel'].map(k => `<div style="flex:1;"><label style="font-size:10px; color:var(--paper-dim); display:block;">${k}</label><input data-key="${k}" value="${escapeAttr(rec[k])}" style="width:100%; background:var(--ink); border:1px solid var(--hairline); color:var(--paper); padding:8px; border-radius:2px;"></div>`).join('')}</div>`;
+    (rec.items||[]).forEach((it, idx)=>{ html += `<div style="background:rgba(0,0,0,0.15); border:1px solid var(--hairline); padding:14px; border-radius:4px; margin-bottom:10px;"><span style="background:var(--brass); color:var(--ink); padding:2px 6px; font-size:11px; font-weight:bold; border-radius:2px; display:inline-block; margin-bottom:8px;">Item ${idx+1}</span><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">${['Assessed HS Code','Origin','Quantity','UOM','Dec Unit Value','Assessed Unit Value'].map(k => `<div><label style="font-size:10px; color:var(--paper-dim); display:block;">${k}</label><input data-item="${idx}" data-key="${k}" value="${escapeAttr(it[k])}" style="width:100%; background:var(--ink); border:1px solid var(--hairline); color:var(--paper); padding:8px;"></div>`).join('')}<div style="grid-column:1/-1;"><label style="font-size:10px; color:var(--paper-dim); display:block;">Item Description</label><input data-item="${idx}" data-key="Item Description" value="${escapeAttr(it['Item Description'])}" style="width:100%; background:var(--ink); border:1px solid var(--hairline); color:var(--paper); padding:8px;"></div></div></div>`; });
+    document.getElementById('previewHolder').innerHTML = html;
+  }
+  
+  if(document.getElementById('discardBtn')) {
+      document.getElementById('discardBtn').addEventListener('click', ()=>{ document.getElementById('previewCard').style.display='none'; document.getElementById('fileChipHolder').innerHTML=''; extractBtn.disabled=false; document.getElementById('extractStatus').textContent=''; });
+  }
+  
+  if(document.getElementById('saveBtn')) {
+      document.getElementById('saveBtn').addEventListener('click', async ()=>{
+        const rec = { items:[] }; document.getElementById('previewHolder').querySelectorAll('input[data-key]:not([data-item])').forEach(i => rec[i.dataset.key] = i.value); extractState.parsed.items.forEach((_, idx) => { let it = {}; document.getElementById('previewHolder').querySelectorAll(`input[data-item="${idx}"]`).forEach(i => it[i.dataset.key] = i.value); rec.items.push(it); });
+        document.getElementById('saveBtn').disabled = true; document.getElementById('saveStatus').innerHTML = '<span class="loader"></span>Saving...';
+        const dbRecords = rec.items.map(it => ({ gd_number: rec['GD Number'], importer_name: rec['Importer Name'], supplier_name: rec['Supplier Name'], currency: rec['Currency'] || 'USD', bl_number: rec['BL Number'], agent_name: rec['Agent Name'], channel: rec['Channel'], assessed_hs_code: it['Assessed HS Code'], item_description: it['Item Description'], origin: it['Origin'], quantity: it['Quantity'], uom: it['UOM'], dec_unit_value: it['Dec Unit Value'], assessed_unit_value: it['Assessed Unit Value'] }));
+        const { error } = await db.from('customs_data').insert(dbRecords);
+        if(error){ document.getElementById('saveStatus').textContent = 'Save failed: ' + error.message; } else { document.getElementById('saveStatus').textContent = 'Saved!'; setTimeout(()=>{ document.getElementById('previewCard').style.display='none'; document.getElementById('fileChipHolder').innerHTML=''; extractBtn.disabled=false; document.getElementById('extractStatus').textContent=''; }, 1500); }
+        document.getElementById('saveBtn').disabled = false;
+      });
+  }
+
+  // 12. EXCEL BULK UPLOAD
+  if(document.getElementById('adminLoadExcelBtn')) {
+      document.getElementById('adminLoadExcelBtn').addEventListener('click', () => { document.getElementById('adminLocalExcelInput').value = ''; document.getElementById('adminLocalExcelInput').click(); });
+  }
+
+  if(document.getElementById('adminLocalExcelInput')) {
+      document.getElementById('adminLocalExcelInput').addEventListener('change', async e => {
+        if(e.target.files.length === 0) return; const statusEl = document.getElementById('adminLocalExcelStatus'); statusEl.innerHTML = `<span class="loader"></span>Reading Excel...`; let allNewRows = [];
+        try {
+          for(let file of e.target.files) {
+            let data = await new Promise(r => { let reader = new FileReader(); reader.onload = e => r(new Uint8Array(e.target.result)); reader.readAsArrayBuffer(file); });
+            let wb = XLSX.read(data, {type: 'array'}); let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            const formatted = json.map(r => { const getVal = (keys) => { for(let k of keys) { const found = Object.keys(r).find(x => x.trim().toLowerCase() === k.toLowerCase()); if(found && r[found] !== undefined) return String(r[found]).trim(); } return ''; };
+              return { gd_number: getVal(['GD Number', 'GD No', 'GDNUMBER']), assessed_hs_code: getVal(['Assessed HS Code', 'HS Code']), item_description: getVal(['Item Description', 'Description']), importer_name: getVal(['Importer Name', 'Importer']), channel: getVal(['Channel']), dec_unit_value: getVal(['Dec Unit Value', 'Declared Value']), assessed_unit_value: getVal(['Assessed Unit Value', 'Assessed Value']), currency: getVal(['Currency', 'Curr']) || 'USD', quantity: getVal(['Quantity', 'Qty']), uom: getVal(['UOM']), origin: getVal(['Origin']), supplier_name: getVal(['Supplier Name', 'Supplier']), bl_number: getVal(['BL Number', 'BL No']), agent_name: getVal(['Agent Name', 'Agent']) };
+            }); allNewRows = allNewRows.concat(formatted);
+          }
+          const chunkSize = 25;
+          for (let c = 0; c < allNewRows.length; c += chunkSize) { 
+            statusEl.innerHTML = `<span class="loader"></span>Uploading... ${Math.floor((c / allNewRows.length) * 100)}% (Chunk ${Math.floor(c/chunkSize) + 1})`; 
+            const { error } = await db.from('customs_data').insert(allNewRows.slice(c, c + chunkSize)); 
+            if(error) { statusEl.innerHTML = `❌ Error: ${error.message}`; return; } 
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          statusEl.innerHTML = `✅ Successfully saved ${allNewRows.length} rows!`;
+        } catch(err) { statusEl.innerHTML = `❌ Excel format error.`; }
+      });
+  }
+
+  if(document.getElementById('adminClearExcelBtn')) {
+      document.getElementById('adminClearExcelBtn').addEventListener('click', async () => { if(!confirm("Delete ALL bulk data?")) return; document.getElementById('adminLocalExcelStatus').innerHTML = `<span class="loader"></span>Deleting...`; const { error } = await db.from('customs_data').delete().neq('id', 0); document.getElementById('adminLocalExcelStatus').innerHTML = error ? `❌ Error: ${error.message}` : `🗑️ Cleared.`; });
+  }
+
+  // 13. CLIENT SUB MANAGEMENT
+  if(document.getElementById('createSubBtn')) {
+      document.getElementById('createSubBtn').addEventListener('click', async () => {
+        const u = document.getElementById('newSubUser').value.trim().toLowerCase(); const p = document.getElementById('newSubPass').value.trim(); if(!u || !p) return;
+        document.getElementById('createSubBtn').disabled = true; document.getElementById('subMsg').innerHTML = '<span class="loader"></span> Saving...';
+        const exp = new Date(); exp.setDate(exp.getDate() + 30); const { error } = await db.from('user_accounts').insert([{ username: u, password: p, is_active: true, expiry_date: exp.toISOString() }]);
+        document.getElementById('createSubBtn').disabled = false;
+        if(error) { document.getElementById('subMsg').textContent = 'Error: ' + error.message; } else { document.getElementById('subMsg').textContent = 'Account created!'; document.getElementById('newSubUser').value=''; document.getElementById('newSubPass').value=''; loadSubscriptionsList(); }
+      });
+  }
+  
+  async function loadSubscriptionsList() {
+    const cont = document.getElementById('subsListContainer'); if(!cont) return; cont.innerHTML = '<div class="loader"></div> Loading...';
+    const { data, error } = await db.from('user_accounts').select('*').order('created_at', { ascending: false });
+    if(error || !data) { cont.innerHTML = `Error loading clients.`; return; }
+    let html = `<table class="sub-table"><tr><th>Username</th><th>Company</th><th>Email</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr>`;
+    data.forEach(acc => {
+      const exp = new Date(acc.expiry_date); const isExp = new Date() > exp;
+      html += `<tr><td><b>${acc.username}</b></td><td>${acc.company_name||'—'}</td><td>${acc.email||'—'}</td><td>${exp.toLocaleDateString()}</td><td><span class="${(acc.is_active && !isExp) ? 'badge-active' : 'badge-expired'}">${!acc.is_active ? 'Deactivated' : (isExp ? 'Expired' : 'Active')}</span></td><td><button class="ghost" style="padding:4px; font-size:10px;" onclick="toggleAccount('${acc.username}', ${!acc.is_active})">${acc.is_active?'Deactivate':'Activate'}</button> <button class="ghost" style="padding:4px; font-size:10px; color:red;" onclick="renewAccount('${acc.username}')">+30 Days</button></td></tr>`;
+    }); cont.innerHTML = html + `</table>`;
+  }
+  
+  window.toggleAccount = async function(u, active) { await db.from('user_accounts').update({ is_active: active }).eq('username', u); loadSubscriptionsList(); };
+  window.renewAccount = async function(u) { const exp = new Date(); exp.setDate(exp.getDate() + 30); await db.from('user_accounts').update({ expiry_date: exp.toISOString(), is_active: true }).eq('username', u); loadSubscriptionsList(); };
+
+// --- SESSION & AUTO-LOGOUT LOGIC ---
+  let inactivityTimer;
+  const INACTIVITY_TIME = 15 * 60 * 1000;
+
+  function autoLogout() {
+      alert("Inactivity ki wajah se aap ka session expire ho gaya hai. Barae meharbani dobara login karein.");
+      localStorage.clear();
+      location.reload();
+  }
+
+  function resetTimer() {
+      clearTimeout(inactivityTimer);
+      const role = localStorage.getItem('cv_role');
+      if (role === 'viewer') {
+          inactivityTimer = setTimeout(autoLogout, INACTIVITY_TIME);
+      }
+  }
+
+  ['mousemove', 'keydown', 'click', 'scroll'].forEach(event => {
+      document.addEventListener(event, resetTimer);
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+      const role = localStorage.getItem('cv_role');
+      const user = localStorage.getItem('cv_username');
+      if (role && user) {
+          applyRole(role, user);
+          resetTimer();
+      }
+  });
+  
+})();
+</script>
+</body>
+</html>
