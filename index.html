@@ -554,8 +554,17 @@
   loadTariffFromCloud();
 
   async function loadVrFromCloud() {
+      const container = document.getElementById('adminVrListContainer');
       try {
           const { data, error } = await db.from('vr_matrix').select('*');
+          
+          if (error) {
+              if (container && localStorage.getItem('cv_role') === 'admin') {
+                  container.innerHTML = `<span style="color:var(--stamp);">Error: ${error.message} (Please check if 'vr_matrix' table exists and RLS is disabled)</span>`;
+              }
+              return;
+          }
+
           if (data) {
               VR_MATRIX_DB = {};
               let uniqueVrs = new Map();
@@ -579,7 +588,11 @@
               vrDataList = Array.from(uniqueVrs.values());
               if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
           }
-      } catch(e) {}
+      } catch(e) {
+          if (container && localStorage.getItem('cv_role') === 'admin') {
+              container.innerHTML = `<span style="color:var(--stamp);">System Error: ${e.message}</span>`;
+          }
+      }
   }
   loadVrFromCloud();
 
