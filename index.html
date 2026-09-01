@@ -302,6 +302,10 @@
         <div class="calc-section-head">Step 2: Valuation Data</div>
         <div class="calc-grid">
           <div class="calc-field"><label>Unit Price ($)</label><input type="number" id="calcUnitPrice" value="1.0" step="0.01"></div>
+          
+          <!-- NEW VR FIELD -->
+          <div class="calc-field"><label>VR Value (USD)</label><input type="number" id="calcVrValue" placeholder="0.00" step="0.01" style="background:rgba(0,0,0,0.2); border:1px solid rgba(201,162,39,0.4);"></div>
+          
           <div class="calc-field"><label>Net Wt / Qty &amp; UOM</label><div style="display:flex; gap:8px;"><input type="number" id="calcQty" value="1000" step="1" style="flex: 1;"><select id="calcUom" style="width: auto; cursor: pointer; padding: 10px 8px;"><option value="KG">KGs</option><option value="PC">PCS</option></select></div></div>
           <div class="calc-field"><label>Exchange Rate (PKR)</label><input type="number" id="calcExRate" value="279.0" step="0.1"></div>
         </div>
@@ -505,8 +509,9 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. TARIFF AUTO-SLAB SYSTEM
+  // 5. TARIFF AUTO-SLAB & VR SYSTEM
   let AUTO_HS_DUTY_SLABS = {};
+  let AUTO_VR_VALUES = JSON.parse(localStorage.getItem('cv_vr_values')) || {};
 
   async function loadTariffFromCloud() {
     try {
@@ -564,14 +569,34 @@
     calculateDuty();
   }
   document.getElementById("calcHsCode").addEventListener("blur", loadHsDutySlab);
+  
   document.getElementById("calcHsCode").addEventListener("input", function() {
       const hs = this.value.trim().replace(/\D/g, "");
       let slab = AUTO_HS_DUTY_SLABS[hs] || (hs.length >= 6 ? AUTO_HS_DUTY_SLABS[hs.substring(0, 6)] : null);
+      
+      let msg = "";
+      let type = "normal";
+      
       if(!slab && hs.length >= 4) {
-          showHsSlabMessage("⚠️ HS Code not found. Manual rates will be auto-saved.", "error");
+          msg = "⚠️ HS Code not found. Manual rates will be auto-saved.";
+          type = "error";
       } else if(slab) {
-          showHsSlabMessage("✓ Slab ready for HS Code " + hs, "success");
+          msg = "✓ Slab ready for HS Code " + hs;
+          type = "success";
       }
+
+      // Check if VR exists in our local database
+      let savedVr = AUTO_VR_VALUES[hs] || (hs.length >= 6 ? AUTO_VR_VALUES[hs.substring(0, 6)] : null);
+      if (savedVr) {
+          document.getElementById('calcVrValue').value = savedVr;
+          if(msg) msg += " | 💡 VR Value ($" + savedVr + ") Auto-Loaded!";
+          else msg = "💡 VR Value ($" + savedVr + ") Auto-Loaded!";
+          type = "success";
+      } else {
+          document.getElementById('calcVrValue').value = "";
+      }
+
+      if(msg) showHsSlabMessage(msg, type);
   });
 
   async function autoSaveCurrentSlab(hsCode) {
@@ -704,7 +729,7 @@
   let invoiceItems = [];
   let calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
 
-  const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcIt', 'calcAd'];
+  const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcIt', 'calcAd'];
   calcInputs.forEach(id => { const el = document.getElementById(id); if(el && id !== 'calcType') { el.addEventListener('input', calculateDuty); el.addEventListener('change', calculateDuty); } });
 
   const formatCurr = (val) => val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -712,13 +737,18 @@
   function getCalcData() {
     const obj = {
       type: document.getElementById('calcType').value, hsCode: document.getElementById('calcHsCode').value, desc: document.getElementById('calcDesc').value, origin: document.getElementById('calcOrigin').value,
-      unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0, qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
+      unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0,
+      vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0,
+      qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
       dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
     const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
+    // Customs rule: Take higher of Unit Price or VR Value
+    let assessedUnitPrice = obj.vrValue > obj.unitPrice ? obj.vrValue : obj.unitPrice;
+
     // 1. Calculate Base USD (with 1% Insurance + 1% Landing)
-    let baseUsd = obj.unitPrice * obj.qty;
+    let baseUsd = assessedUnitPrice * obj.qty;
     let insUsd = baseUsd * 0.01;
     let landingUsd = (baseUsd + insUsd) * 0.01;
     obj.impValUsd = baseUsd + insUsd + landingUsd;
@@ -760,6 +790,7 @@
           <div class="calc-results-row"><span>HS Code:</span><span>${data.hsCode || '—'}</span></div>
           <div class="calc-results-row"><span>Origin & Type:</span><span>${data.origin || '—'} &middot; ${data.type.toUpperCase()}</span></div>
           <div class="calc-results-row"><span>Quantity:</span><span>${data.qty} ${data.uom} @ $${data.unitPrice}</span></div>
+          ${data.vrValue > 0 ? `<div class="calc-results-row"><span>VR Value (Applied):</span><span style="color:var(--brass); font-weight:600;">$${data.vrValue}</span></div>` : ''}
           <div class="calc-results-row"><span>Exchange Rate:</span><span>Rs. ${data.exRate}</span></div>
           <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Value (USD):</span><span>$ ${formatCurr(data.impValUsd)}</span></div>
           <div class="calc-results-row"><span>Total Value (PKR):</span><span style="font-weight:700;">Rs. ${formatCurr(data.impValRs)}</span></div>
@@ -800,14 +831,23 @@
   document.getElementById('addToInvoiceBtn').addEventListener('click', () => {
     const data = getCalcData(); if(!data.desc) { alert('Please enter an Item Description first.'); return; }
     
-    if(data.hsCode) { autoSaveCurrentSlab(data.hsCode); }
+    if(data.hsCode) { 
+        autoSaveCurrentSlab(data.hsCode); 
+        
+        // Auto-save VR if present
+        if(data.vrValue > 0) {
+            const cleanHs = data.hsCode.replace(/\D/g, "");
+            AUTO_VR_VALUES[cleanHs] = data.vrValue;
+            localStorage.setItem('cv_vr_values', JSON.stringify(AUTO_VR_VALUES));
+        }
+    }
 
     invoiceItems.push(data); document.getElementById('invoiceListContainer').style.display = 'block'; renderInvoiceList();
-    document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); calculateDuty();
+    document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcVrValue').value = ''; showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); calculateDuty();
   });
 
   document.getElementById('resetCalcBtn').addEventListener('click', () => {
-    document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcAd').value = '0';
+    document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcAd').value = '0'; document.getElementById('calcVrValue').value = '';
     showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); invoiceItems = []; document.getElementById('invoiceListContainer').style.display = 'none'; calculateDuty();
   });
 
