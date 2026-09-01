@@ -717,15 +717,37 @@
     };
     const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
-    obj.impValUsd = obj.unitPrice * obj.qty; obj.impValRs = obj.impValUsd * obj.exRate;
-    obj.dutyAmt = obj.impValRs * dRate; let valAfterDuty = obj.impValRs + obj.dutyAmt;
-    obj.acdAmt = valAfterDuty * acdRate; let valAfterAcd = valAfterDuty + obj.acdAmt;
-    obj.rdAmt = valAfterAcd * rdRate; let assessedValue = valAfterAcd + obj.rdAmt;
-    obj.stAmt = assessedValue * stRate; obj.addStAmt = assessedValue * addStRate; obj.itAmt = assessedValue * itRate; obj.adAmt = assessedValue * adRate; 
-    
+    // 1. Calculate Base USD (with 1% Insurance + 1% Landing)
+    let baseUsd = obj.unitPrice * obj.qty;
+    let insUsd = baseUsd * 0.01;
+    let landingUsd = (baseUsd + insUsd) * 0.01;
+    obj.impValUsd = baseUsd + insUsd + landingUsd;
+
+    // 2. Convert to PKR
+    obj.impValRs = obj.impValUsd * obj.exRate;
+
+    // 3. Calculate Duty, ACD, RD on Base Value
+    obj.dutyAmt = obj.impValRs * dRate;
+    obj.acdAmt = obj.impValRs * acdRate;
+    obj.rdAmt = obj.impValRs * rdRate;
+
+    // 4. Calculate Sales Taxes (Base + CD + ACD + RD)
+    let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt;
+    obj.stAmt = valueForSt * stRate;
+    obj.addStAmt = valueForSt * addStRate;
+
+    // 5. Calculate Income Tax (Base + CD + ACD + RD + ST + AddST)
+    let valueForIt = valueForSt + obj.stAmt + obj.addStAmt;
+    obj.itAmt = valueForIt * itRate;
+
+    // 6. Anti-Dumping
+    obj.adAmt = obj.impValRs * adRate;
+
+    // 7. Calculate Totals
     obj.totalDutyTaxes = obj.dutyAmt + obj.acdAmt + obj.rdAmt + obj.stAmt + obj.addStAmt + obj.itAmt + obj.adAmt;
     obj.totalLandedCost = obj.impValRs + obj.totalDutyTaxes;
-    obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
+    obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); 
+    obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
     return obj;
   }
 
