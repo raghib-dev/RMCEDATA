@@ -553,7 +553,7 @@
   }
   loadTariffFromCloud();
 
-  async function loadVrFromCloud() {
+async function loadVrFromCloud() {
       const container = document.getElementById('adminVrListContainer');
       try {
           const { data, error } = await db.from('vr_matrix').select('*');
@@ -577,6 +577,7 @@
                   }
                   VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
                   
+                  // VR Directory List Data Prep
                   let key = String(row.vr_no).toLowerCase();
                   if(!uniqueVrs.has(key)) {
                       uniqueVrs.set(key, { vr_no: row.vr_no, title: "Applicable on HS: " + hs, date: "Cloud DB", link: row.pdf_link || "#" });
@@ -585,8 +586,14 @@
                        if(!existing.title.includes(hs)) existing.title += ", " + hs;
                   }
               });
+              
               vrDataList = Array.from(uniqueVrs.values());
               if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
+              
+              // Auto-refresh the Valuation Rulings Directory list
+              if (typeof runVrSearch === 'function') {
+                  runVrSearch();
+              }
           }
       } catch(e) {
           if (container && localStorage.getItem('cv_role') === 'admin') {
