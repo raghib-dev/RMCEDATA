@@ -303,8 +303,14 @@
         <div class="calc-grid">
           <div class="calc-field"><label>Unit Price ($)</label><input type="number" id="calcUnitPrice" value="1.0" step="0.01"></div>
           
-          <!-- NEW VR FIELD -->
-          <div class="calc-field"><label>VR Value (USD)</label><input type="number" id="calcVrValue" placeholder="0.00" step="0.01" style="background:rgba(0,0,0,0.2); border:1px solid rgba(201,162,39,0.4);"></div>
+          <!-- NEW VR FIELD WITH SMART DROPDOWN -->
+          <div class="calc-field" style="position:relative; grid-column: span 1;">
+              <label>VR Value (USD) <span id="vrBadge" style="color:var(--green); font-weight:bold; display:none;"></span></label>
+              <input type="number" id="calcVrValue" placeholder="0.00" step="0.01" style="background:rgba(0,0,0,0.2); border:1px solid rgba(201,162,39,0.4); width:100%;">
+              <select id="vrMatrixDropdown" style="display:none; margin-top:5px; width:100%; padding:8px; background:var(--ink-2); color:var(--brass); border:1px solid var(--brass); border-radius:4px; font-size:11px; outline:none; cursor:pointer;">
+                  <option value="">Select VR Category...</option>
+              </select>
+          </div>
           
           <div class="calc-field"><label>Net Wt / Qty &amp; UOM</label><div style="display:flex; gap:8px;"><input type="number" id="calcQty" value="1000" step="1" style="flex: 1;"><select id="calcUom" style="width: auto; cursor: pointer; padding: 10px 8px;"><option value="KG">KGs</option><option value="PC">PCS</option></select></div></div>
           <div class="calc-field"><label>Exchange Rate (PKR)</label><input type="number" id="calcExRate" value="279.0" step="0.1"></div>
@@ -511,7 +517,27 @@
 
   // 5. TARIFF AUTO-SLAB & VR SYSTEM
   let AUTO_HS_DUTY_SLABS = {};
-  let AUTO_VR_VALUES = JSON.parse(localStorage.getItem('cv_vr_values')) || {};
+  
+  // COMPLEX VALUATION RULINGS DATABASE (MATRIX)
+  const VR_MATRIX_DB = {
+      "96071900": {
+          vr_no: "1742/2023",
+          options: [
+              { label: "Table A (Cut) - Brass: China/Vietnam/HK", value: 6.50 },
+              { label: "Table A (Cut) - Brass: Indonesia/Thailand", value: 6.70 },
+              { label: "Table A (Cut) - Brass: Korea/Taiwan", value: 6.80 },
+              { label: "Table A (Cut) - Nylon/Poly: China/Vietnam/HK", value: 2.60 },
+              { label: "Table A (Cut) - Nylon/Poly: Indonesia/Thailand", value: 2.97 },
+              { label: "Table A (Cut) - Aluminium: China/Vietnam/HK", value: 2.75 },
+              { label: "Table B (Rolls) - Brass: China/Vietnam/HK", value: 5.85 },
+              { label: "Table B (Rolls) - Brass: Indonesia/Thailand", value: 6.03 },
+              { label: "Table B (Rolls) - Nylon/Poly: China/Vietnam/HK", value: 2.35 },
+              { label: "Table B (Rolls) - Nylon/Poly: Indonesia/Thailand", value: 2.78 },
+              { label: "Table B (Rolls) - Aluminium: China/Vietnam/HK", value: 2.48 }
+          ]
+      }
+  };
+  VR_MATRIX_DB["96071100"] = VR_MATRIX_DB["96071900"]; // Link related HS code
 
   async function loadTariffFromCloud() {
     try {
@@ -585,18 +611,42 @@
           type = "success";
       }
 
-      // Check if VR exists in our local database
-      let savedVr = AUTO_VR_VALUES[hs] || (hs.length >= 6 ? AUTO_VR_VALUES[hs.substring(0, 6)] : null);
-      if (savedVr) {
-          document.getElementById('calcVrValue').value = savedVr;
-          if(msg) msg += " | 💡 VR Value ($" + savedVr + ") Auto-Loaded!";
-          else msg = "💡 VR Value ($" + savedVr + ") Auto-Loaded!";
+      // SMART MATRIX VR CHECK
+      const vrDropdown = document.getElementById('vrMatrixDropdown');
+      const vrBadge = document.getElementById('vrBadge');
+      const matrixData = VR_MATRIX_DB[hs] || (hs.length >= 8 ? VR_MATRIX_DB[hs.substring(0, 8)] : null);
+
+      if (matrixData) {
+          vrBadge.textContent = `(VR: ${matrixData.vr_no})`;
+          vrBadge.style.display = 'inline';
+          
+          let optionsHtml = `<option value="">Select Origin / Material...</option>`;
+          matrixData.options.forEach(opt => {
+              optionsHtml += `<option value="${opt.value}">${opt.label} - $${opt.value}/KG</option>`;
+          });
+          vrDropdown.innerHTML = optionsHtml;
+          vrDropdown.style.display = 'block';
+          
+          if(msg) msg += ` | 📜 VR ${matrixData.vr_no} Applicable! Select category.`;
+          else msg = `📜 VR ${matrixData.vr_no} Applicable! Select category.`;
           type = "success";
       } else {
-          document.getElementById('calcVrValue').value = "";
+          vrBadge.style.display = 'none';
+          if(vrDropdown) {
+              vrDropdown.style.display = 'none';
+              vrDropdown.innerHTML = '';
+          }
+          document.getElementById('calcVrValue').value = '';
       }
 
       if(msg) showHsSlabMessage(msg, type);
+  });
+
+  document.getElementById('vrMatrixDropdown').addEventListener('change', function() {
+      if(this.value) {
+          document.getElementById('calcVrValue').value = this.value;
+          calculateDuty(); // Update calculation immediately
+      }
   });
 
   async function autoSaveCurrentSlab(hsCode) {
@@ -833,13 +883,6 @@
     
     if(data.hsCode) { 
         autoSaveCurrentSlab(data.hsCode); 
-        
-        // Auto-save VR if present
-        if(data.vrValue > 0) {
-            const cleanHs = data.hsCode.replace(/\D/g, "");
-            AUTO_VR_VALUES[cleanHs] = data.vrValue;
-            localStorage.setItem('cv_vr_values', JSON.stringify(AUTO_VR_VALUES));
-        }
     }
 
     invoiceItems.push(data); document.getElementById('invoiceListContainer').style.display = 'block'; renderInvoiceList();
