@@ -776,20 +776,20 @@
           <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp);">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
         </div>
       </div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px dashed rgba(201,162,39,0.3); border-radius: 4px; background: rgba(201,162,39,0.04); font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px solid #000000; border-radius: 4px; background: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;">
         <!-- LEFT SIDE: Total Landed Cost -->
-        <div style="flex: 1; text-align: left; color: var(--paper-dim);">
-            Item Landed Cost: <strong style="color: var(--paper); font-size: 14px; margin-left: 6px;">Rs. ${formatCurr(data.totalLandedCost)}</strong>
+        <div style="flex: 1; text-align: left; color: #000000; font-weight: 600;">
+            Item Landed Cost: <strong style="color: #000000; font-size: 14px; margin-left: 6px;">Rs. ${formatCurr(data.totalLandedCost)}</strong>
         </div>
         
         <!-- CENTER: Product Cost + Duty Per KG -->
-        <div style="flex: 1; text-align: center; color: var(--paper-dim);">
-            PRODUCT COST + DUTY = PER KGs: <strong style="color: var(--paper); margin-left: 6px;">Rs. ${formatCurr(data.costPerKg)}</strong>
+        <div style="flex: 1; text-align: center; color: #000000; font-weight: 600;">
+            PRODUCT COST + DUTY = PER KGs: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.costPerKg)}</strong>
         </div>
         
         <!-- RIGHT SIDE: Only Duty Per KG -->
-        <div style="flex: 1; text-align: right; color: var(--paper-dim);">
-            Duty Per KG: <strong style="color: #e57373; margin-left: 6px;">Rs. ${formatCurr(data.dutyPerKg)}</strong>
+        <div style="flex: 1; text-align: right; color: #000000; font-weight: 600;">
+            Duty Per KG: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.dutyPerKg)}</strong>
         </div>
     </div>
     `;
