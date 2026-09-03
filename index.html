@@ -609,7 +609,6 @@
               vrDataList = Array.from(uniqueVrs.values());
               if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
               
-              // Auto-refresh the Valuation Rulings Directory list
               if (typeof runVrSearch === 'function') {
                   runVrSearch();
               }
@@ -776,6 +775,7 @@
 
               let formatted = [];
               json.forEach(r => {
+                  let srNo = String(r['vr_sr_no'] || r['sr_no'] || r['s_no'] || r['sr'] || '').trim();
                   let hs = String(r['hs_code'] || '').replace(/\D/g, "");
                   let vrNo = String(r['vr_number'] || '');
                   let vrDate = String(r['vr_date'] || '').trim();
@@ -785,9 +785,16 @@
                   
                   let finalVrNo = vrDate ? `${vrNo} (${vrDate})` : vrNo;
                   
-                  let baseLabel = "";
-                  if (tableLabel) baseLabel += `[Table ${tableLabel}] `;
-                  if (desc) baseLabel += `${desc}`;
+                  let prefix = "";
+                  if (tableLabel && srNo) {
+                      prefix = `[Table ${tableLabel} - Sr.${srNo}] `;
+                  } else if (tableLabel) {
+                      prefix = `[Table ${tableLabel}] `;
+                  } else if (srNo) {
+                      prefix = `[Sr.${srNo}] `;
+                  }
+
+                  let baseLabel = `${prefix}${desc}`.trim();
 
                   let categories = [
                       { label: 'Cat-A', value: parseFloat(r['cat_a']) },
