@@ -1102,45 +1102,122 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 9. VAULT SEARCH & FILTERS
-  const searchInput = document.getElementById('searchInput'); const filterChips = document.getElementById('filterChips'); const resultsHolder = document.getElementById('resultsHolder'); const resultCount = document.getElementById('resultCount'); const filterImporter = document.getElementById('filterImporter'); const filterExporter = document.getElementById('filterExporter'); const filterOrigin = document.getElementById('filterOrigin');
-  let activeFilter = 'all'; let latestSearchResults = []; window.currentDisplayedData = []; let searchId = 0;
+  // 9. VAULT SEARCH & FILTERS (CRASH PROOF & OPTIMIZED)
+  const searchInput = document.getElementById('searchInput'); 
+  const filterChips = document.getElementById('filterChips'); 
+  const resultsHolder = document.getElementById('resultsHolder'); 
+  const resultCount = document.getElementById('resultCount'); 
+  const filterImporter = document.getElementById('filterImporter'); 
+  const filterExporter = document.getElementById('filterExporter'); 
+  const filterOrigin = document.getElementById('filterOrigin');
+  let activeFilter = 'all'; 
+  let latestSearchResults = []; 
+  window.currentDisplayedData = []; 
+  let searchId = 0;
 
-  filterChips.addEventListener('click', e=>{ if(e.target.tagName!=='BUTTON') return; filterChips.querySelectorAll('button').forEach(b=>b.classList.remove('active')); e.target.classList.add('active'); activeFilter = e.target.dataset.f; renderFilteredResults(); });
-  searchInput.addEventListener('input', debounce(runSearch, 800)); filterImporter.addEventListener('change', renderFilteredResults); filterExporter.addEventListener('change', renderFilteredResults); filterOrigin.addEventListener('change', renderFilteredResults); 
-  function parseValForSort(v) { if(!v) return 0; const parsed = parseFloat(v.toString().replace(/[^0-9.]/g, '')); return isNaN(parsed) ? 0 : parsed; }
+  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
+  filterChips.addEventListener('click', e => { 
+    if(e.target.tagName !== 'BUTTON') return; 
+    filterChips.querySelectorAll('button').forEach(b => b.classList.remove('active')); 
+    e.target.classList.add('active'); 
+    activeFilter = e.target.dataset.f; 
+    renderFilteredResults(); 
+  });
+  
+  searchInput.addEventListener('input', debounce(runSearch, 400)); 
+  filterImporter.addEventListener('change', renderFilteredResults); 
+  filterExporter.addEventListener('change', renderFilteredResults); 
+  filterOrigin.addEventListener('change', renderFilteredResults); 
+  
+  function parseValForSort(v) { 
+    if(!v) return 0; 
+    const parsed = parseFloat(v.toString().replace(/[^0-9.]/g, '')); 
+    return isNaN(parsed) ? 0 : parsed; 
+  }
 
   async function runSearch(){
-    const rawQ = searchInput.value.trim().toLowerCase(); resultsHolder.innerHTML = '';
-    if(!rawQ){ resultCount.textContent = 'Type to search...'; filterImporter.innerHTML = '<option value="">All Importers</option>'; filterExporter.innerHTML = '<option value="">All Suppliers</option>'; filterOrigin.innerHTML = '<option value="">All Origins</option>'; latestSearchResults = []; return; }
-    resultCount.innerHTML = '<span class="loader"></span> Scanning DB...'; const currentSearchId = ++searchId;
+    const rawQ = String(searchInput.value || '').trim(); 
+    resultsHolder.innerHTML = '';
+    
+    if(!rawQ){ 
+      resultCount.textContent = 'Type to search...'; 
+      filterImporter.innerHTML = '<option value="">All Importers</option>'; 
+      filterExporter.innerHTML = '<option value="">All Suppliers</option>'; 
+      filterOrigin.innerHTML = '<option value="">All Origins</option>'; 
+      latestSearchResults = []; 
+      return; 
+    }
+    
+    resultCount.innerHTML = '<span class="loader"></span> Scanning DB...'; 
+    const currentSearchId = ++searchId;
+    
     try {
-      const searchTerms = rawQ.split(/\s+/).filter(w => w.length > 0); let query = db.from('customs_data').select('*');
-      if (activeFilter === 'all') { if (searchTerms.length > 1) { searchTerms.forEach(t => { query = query.ilike('item_description', `%${t.replace(/'/g, '')}%`); }); } else { let t = searchTerms[0].replace(/'/g, ''); query = query.or(`item_description.ilike.%${t}%,assessed_hs_code.ilike.%${t}%,gd_number.ilike.%${t}%,importer_name.ilike.%${t}%`); }
-      } else { searchTerms.forEach(t => { query = query.ilike(activeFilter, `%${t.replace(/'/g, '')}%`); }); }
-      let { data, error } = await query.limit(1000);
+      let query = db.from('customs_data').select('*');
+      
+      if (activeFilter === 'all') {
+          query = query.or(`item_description.ilike.%${rawQ}%,assessed_hs_code.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%,importer_name.ilike.%${rawQ}%`);
+      } else {
+          query = query.ilike(activeFilter, `%${rawQ}%`);
+      }
+      
+      let { data, error } = await query.limit(500);
+      
       if (currentSearchId !== searchId) return;
-      if (error) throw new Error(error.message);
-      if (!data || data.length === 0) { resultCount.textContent = 'No match found.'; return; }
-      latestSearchResults = data; populateDropdowns(data); renderFilteredResults();
-    } catch (err) { if (currentSearchId === searchId) resultCount.textContent = `Error: ${err.message}`; }
+      if (error) throw error;
+      
+      if (!data || data.length === 0) { 
+        resultCount.textContent = 'No match found.'; 
+        return; 
+      }
+      
+      latestSearchResults = data; 
+      populateDropdowns(data); 
+      renderFilteredResults();
+    } catch (err) { 
+      if (currentSearchId === searchId) resultCount.textContent = `Error: ${err.message}`; 
+    }
   }
 
   function populateDropdowns(data) {
-    const importers = [...new Set(data.map(m => m.importer_name).filter(Boolean))].sort(); const exporters = [...new Set(data.map(m => m.supplier_name).filter(Boolean))].sort(); const origins = [...new Set(data.map(m => m.origin).filter(Boolean))].sort(); 
-    let impHtml = '<option value="">All Importers</option>'; importers.forEach(i => impHtml += `<option value="${i}">${i}</option>`); filterImporter.innerHTML = impHtml;
-    let expHtml = '<option value="">All Suppliers</option>'; exporters.forEach(e => expHtml += `<option value="${e}">${e}</option>`); filterExporter.innerHTML = expHtml;
-    let orgHtml = '<option value="">All Origins</option>'; origins.forEach(o => orgHtml += `<option value="${o}">${o}</option>`); filterOrigin.innerHTML = orgHtml;
+    const importers = [...new Set(data.map(m => m.importer_name).filter(Boolean))].sort(); 
+    const exporters = [...new Set(data.map(m => m.supplier_name).filter(Boolean))].sort(); 
+    const origins = [...new Set(data.map(m => m.origin).filter(Boolean))].sort(); 
+    
+    let impHtml = '<option value="">All Importers</option>'; 
+    importers.forEach(i => impHtml += `<option value="${i}">${i}</option>`); 
+    filterImporter.innerHTML = impHtml;
+    
+    let expHtml = '<option value="">All Suppliers</option>'; 
+    exporters.forEach(e => expHtml += `<option value="${e}">${e}</option>`); 
+    filterExporter.innerHTML = expHtml;
+    
+    let orgHtml = '<option value="">All Origins</option>'; 
+    origins.forEach(o => orgHtml += `<option value="${o}">${o}</option>`); 
+    filterOrigin.innerHTML = orgHtml;
   }
+  
   function escapeAttr(v){ return (v||'').toString().replace(/"/g,'&quot;'); }
 
   function renderFilteredResults() {
-    if(!latestSearchResults || latestSearchResults.length === 0) return; let filtered = latestSearchResults;
-    if(filterImporter.value) filtered = filtered.filter(m => m.importer_name === filterImporter.value); if(filterExporter.value) filtered = filtered.filter(m => m.supplier_name === filterExporter.value); if(filterOrigin.value) filtered = filtered.filter(m => m.origin === filterOrigin.value);
-    resultsHolder.innerHTML = ''; resultCount.textContent = `Found ${filtered.length} records. Sorted by Assessed Value.`;
-    filtered.sort((a,b) => parseValForSort(a.assessed_unit_value) - parseValForSort(b.assessed_unit_value)); window.currentDisplayedData = filtered; 
+    if(!latestSearchResults || latestSearchResults.length === 0) return; 
+    let filtered = latestSearchResults;
+    
+    if(filterImporter.value) filtered = filtered.filter(m => m.importer_name === filterImporter.value); 
+    if(filterExporter.value) filtered = filtered.filter(m => m.supplier_name === filterExporter.value); 
+    if(filterOrigin.value) filtered = filtered.filter(m => m.origin === filterOrigin.value);
+    
+    resultsHolder.innerHTML = ''; 
+    resultCount.textContent = `Found ${filtered.length} records. Sorted by Assessed Value.`;
+    filtered.sort((a,b) => parseValForSort(a.assessed_unit_value) - parseValForSort(b.assessed_unit_value)); 
+    window.currentDisplayedData = filtered; 
+    
     let tableHtml = `<div class="table-container"><table class="customs-table"><tr><th>GD Number</th><th>HS Code</th><th>Description</th><th>Origin</th><th>Assessed Value</th><th>Action</th></tr>`;
-    filtered.forEach((m, idx) => { let shortDesc = m.item_description || '—'; if(shortDesc.length > 60) shortDesc = shortDesc.substring(0, 60) + '...'; tableHtml += `<tr class="clickable-row" onclick="openDetailModal(${idx})"><td><b>${m.gd_number||'—'}</b></td><td><code>${m.assessed_hs_code||'—'}</code></td><td title="${escapeAttr(m.item_description)}">${shortDesc}</td><td>${m.origin||'—'}</td><td><b style="color:var(--brass);">${(m.currency||'USD').toUpperCase()} ${m.assessed_unit_value||'0'}</b></td><td style="color:var(--green); font-weight:600; font-size:10px;">VIEW &rarr;</td></tr>`; });
+    filtered.forEach((m, idx) => { 
+      let shortDesc = m.item_description || '—'; 
+      if(shortDesc.length > 60) shortDesc = shortDesc.substring(0, 60) + '...'; 
+      tableHtml += `<tr class="clickable-row" onclick="openDetailModal(${idx})"><td><b>${m.gd_number||'—'}</b></td><td><code>${m.assessed_hs_code||'—'}</code></td><td title="${escapeAttr(m.item_description)}">${shortDesc}</td><td>${m.origin||'—'}</td><td><b style="color:var(--brass);">${(m.currency||'USD').toUpperCase()} ${m.assessed_unit_value||'0'}</b></td><td style="color:var(--green); font-weight:600; font-size:10px;">VIEW &rarr;</td></tr>`; 
+    });
     resultsHolder.innerHTML = tableHtml + `</table></div>`;
   }
 
