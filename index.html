@@ -62,9 +62,10 @@
   .calc-field label{display:block;font-size:10px;color:var(--paper-dim);text-transform:uppercase;margin-bottom:4px;font-family:'IBM Plex Mono',monospace;}
   .calc-field input, .calc-field select{ background:var(--ink); border:1px solid var(--hairline); color:var(--paper); border-radius:4px; padding:10px 12px; font-family:'IBM Plex Mono',monospace; font-size:13px; width:100%; outline:none;}
   .calc-field input:focus, .calc-field select:focus{border-color:var(--brass);}
-  .suggestions-box { position: absolute; top: 100%; left: 0; width: 100%; background: rgba(29, 52, 72, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(201, 162, 39, 0.4); border-radius: 4px; max-height: 220px; overflow-y: auto; z-index: 999; display: none; }
+  .suggestions-box { position: absolute; top: 100%; left: 0; width: 100%; background: rgba(29, 52, 72, 0.98); backdrop-filter: blur(12px); border: 1px solid rgba(201, 162, 39, 0.5); border-radius: 4px; max-height: 250px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
   .suggestion-item { padding: 10px 12px; font-size: 12px; font-family: 'IBM Plex Mono', monospace; border-bottom: 1px solid rgba(201,162,39,0.15); cursor: pointer; }
-  .suggestion-item:hover { background: rgba(201, 162, 39, 0.8); color: #0F1E2B; }
+  .suggestion-item:hover { background: rgba(201, 162, 39, 0.85); color: #0F1E2B; }
+  .suggestion-item:hover b, .suggestion-item:hover span { color: #0F1E2B !important; }
   .calc-section { border: 1px solid rgba(201,162,39,0.15); border-radius: 6px; padding: 18px; margin-bottom: 20px; background: rgba(0,0,0,0.1); }
   .calc-section-head { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--brass); margin-bottom: 16px; text-transform: uppercase; display:flex; align-items:center; gap:8px;}
   .calc-section-head::before { content: ''; display: block; width: 6px; height: 6px; background: var(--brass); border-radius: 50%;}
@@ -329,7 +330,7 @@
           </div>
           <div class="calc-field" style="grid-column: span 1; position:relative;">
               <label>Item Description (Live Search)</label>
-              <input type="text" id="calcDesc" placeholder="e.g. drawer handles, school bags..." autocomplete="off">
+              <input type="text" id="calcDesc" placeholder="e.g. Mobile Charger, zipper, handles..." autocomplete="off">
               <div class="suggestions-box" id="descSuggestions"></div>
           </div>
           <div class="calc-field"><label>Origin Country</label><input type="text" id="calcOrigin" placeholder="e.g. China"></div>
@@ -579,7 +580,7 @@
           
           if (error) {
               if (container && localStorage.getItem('cv_role') === 'admin') {
-                  container.innerHTML = `<span style="color:var(--stamp);">Error: ${error.message} (Please check if 'vr_matrix' table exists and RLS is disabled)</span>`;
+                  container.innerHTML = `<span style="color:var(--stamp);">Error: ${error.message}</span>`;
               }
               return;
           }
@@ -596,7 +597,6 @@
                   }
                   VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
                   
-                  // VR Directory List Data Prep
                   let key = String(row.vr_no).toLowerCase();
                   if(!uniqueVrs.has(key)) {
                       uniqueVrs.set(key, { vr_no: row.vr_no, title: "Applicable on HS: " + hs, date: "Cloud DB", link: row.pdf_link || "#" });
@@ -676,7 +676,7 @@
       if (matrixData) {
           vrBadge.innerHTML = `(<a href="${matrixData.link}" target="_blank" style="color:var(--green); text-decoration:underline;">VR: ${matrixData.vr_no} PDF</a>)`;
           vrBadge.style.display = 'inline';
-          let optionsHtml = `<option value="">Select Origin / Material...</option>`;
+          let optionsHtml = `<option value="">Select VR Category / Item...</option>`;
           matrixData.options.forEach(opt => { optionsHtml += `<option value="${opt.value}">${opt.label} - $${opt.value}/KG</option>`; });
           vrDropdown.innerHTML = optionsHtml; vrDropdown.style.display = 'block';
           if(msg) msg += ` | 📜 VR ${matrixData.vr_no} Applicable! Select category.`; else msg = `📜 VR ${matrixData.vr_no} Applicable! Select category.`;
@@ -690,7 +690,11 @@
   });
 
   document.getElementById('vrMatrixDropdown').addEventListener('change', function() {
-      if(this.value) { document.getElementById('calcVrValue').value = this.value; calculateDuty(); }
+      if(this.value) { 
+          document.getElementById('calcVrValue').value = this.value; 
+          document.getElementById('calcUnitPrice').value = this.value;
+          calculateDuty(); 
+      }
   });
 
   async function autoSaveCurrentSlab(hsCode) {
@@ -967,20 +971,100 @@
     window.print(); 
   });
 
-  // 8. CLOUD SUGGESTIONS
-  const calcDescInput = document.getElementById('calcDesc'); const descSuggestions = document.getElementById('descSuggestions');
+  // 8. VR & CLOUD SUGGESTIONS
+  const calcDescInput = document.getElementById('calcDesc'); 
+  const descSuggestions = document.getElementById('descSuggestions');
   function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
   
   calcDescInput.addEventListener('input', debounce(async function() {
-    const q = this.value.trim().toLowerCase(); if(q.length < 2) { descSuggestions.style.display = 'none'; return; }
-    let query = db.from('customs_data').select('item_description, assessed_hs_code, assessed_unit_value');
-    q.split(/\s+/).filter(w => w.length > 0).forEach(term => { query = query.ilike('item_description', `%${term.replace(/'/g, '')}%`); });
-    const { data, error } = await query.limit(10);
-    if(error || !data || data.length === 0) { descSuggestions.style.display = 'none'; return; }
+    const q = this.value.trim().toLowerCase(); 
+    if(q.length < 2) { descSuggestions.style.display = 'none'; return; }
+    
     let html = '';
-    data.forEach(item => { html += `<div class="suggestion-item" onclick="selectSuggestion('${(item.item_description||'').replace(/'/g, "\\'")}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')"><b>${item.item_description}</b><br><span style="color:var(--brass);">HS: ${item.assessed_hs_code} | Val: ${item.assessed_unit_value}</span></div>`; });
-    descSuggestions.innerHTML = html; descSuggestions.style.display = 'block';
-  }, 600));
+    let hasMatches = false;
+
+    // A. Pehle VR Matrix (vr_matrix) mein search karein
+    let vrMatches = [];
+    for (let hs in VR_MATRIX_DB) {
+        const itemObj = VR_MATRIX_DB[hs];
+        itemObj.options.forEach(opt => {
+            if (opt.label.toLowerCase().includes(q)) {
+                vrMatches.push({
+                    hs_code: hs,
+                    vr_no: itemObj.vr_no,
+                    label: opt.label,
+                    value: opt.value,
+                    link: itemObj.link
+                });
+            }
+        });
+    }
+
+    if (vrMatches.length > 0) {
+        hasMatches = true;
+        html += `<div style="padding:6px 12px; background:rgba(201,162,39,0.15); color:var(--brass); font-size:10.5px; font-weight:bold; text-transform:uppercase;">📜 Valuation Ruling Items (Exact Matches)</div>`;
+        vrMatches.slice(0, 10).forEach(vr => {
+            html += `
+              <div class="suggestion-item" onclick="selectVrSuggestion('${vr.hs_code}', '${(vr.label).replace(/'/g, "\\'")}', ${vr.value}, '${vr.vr_no}')">
+                <b style="color:var(--paper);">${vr.label}</b><br>
+                <span style="color:var(--green); font-size:11px;">HS: ${vr.hs_code} &middot; Val: $${vr.value} &middot; VR: ${vr.vr_no}</span>
+              </div>`;
+        });
+    }
+
+    // B. Phir Customs GD Trade Vault Data search karein
+    let query = db.from('customs_data').select('item_description, assessed_hs_code, assessed_unit_value');
+    q.split(/\s+/).filter(w => w.length > 0).forEach(term => { 
+        query = query.ilike('item_description', `%${term.replace(/'/g, '')}%`); 
+    });
+    
+    const { data, error } = await query.limit(5);
+    if (!error && data && data.length > 0) {
+        hasMatches = true;
+        html += `<div style="padding:6px 12px; background:rgba(22,41,58,0.8); color:var(--paper-dim); font-size:10.5px; font-weight:bold; text-transform:uppercase;">📦 Past Clearance Data</div>`;
+        data.forEach(item => { 
+            html += `
+              <div class="suggestion-item" onclick="selectSuggestion('${(item.item_description||'').replace(/'/g, "\\'")}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
+                <b>${item.item_description}</b><br>
+                <span style="color:var(--brass);">HS: ${item.assessed_hs_code} | Val: $${item.assessed_unit_value}</span>
+              </div>`; 
+        });
+    }
+
+    if (hasMatches) {
+        descSuggestions.innerHTML = html;
+        descSuggestions.style.display = 'block';
+    } else {
+        descSuggestions.style.display = 'none';
+    }
+  }, 300));
+
+  window.selectVrSuggestion = function(hs, label, value, vrNo) {
+      document.getElementById('calcDesc').value = label;
+      document.getElementById('calcHsCode').value = hs;
+      document.getElementById('calcVrValue').value = value;
+      document.getElementById('calcUnitPrice').value = value;
+      
+      loadHsDutySlab();
+      
+      const hsInput = document.getElementById('calcHsCode');
+      hsInput.dispatchEvent(new Event('input', { bubbles: true }));
+      
+      setTimeout(() => {
+          const vrDropdown = document.getElementById('vrMatrixDropdown');
+          if (vrDropdown) {
+              for (let i = 0; i < vrDropdown.options.length; i++) {
+                  if (vrDropdown.options[i].text.includes(label) || parseFloat(vrDropdown.options[i].value) === parseFloat(value)) {
+                      vrDropdown.selectedIndex = i;
+                      break;
+                  }
+              }
+          }
+          calculateDuty();
+      }, 150);
+
+      descSuggestions.style.display = 'none';
+  };
 
   window.selectSuggestion = function(desc, hs, assessed) {
     document.getElementById('calcDesc').value = desc;
