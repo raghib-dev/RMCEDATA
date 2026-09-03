@@ -62,10 +62,38 @@
   .calc-field label{display:block;font-size:10px;color:var(--paper-dim);text-transform:uppercase;margin-bottom:4px;font-family:'IBM Plex Mono',monospace;}
   .calc-field input, .calc-field select{ background:var(--ink); border:1px solid var(--hairline); color:var(--paper); border-radius:4px; padding:10px 12px; font-family:'IBM Plex Mono',monospace; font-size:13px; width:100%; outline:none;}
   .calc-field input:focus, .calc-field select:focus{border-color:var(--brass);}
-  .suggestions-box { position: absolute; top: 100%; left: 0; width: 100%; background: rgba(22, 41, 58, 0.98); backdrop-filter: blur(12px); border: 1px solid var(--brass); border-radius: 4px; max-height: 250px; overflow-y: auto; z-index: 9999; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-  .suggestion-item { padding: 10px 12px; font-size: 12px; font-family: 'IBM Plex Mono', monospace; border-bottom: 1px solid rgba(201,162,39,0.15); cursor: pointer; }
-  .suggestion-item:hover { background: rgba(201, 162, 39, 0.85); color: #0F1E2B !important; }
-  .suggestion-item:hover * { color: #0F1E2B !important; }
+  
+  .suggestions-box { 
+    position: absolute; 
+    top: calc(100% + 4px); 
+    left: 0; 
+    right: 0; 
+    width: 100%; 
+    background: #16293A; 
+    border: 1.5px solid var(--brass); 
+    border-radius: 6px; 
+    max-height: 280px; 
+    overflow-y: auto; 
+    z-index: 999999 !important; 
+    display: none; 
+    box-shadow: 0 12px 30px rgba(0,0,0,0.85); 
+  }
+  .suggestion-item { 
+    padding: 10px 14px; 
+    font-size: 12px; 
+    font-family: 'IBM Plex Mono', monospace; 
+    border-bottom: 1px solid rgba(201,162,39,0.15); 
+    cursor: pointer; 
+    background: #16293A;
+  }
+  .suggestion-item:hover { 
+    background: var(--brass) !important; 
+    color: #0F1E2B !important; 
+  }
+  .suggestion-item:hover * { 
+    color: #0F1E2B !important; 
+  }
+
   .calc-section { border: 1px solid rgba(201,162,39,0.15); border-radius: 6px; padding: 18px; margin-bottom: 20px; background: rgba(0,0,0,0.1); }
   .calc-section-head { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--brass); margin-bottom: 16px; text-transform: uppercase; display:flex; align-items:center; gap:8px;}
   .calc-section-head::before { content: ''; display: block; width: 6px; height: 6px; background: var(--brass); border-radius: 50%;}
@@ -365,7 +393,7 @@
           <div class="calc-field"><label>Sales Tax % (ST)</label><input type="number" id="calcSt" value="18" step="0.1"></div>
           <div class="calc-field"><label>Add S.Tax / GST %</label><input type="number" id="calcAddSt" value="3" step="0.1"></div>
           <div class="calc-field"><label>Income Tax % (IT)</label><input type="number" id="calcIt" value="6" step="0.1"></div>
-          <div class="calc-field"><label>Anti-Dumping % (AD)</label><input type="number" id="calcAd" value="0" step="0.1"></div>
+          <div class="calc-field"><label>Anti-Dumping %</label><input type="number" id="calcAd" value="0" step="0.1"></div>
         </div>
       </div>
 
@@ -981,10 +1009,9 @@
   // 8. VR & CLOUD SUGGESTIONS (CRASH PROOF & NULL SAFE)
   const calcDescInput = document.getElementById('calcDesc'); 
   const descSuggestions = document.getElementById('descSuggestions');
-  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-  
-  if (calcDescInput) {
-    calcDescInput.addEventListener('input', debounce(async function() {
+
+  if (calcDescInput && descSuggestions) {
+    calcDescInput.addEventListener('input', async function() {
       const rawQ = String(this.value || '').trim().toLowerCase(); 
       if(rawQ.length < 2) { 
           descSuggestions.style.display = 'none'; 
@@ -997,13 +1024,12 @@
 
       // 1. VR Database Search (Safe Check)
       let vrMatches = (ALL_VR_ITEMS_FLAT || []).filter(item => {
-          let text = String(item.label || '') + " " + String(item.hs_code || '');
-          let textLower = text.toLowerCase();
-          return terms.every(t => textLower.includes(t));
+          let text = (String(item.label || '') + " " + String(item.hs_code || '')).toLowerCase();
+          return terms.every(t => text.includes(t));
       });
 
       if (vrMatches.length > 0) {
-          html += `<div style="padding:6px 12px; background:#16293A; color:#C9A227; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📜 MATCHING VALUATION RULINGS</div>`;
+          html += `<div style="padding:6px 12px; background:#0F1E2B; color:var(--brass); font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📜 MATCHING VALUATION RULINGS</div>`;
           vrMatches.slice(0, 15).forEach(vr => {
               let safeLabel = String(vr.label || '').replace(/'/g, "\\'");
               html += `
@@ -1026,7 +1052,7 @@
                   html += `
                     <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
                       <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
-                      <div style="color:#C9A227; font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
+                      <div style="color:var(--brass); font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
                     </div>`;
               });
           }
@@ -1038,7 +1064,7 @@
       } else {
           descSuggestions.style.display = 'none';
       }
-    }, 150));
+    });
   }
   
   window.selectVrSuggestion = function(hs, label, value, vrNo) {
