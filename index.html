@@ -258,7 +258,7 @@
       <span class="eyebrow">Valuation Matrix Database</span>
       <h2>Add / Update VR Category</h2>
       <div class="calc-grid">
-        <div class="calc-field"><label>HS Code</label><input type="text" id="addVrHs" placeholder="e.g. 96071900"></div>
+        <div class="calc-field"><label>HS Code(s) (e.g. 85044020, 85044090)</label><input type="text" id="addVrHs" placeholder="e.g. 96071900, 96072000"></div>
         <div class="calc-field"><label>VR Number</label><input type="text" id="addVrNo" placeholder="e.g. 1742/2023"></div>
         <div class="calc-field" style="grid-column: span 2;"><label>Category / Origin Label</label><input type="text" id="addVrCategory" placeholder="e.g. Table A - Brass: China"></div>
         <div class="calc-field"><label>Value (USD)</label><input type="number" id="addVrValue" step="0.01" placeholder="e.g. 6.50"></div>
@@ -582,7 +582,7 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM
+  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (MULTIPLE HS CODE SUPPORT)
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
@@ -621,14 +621,25 @@
 
               data.forEach(row => {
                   if(!row.hs_code) return;
-                  let hs = String(row.hs_code).replace(/\D/g, "");
-                  if (!VR_MATRIX_DB[hs]) {
-                      VR_MATRIX_DB[hs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
-                  }
-                  VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
                   
+                  // Multiple HS Codes split & clean logic
+                  let rawHs = String(row.hs_code);
+                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
+                  if(hsList.length === 0 && rawHs.replace(/\D/g, "")) {
+                      hsList = [rawHs.replace(/\D/g, "")];
+                  }
+
+                  // Har individual HS code ko VR Matrix se link karein
+                  hsList.forEach(hs => {
+                      if (!VR_MATRIX_DB[hs]) {
+                          VR_MATRIX_DB[hs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
+                      }
+                      VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
+                  });
+                  
+                  // In-memory array for live search
                   ALL_VR_ITEMS_FLAT.push({
-                      hs_code: hs,
+                      hs_code: hsList.join(', '),
                       vr_no: row.vr_no,
                       label: row.category,
                       value: row.vr_value,
@@ -637,10 +648,12 @@
 
                   let key = String(row.vr_no).toLowerCase();
                   if(!uniqueVrs.has(key)) {
-                      uniqueVrs.set(key, { vr_no: row.vr_no, title: "Applicable on HS: " + hs, date: "Cloud DB", link: row.pdf_link || "#" });
+                      uniqueVrs.set(key, { vr_no: row.vr_no, title: "Applicable on HS: " + hsList.join(', '), date: "Cloud DB", link: row.pdf_link || "#" });
                   } else {
                        let existing = uniqueVrs.get(key);
-                       if(!existing.title.includes(hs)) existing.title += ", " + hs;
+                       hsList.forEach(hs => {
+                           if(!existing.title.includes(hs)) existing.title += ", " + hs;
+                       });
                   }
               });
               
@@ -764,7 +777,7 @@
       calculateDuty();
   });
 
-  // 6. ADMIN SAVE TARIFF & VR
+  // 6. ADMIN SAVE TARIFF & VR (MULTIPLE HS CODES COMPATIBLE)
   async function loadAdminTariffList() {
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
@@ -781,16 +794,41 @@
 
   if(document.getElementById('saveVrBtn')) {
       document.getElementById('saveVrBtn').addEventListener('click', async () => {
-          const hs = String(document.getElementById('addVrHs').value).replace(/\D/g, "");
+          const rawHs = String(document.getElementById('addVrHs').value || '');
           const vrNo = document.getElementById('addVrNo').value.trim();
           const category = document.getElementById('addVrCategory').value.trim();
           const val = parseFloat(document.getElementById('addVrValue').value);
           const link = document.getElementById('addVrLink').value.trim();
-          if(!hs || !vrNo || !category || isNaN(val)) { alert("Please fill HS Code, VR Number, Category, and Value."); return; }
-          const statusEl = document.getElementById('saveVrStatus'); statusEl.innerHTML = '<span class="loader"></span> Saving...';
-          const { error } = await db.from('vr_matrix').insert([{ hs_code: hs, vr_no: vrNo, category: category, vr_value: val, pdf_link: link }]);
-          if(error) { statusEl.textContent = "Error: Ensure 'vr_matrix' table is created and RLS is disabled."; statusEl.className = "status-line err"; } 
-          else { statusEl.textContent = "✓ VR Option Saved!"; statusEl.className = "status-line ok"; document.getElementById('addVrCategory').value = ''; document.getElementById('addVrValue').value = ''; loadVrFromCloud(); }
+
+          let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
+          let hsCombined = hsList.join(', ');
+
+          if(!hsCombined || !vrNo || !category || isNaN(val)) { 
+              alert("Please fill HS Code(s), VR Number, Category, and Value."); 
+              return; 
+          }
+
+          const statusEl = document.getElementById('saveVrStatus'); 
+          statusEl.innerHTML = '<span class="loader"></span> Saving...';
+
+          const { error } = await db.from('vr_matrix').insert([{ 
+              hs_code: hsCombined, 
+              vr_no: vrNo, 
+              category: category, 
+              vr_value: val, 
+              pdf_link: link 
+          }]);
+
+          if(error) { 
+              statusEl.textContent = `Error: ${error.message}`; 
+              statusEl.className = "status-line err"; 
+          } else { 
+              statusEl.textContent = "✓ VR Record Saved Successfully!"; 
+              statusEl.className = "status-line ok"; 
+              document.getElementById('addVrCategory').value = ''; 
+              document.getElementById('addVrValue').value = ''; 
+              loadVrFromCloud(); 
+          }
       });
   }
 
@@ -815,7 +853,12 @@
               let formatted = [];
               json.forEach(r => {
                   let srNo = String(r['vr_sr_no'] || r['sr_no'] || r['s_no'] || r['sr'] || '').trim();
-                  let hs = String(r['hs_code'] || '').replace(/\D/g, "");
+                  
+                  // Multiple HS Codes splitting logic for Excel upload
+                  let rawHs = String(r['hs_code'] || '');
+                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, '')).filter(h => h.length >= 4);
+                  let hsCombined = hsList.join(', ');
+
                   let vrNo = String(r['vr_number'] || '');
                   let vrDate = String(r['vr_date'] || '').trim();
                   let tableLabel = String(r['table'] || '').trim();
@@ -842,12 +885,12 @@
                       { label: 'Cat-D', value: parseFloat(r['cat_d']) }
                   ];
 
-                  if(hs && vrNo) {
+                  if(hsCombined && vrNo) {
                       categories.forEach(cat => {
                           if (!isNaN(cat.value) && cat.value > 0) {
                               let finalCategory = `${baseLabel} - ${cat.label}`.trim();
                               formatted.push({ 
-                                  hs_code: hs, 
+                                  hs_code: hsCombined, 
                                   vr_no: finalVrNo, 
                                   category: finalCategory, 
                                   vr_value: cat.value, 
@@ -1032,8 +1075,9 @@
           html += `<div style="padding:6px 12px; background:#0F1E2B; color:var(--brass); font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📜 MATCHING VALUATION RULINGS</div>`;
           vrMatches.slice(0, 15).forEach(vr => {
               let safeLabel = String(vr.label || '').replace(/'/g, "\\'");
+              let firstHs = String(vr.hs_code || '').split(',')[0].trim();
               html += `
-                <div class="suggestion-item" onclick="selectVrSuggestion('${vr.hs_code}', '${safeLabel}', ${vr.value}, '${vr.vr_no}')">
+                <div class="suggestion-item" onclick="selectVrSuggestion('${firstHs}', '${safeLabel}', ${vr.value}, '${vr.vr_no}')">
                   <div style="font-weight:600; color:#ECE6D6; font-size:12.5px;">${vr.label}</div>
                   <div style="color:#5C9382; font-size:11px; margin-top:2px;">HS: <b>${vr.hs_code}</b> &middot; Rate: <b>$${vr.value}</b> &middot; VR: ${vr.vr_no}</div>
                 </div>`;
