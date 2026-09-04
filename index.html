@@ -230,8 +230,8 @@
       <h2>Add / Update VR Category</h2>
       <div class="calc-grid">
         <div class="calc-field"><label>HS Code(s) (e.g. 85044020, 85044090)</label><input type="text" id="addVrHs" placeholder="e.g. 85044020, 85044090"></div>
-        <div class="calc-field"><label>VR Number</label><input type="text" id="addVrNo" placeholder="e.g. 2105/2026 (28-07-2026)"></div>
-        <div class="calc-field"><label>VR Subject / Main Item Name</label><input type="text" id="addVrMainTitle" placeholder="e.g. Mobile Phone Accessories"></div>
+        <div class="calc-field"><label>VR Number & Date</label><input type="text" id="addVrNo" placeholder="e.g. 2105/2026 (28-07-2026)"></div>
+        <div class="calc-field"><label>VR Title / Main Subject</label><input type="text" id="addVrTitle" placeholder="e.g. Mobile Phone Accessories"></div>
         <div class="calc-field" style="grid-column: span 2;"><label>Category / Item Specific Label</label><input type="text" id="addVrCategory" placeholder="e.g. [Table A - Sr.1] Charger 15W - Cat-A"></div>
         <div class="calc-field"><label>Value (USD)</label><input type="number" id="addVrValue" step="0.01" placeholder="e.g. 7.80"></div>
         <div class="calc-field"><label>PDF Link</label><input type="text" id="addVrLink" placeholder="https://fbr..."></div>
@@ -272,7 +272,7 @@
     <div class="card">
       <span class="eyebrow">Valuation Rulings</span>
       <h2>Directory Search</h2>
-      <div class="search-bar"><input type="text" id="vrSearchInput" placeholder="Search by VR Number (e.g. 2105) or Main Item Name (e.g. Mobile Accessories, LED Lights)..."></div>
+      <div class="search-bar"><input type="text" id="vrSearchInput" placeholder="Search by VR Number (e.g. 2105) or Main Title (e.g. Mobile Accessories, LED Lights)..."></div>
       <div id="vrResultCount" style="font-size:11.5px; color:var(--paper-dim); margin-bottom:12px;"></div>
       <div class="table-container" id="vrResultsHolder"></div>
     </div>
@@ -507,24 +507,11 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM
+  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (STRUCTURED VR_TITLE COLUMN)
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
   let vrDataList = [];
-
-  // Helper: VR Number se saaf Item Title nikalna
-  function getCleanVrTitle(rawVrNo) {
-    let str = String(rawVrNo || '').trim();
-    if(str.toLowerCase().includes('2105')) return 'Mobile Phone Accessories';
-    if(str.toLowerCase().includes('2102') || str.toLowerCase().includes('1850')) return 'LED Light Fixtures & Fittings';
-    
-    // Agar brackets mein title mojood ho: e.g. "2105/2026 [Mobile Phone Accessories]"
-    let bracketMatch = str.match(/\[(.*?)\]/);
-    if(bracketMatch && bracketMatch[1]) return bracketMatch[1].trim();
-
-    return 'Customs Valuation Ruling';
-  }
 
   async function loadTariffFromCloud() {
     try {
@@ -566,7 +553,6 @@
                       hsList = [rawHs.replace(/\D/g, "")];
                   }
 
-                  // Har individual HS code ko VR Matrix se link karein
                   hsList.forEach(hs => {
                       if (!VR_MATRIX_DB[hs]) {
                           VR_MATRIX_DB[hs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
@@ -574,7 +560,6 @@
                       VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
                   });
                   
-                  // In-memory array for live search
                   ALL_VR_ITEMS_FLAT.push({
                       hs_code: hsList.join(', '),
                       vr_no: row.vr_no,
@@ -583,27 +568,28 @@
                       link: row.pdf_link
                   });
 
-                  // Clean Main Title
-                  let mainTitle = getCleanVrTitle(row.vr_no);
+                  // vr_title prioritization
+                  let title = row.vr_title || 'General Customs Valuation Ruling';
 
-                  let key = String(row.vr_no).toLowerCase().split('[')[0].trim();
+                  let key = String(row.vr_no).toLowerCase().trim();
                   if(!uniqueVrs.has(key)) {
                       uniqueVrs.set(key, { 
-                          vr_no: row.vr_no.split('[')[0].trim(), 
-                          item_title: mainTitle,
+                          vr_no: row.vr_no, 
+                          vr_title: title,
                           hs_set: new Set(hsList),
                           date: "Cloud DB", 
                           link: row.pdf_link || "#" 
                       });
                   } else {
                        let existing = uniqueVrs.get(key);
+                       if(row.vr_title) existing.vr_title = row.vr_title;
                        hsList.forEach(hs => existing.hs_set.add(hs));
                   }
               });
               
               vrDataList = Array.from(uniqueVrs.values()).map(v => ({
                   vr_no: v.vr_no,
-                  item_title: v.item_title,
+                  vr_title: v.vr_title,
                   hs_codes: Array.from(v.hs_set).join(", "),
                   date: v.date,
                   link: v.link
@@ -746,15 +732,11 @@
   if(document.getElementById('saveVrBtn')) {
       document.getElementById('saveVrBtn').addEventListener('click', async () => {
           const rawHs = String(document.getElementById('addVrHs').value || '');
-          let vrNo = document.getElementById('addVrNo').value.trim();
-          const mainTitle = document.getElementById('addVrMainTitle').value.trim();
+          const vrNo = document.getElementById('addVrNo').value.trim();
+          const vrTitle = document.getElementById('addVrTitle').value.trim();
           const category = document.getElementById('addVrCategory').value.trim();
           const val = parseFloat(document.getElementById('addVrValue').value);
           const link = document.getElementById('addVrLink').value.trim();
-
-          if(mainTitle && !vrNo.includes('[')) {
-              vrNo = `${vrNo} [${mainTitle}]`;
-          }
 
           let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
           let hsCombined = hsList.join(', ');
@@ -770,6 +752,7 @@
           const { error } = await db.from('vr_matrix').insert([{ 
               hs_code: hsCombined, 
               vr_no: vrNo, 
+              vr_title: vrTitle || 'General Customs Valuation Ruling',
               category: category, 
               vr_value: val, 
               pdf_link: link 
@@ -816,15 +799,12 @@
 
                   let vrNo = String(r['vr_number'] || '');
                   let vrDate = String(r['vr_date'] || '').trim();
-                  let vrSubject = String(r['vr_title'] || r['vr_subject'] || r['main_item'] || '').trim();
+                  let vrTitle = String(r['vr_title'] || r['vr_subject'] || r['main_item'] || 'General Valuation Ruling').trim();
                   let tableLabel = String(r['table'] || '').trim();
                   let desc = String(r['description'] || '').trim();
                   let link = String(r['pdf_link'] || '');
                   
                   let finalVrNo = vrDate ? `${vrNo} (${vrDate})` : vrNo;
-                  if(vrSubject && !finalVrNo.includes('[')) {
-                      finalVrNo = `${finalVrNo} [${vrSubject}]`;
-                  }
                   
                   let prefix = "";
                   if (tableLabel && srNo) {
@@ -854,6 +834,7 @@
                               formatted.push({ 
                                   hs_code: hsCombined, 
                                   vr_no: finalVrNo, 
+                                  vr_title: vrTitle,
                                   category: finalCategory, 
                                   vr_value: cat.value, 
                                   pdf_link: link 
@@ -882,9 +863,9 @@
   function renderAdminVrList(data) {
       const container = document.getElementById('adminVrListContainer'); if(!container) return;
       if(data.length === 0) { container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px;">No VR data saved yet.</div>`; return; }
-      let html = `<table class="sub-table"><tr><th>HS Code</th><th>VR No</th><th>Category / Origin</th><th>Value (USD)</th><th>PDF Link</th><th>Action</th></tr>`;
+      let html = `<table class="sub-table"><tr><th>HS Code</th><th>VR No</th><th>VR Title</th><th>Category / Origin</th><th>Value (USD)</th><th>Action</th></tr>`;
       data.sort((a,b) => a.hs_code.localeCompare(b.hs_code)).forEach(row => {
-          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.vr_no}</td><td>${row.category}</td><td style="color:var(--brass); font-weight:bold;">$${row.vr_value}</td><td><a href="${row.pdf_link}" target="_blank" style="color:var(--paper-dim);">Link</a></td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button></td></tr>`;
+          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.vr_no}</td><td style="color:var(--brass); font-weight:600;">${row.vr_title||'—'}</td><td>${row.category}</td><td style="color:var(--green); font-weight:bold;">$${row.vr_value}</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button></td></tr>`;
       });
       container.innerHTML = html + `</table>`;
   }
@@ -1026,7 +1007,7 @@
       let html = '';
       const terms = rawQ.split(/\s+/).filter(w => w.length > 0);
 
-      // 1. VR Database Search (Safe Check)
+      // 1. VR Database Search
       let vrMatches = (ALL_VR_ITEMS_FLAT || []).filter(item => {
           let text = (String(item.label || '') + " " + String(item.hs_code || '')).toLowerCase();
           return terms.every(t => text.includes(t));
@@ -1045,7 +1026,7 @@
           });
       }
 
-      // 2. Customs Clearance History Search (Safe Check)
+      // 2. Customs Clearance History Search
       try {
           let query = db.from('customs_data').select('item_description, assessed_hs_code, assessed_unit_value');
           terms.forEach(t => { query = query.ilike('item_description', `%${t}%`); });
@@ -1246,20 +1227,20 @@
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => 
-        (i.item_title && i.item_title.toLowerCase().includes(q)) || 
+        (i.vr_title && i.vr_title.toLowerCase().includes(q)) || 
         i.vr_no.toLowerCase().includes(q) || 
         (i.hs_codes && i.hs_codes.includes(q))
     );
     
     document.getElementById('vrResultCount').textContent = `Showing ${list.length} Applicable Rulings`;
     if(list.length > 0) { 
-        let tableHtml = `<table class="customs-table"><tr><th style="width:60%;">Valuation Ruling & Subject</th><th>Source</th><th>Action</th></tr>`; 
+        let tableHtml = `<table class="customs-table"><tr><th style="width:60%;">Valuation Ruling & Main Title</th><th>Status</th><th>Action</th></tr>`; 
         list.forEach(item => { 
             tableHtml += `
               <tr>
                 <td>
                   <div style="font-size:14px; font-weight:bold; color:var(--paper);">
-                    ${item.vr_no} &mdash; <span style="color:var(--brass); font-family:'Source Serif 4',serif;">${item.item_title}</span>
+                    ${item.vr_no} &mdash; <span style="color:var(--brass); font-family:'Source Serif 4',serif;">${item.vr_title}</span>
                   </div>
                   <div style="color:var(--paper-dim); font-size:11px; margin-top:4px;">Applicable on HS: ${item.hs_codes}</div>
                 </td>
