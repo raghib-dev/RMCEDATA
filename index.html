@@ -306,7 +306,7 @@
     <div class="card">
       <span class="eyebrow">Valuation Rulings</span>
       <h2>Directory Search</h2>
-      <div class="search-bar"><input type="text" id="vrSearchInput" placeholder="Search by VR No or Category..."></div>
+      <div class="search-bar"><input type="text" id="vrSearchInput" placeholder="Search by VR No, Description or Category..."></div>
       <div id="vrResultCount" style="font-size:11.5px; color:var(--paper-dim); margin-bottom:12px;"></div>
       <div class="table-container" id="vrResultsHolder"></div>
     </div>
@@ -582,7 +582,7 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (MULTIPLE HS CODE SUPPORT)
+  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (MULTIPLE HS CODE & DESCRIPTIONS MAPPED)
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
@@ -646,18 +646,36 @@
                       link: row.pdf_link
                   });
 
+                  // Item description extract & clean for title display
+                  let cleanItemName = String(row.category || '')
+                                      .replace(/\[.*?\]/g, '')
+                                      .replace(/-\s*(Cat-[A-D]|China|Europe\/USA|Other Origins)/gi, '')
+                                      .trim();
+
                   let key = String(row.vr_no).toLowerCase();
                   if(!uniqueVrs.has(key)) {
-                      uniqueVrs.set(key, { vr_no: row.vr_no, title: "Applicable on HS: " + hsList.join(', '), date: "Cloud DB", link: row.pdf_link || "#" });
+                      uniqueVrs.set(key, { 
+                          vr_no: row.vr_no, 
+                          all_items: new Set(cleanItemName ? [cleanItemName] : []),
+                          hs_set: new Set(hsList),
+                          date: "Cloud DB", 
+                          link: row.pdf_link || "#" 
+                      });
                   } else {
                        let existing = uniqueVrs.get(key);
-                       hsList.forEach(hs => {
-                           if(!existing.title.includes(hs)) existing.title += ", " + hs;
-                       });
+                       if(cleanItemName) existing.all_items.add(cleanItemName);
+                       hsList.forEach(hs => existing.hs_set.add(hs));
                   }
               });
               
-              vrDataList = Array.from(uniqueVrs.values());
+              vrDataList = Array.from(uniqueVrs.values()).map(v => ({
+                  vr_no: v.vr_no,
+                  item_name: Array.from(v.all_items).filter(Boolean).slice(0, 3).join(" &middot; "),
+                  hs_codes: Array.from(v.hs_set).join(", "),
+                  date: v.date,
+                  link: v.link
+              }));
+
               if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
               if (typeof runVrSearch === 'function') runVrSearch();
           }
@@ -1285,18 +1303,34 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 10. VALUATION RULINGS SEARCH
+  // 10. VALUATION RULINGS SEARCH (WITH ITEM NAMES & HIGH-VISIBILITY TITLES)
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
-    const list = vrDataList.filter(i => i.title.toLowerCase().includes(q) || i.vr_no.toLowerCase().includes(q));
+    const list = vrDataList.filter(i => 
+        (i.item_name && i.item_name.toLowerCase().includes(q)) || 
+        i.vr_no.toLowerCase().includes(q) || 
+        (i.hs_codes && i.hs_codes.includes(q))
+    );
+    
     document.getElementById('vrResultCount').textContent = `Showing ${list.length} Applicable Rulings`;
     if(list.length > 0) { 
-        let tableHtml = `<table class="customs-table"><tr><th>VR No / Title</th><th>Status</th><th>Action</th></tr>`; 
+        let tableHtml = `<table class="customs-table"><tr><th style="width:55%;">VR No & Description</th><th>Source</th><th>Action</th></tr>`; 
         list.forEach(item => { 
-            tableHtml += `<tr><td><b>${item.vr_no}</b><br><span style="color:var(--paper-dim); font-size:10.5px;">${item.title}</span></td><td><span style="color:var(--green); font-size:11px;">${item.date}</span></td><td><a href="${item.link}" target="_blank" style="color:var(--brass);">Download PDF</a></td></tr>`; 
+            tableHtml += `
+              <tr>
+                <td>
+                  <b style="font-size:13.5px; color:var(--paper);">${item.vr_no}</b>
+                  <div style="color:var(--brass); font-weight:600; font-size:12.5px; margin-top:3px;">📦 ${item.item_name || 'General Valuation Ruling'}</div>
+                  <div style="color:var(--paper-dim); font-size:11px; margin-top:2px;">Applicable on HS: ${item.hs_codes}</div>
+                </td>
+                <td><span style="color:var(--green); font-size:11px;">${item.date}</span></td>
+                <td><a href="${item.link}" target="_blank" style="color:var(--brass); text-decoration:underline;">Download PDF</a></td>
+              </tr>`; 
         }); 
         document.getElementById('vrResultsHolder').innerHTML = tableHtml + `</table>`; 
-    } else { document.getElementById('vrResultsHolder').innerHTML = ''; }
+    } else { 
+        document.getElementById('vrResultsHolder').innerHTML = `<div style="padding:15px; color:var(--paper-dim);">No Valuation Ruling found matching your query.</div>`; 
+    }
   }
   document.getElementById('vrSearchInput').addEventListener('input', debounce(runVrSearch, 300));
 
