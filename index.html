@@ -36,9 +36,7 @@
   .wrap{max-width:96%;margin:0 auto;padding:28px 20px 80px;}
   header{ display:flex;align-items:flex-end;justify-content:space-between; border-bottom:1px solid var(--hairline); padding-bottom:18px;margin-bottom:22px;flex-wrap:wrap;gap:14px; }
   .brand{display:flex;align-items:center;gap:14px;}
-  .stamp-mark{width:52px;height:52px;flex-shrink:0;}
   h1{ font-family:'Source Serif 4', serif; font-weight:700;font-size:28px;letter-spacing:0.3px;margin:0;color:var(--paper); }
-  .sub{font-size:12.5px;color:var(--paper-dim);margin-top:3px;letter-spacing:0.4px;}
   .tabs{display:flex;gap:2px;background:var(--ink-2);padding:3px;border-radius:6px;border:1px solid var(--hairline);}
   .tab-btn{ font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.6px;text-transform:uppercase; background:transparent;border:none;color:var(--paper-dim);padding:9px 16px;border-radius:4px;cursor:pointer; transition:all .2s ease; white-space: nowrap; }
   .tab-btn.active{background:var(--brass);color:var(--ink);font-weight:600;}
@@ -47,8 +45,6 @@
   .card{ background:var(--ink-2);border:1px solid var(--hairline);border-radius:8px; padding:24px;margin-bottom:18px; }
   .card h2{ font-family:'Source Serif 4',serif;font-size:16px;margin:0 0 14px;color:var(--paper); display:flex;align-items:center;gap:8px; }
   .eyebrow{ font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--brass);letter-spacing:1.2px; text-transform:uppercase;margin-bottom:6px;display:block; }
-  .dropzone{ border:1.5px dashed var(--hairline);border-radius:8px; padding:36px 20px;text-align:center;cursor:pointer;background:rgba(201,162,39,0.03); }
-  .dropzone:hover{border-color:var(--brass);background:rgba(201,162,39,0.07);}
   input[type=file]{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
   button.primary{ font-family:'IBM Plex Sans',sans-serif; font-weight:600; font-size:13px; background:var(--brass); color:var(--ink); border:none; padding:11px 22px; border-radius:6px; cursor:pointer; }
   button.primary:hover:not(:disabled) { background:#E6C84B; }
@@ -84,7 +80,7 @@
     font-family: 'IBM Plex Mono', monospace; 
     border-bottom: 1px solid rgba(201,162,39,0.15); 
     cursor: pointer; 
-    background: #16293A;
+    background: #16293A; 
   }
   .suggestion-item:hover { 
     background: var(--brass) !important; 
@@ -124,31 +120,6 @@
   .detail-modal-header { position: sticky; top: 0; background: var(--ink-3); padding: 18px 24px; border-bottom: 1px solid var(--hairline); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
   .loader{ display:inline-block;width:13px;height:13px;border:2px solid rgba(236,230,214,0.25); border-top-color:var(--brass);border-radius:50%;animation:spin .7s linear infinite; }
   @keyframes spin{to{transform:rotate(360deg);}}
-  
-  @media print {
-    @page { size: A4 portrait; margin: 15mm; }
-    body { background: #fff !important; color: #000 !important; font-family: 'IBM Plex Sans', sans-serif; font-size: 11pt; }
-    .portal-topbar, header, .tabs, .search-bar, .filter-chips, .footer-note, button, 
-    #expiryBanner, .calc-section, .eyebrow, h2, .back-home-btn, .whatsapp-btn, .portal-hero, 
-    #calcResults, #calcBtnRow, .live-preview-title { display: none !important; }
-    .wrap { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-    .card { border: none !important; background: #fff !important; padding: 0 !important; margin: 0 !important; }
-    #printHeader { display: flex !important; align-items: center; justify-content: center; flex-direction: column; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-    #printHeader img { width: 70px; height: 70px; margin-bottom: 5px; }
-    #printHeader h1 { color: #000; margin: 0 0 5px 0; font-size: 22px; }
-    .invoice-list-container { display: block !important; margin-top: 0 !important; }
-    .invoice-header-title { display: none !important; } 
-    .item-card { border: none !important; border-bottom: 2px dashed #000 !important; margin-bottom: 15px !important; background: #fff !important; page-break-inside: avoid; }
-    .item-card-header { background: #eee !important; color: #000 !important; border: 1px solid #000 !important; padding: 8px 12px !important; font-weight: bold !important;}
-    .expand-icon, .remove-item-btn { display: none !important; } 
-    .item-card-body { display: block !important; padding: 15px 0 !important; background: #fff !important; border: none !important; }
-    .calc-results-row { border-bottom: 1px dashed #aaa !important; padding: 6px 0 !important; font-size: 12px !important;}
-    .calc-results-row span { color: #000 !important; font-weight: 500 !important; }
-    .calc-results-row span:last-child { font-weight: 700 !important; }
-    .print-breakdown-wrapper { display: flex !important; flex-direction: row !important; gap: 15px !important; }
-    .print-grid-col { flex: 1; }
-    .grand-total-section { background: #f9f9f9 !important; border: 2px solid #000 !important; color: #000 !important; margin-top: 20px !important; page-break-inside: avoid;}
-  }
 </style>
 </head>
 <body>
@@ -228,7 +199,7 @@
       <input type="file" id="adminLocalExcelInput" accept=".xlsx, .xls, .csv" multiple>
     </div>
 
-    <!-- ADMIN TARIFF UPLOAD & LIST WITH DESCRIPTION -->
+    <!-- ADMIN TARIFF UPLOAD -->
     <div class="card" id="adminTariffCard">
       <span class="eyebrow">Tariff Database</span>
       <h2>Add / Update HS Code Duty Slabs</h2>
@@ -258,10 +229,11 @@
       <span class="eyebrow">Valuation Matrix Database</span>
       <h2>Add / Update VR Category</h2>
       <div class="calc-grid">
-        <div class="calc-field"><label>HS Code(s) (e.g. 85044020, 85044090)</label><input type="text" id="addVrHs" placeholder="e.g. 96071900, 96072000"></div>
-        <div class="calc-field"><label>VR Number</label><input type="text" id="addVrNo" placeholder="e.g. 1742/2023"></div>
-        <div class="calc-field" style="grid-column: span 2;"><label>Category / Origin Label</label><input type="text" id="addVrCategory" placeholder="e.g. Table A - Brass: China"></div>
-        <div class="calc-field"><label>Value (USD)</label><input type="number" id="addVrValue" step="0.01" placeholder="e.g. 6.50"></div>
+        <div class="calc-field"><label>HS Code(s) (e.g. 85044020, 85044090)</label><input type="text" id="addVrHs" placeholder="e.g. 85044020, 85044090"></div>
+        <div class="calc-field"><label>VR Number</label><input type="text" id="addVrNo" placeholder="e.g. 2105/2026 (28-07-2026)"></div>
+        <div class="calc-field"><label>VR Subject / Main Item Name</label><input type="text" id="addVrMainTitle" placeholder="e.g. Mobile Phone Accessories"></div>
+        <div class="calc-field" style="grid-column: span 2;"><label>Category / Item Specific Label</label><input type="text" id="addVrCategory" placeholder="e.g. [Table A - Sr.1] Charger 15W - Cat-A"></div>
+        <div class="calc-field"><label>Value (USD)</label><input type="number" id="addVrValue" step="0.01" placeholder="e.g. 7.80"></div>
         <div class="calc-field"><label>PDF Link</label><input type="text" id="addVrLink" placeholder="https://fbr..."></div>
       </div>
       <div class="actions-row">
@@ -275,12 +247,6 @@
         <h3 style="font-family:'Source Serif 4',serif; font-size:14px; color:var(--brass); margin-bottom:10px;">📋 Saved VR Database</h3>
         <div class="table-container" id="adminVrListContainer"><div class="loader"></div> Loading VR Data...</div>
       </div>
-    </div>
-
-    <div class="card" id="previewCard" style="display:none;">
-      <h2>Review Extracted PDF Data</h2>
-      <div id="previewHolder"></div>
-      <div class="actions-row"><button class="primary" id="saveBtn">Save to Cloud</button><button class="ghost" id="discardBtn">Discard</button><span class="status-line" id="saveStatus"></span></div>
     </div>
   </div>
 
@@ -301,12 +267,12 @@
     </div>
   </div>
 
-  <!-- VR PANEL -->
+  <!-- VR PANEL (CLEAN DIRECTORY) -->
   <div class="panel" id="panel-vr">
     <div class="card">
       <span class="eyebrow">Valuation Rulings</span>
       <h2>Directory Search</h2>
-      <div class="search-bar"><input type="text" id="vrSearchInput" placeholder="Search by VR No, Description or Category..."></div>
+      <div class="search-bar"><input type="text" id="vrSearchInput" placeholder="Search by VR Number (e.g. 2105) or Main Item Name (e.g. Mobile Accessories, LED Lights)..."></div>
       <div id="vrResultCount" style="font-size:11.5px; color:var(--paper-dim); margin-bottom:12px;"></div>
       <div class="table-container" id="vrResultsHolder"></div>
     </div>
@@ -328,17 +294,6 @@
   <!-- DUTY CALCULATOR PANEL -->
   <div class="panel" id="panel-calculator">
     <div class="card">
-      
-      <!-- PRINT HEADER -->
-      <div id="printHeader" style="display:none;">
-        <img src="logo.jpeg" alt="Logo" onerror="this.style.display='none'">
-        <div>
-          <h1>Estimated Duty Calculation Provided By : ImportGuide</h1>
-          <p id="printSerial" style="font-weight: 600; color: #B8503F;">Assessment Slip No: IG-1000</p>
-          <p id="printDate">Official Duty & Taxes Calculation</p>
-        </div>
-      </div>
-      
       <span class="eyebrow">Customs Calculation Suite</span>
       <h2>Duty Calculator &amp; Invoice Generator</h2>
       
@@ -370,7 +325,6 @@
         <div class="calc-grid">
           <div class="calc-field"><label>Unit Price ($)</label><input type="number" id="calcUnitPrice" value="1.0" step="0.01"></div>
           
-          <!-- NEW VR FIELD WITH SMART DROPDOWN -->
           <div class="calc-field" style="position:relative; grid-column: span 1;">
               <label>VR Value (USD) <span id="vrBadge" style="color:var(--green); font-weight:bold; display:none;"></span></label>
               <input type="number" id="calcVrValue" placeholder="0.00" step="0.01" style="background:rgba(0,0,0,0.2); border:1px solid rgba(201,162,39,0.4); width:100%;">
@@ -437,35 +391,6 @@
   <div class="footer-note" id="footerNote">
     &copy; 2026 ImportGuide &middot; <b>Developed by: R.M</b><br><br>
     <button id="logoutBtn" style="background:none; border:none; color:var(--stamp-dim); text-decoration:underline; cursor:pointer; font-size:11px; font-family:inherit;">Logout Entirely</button>
-  </div>
-</div>
-
-<!-- GD DETAIL MODAL -->
-<div id="detailModalOverlay" class="modal-overlay">
-  <div class="detail-modal">
-    <div class="detail-modal-header">
-      <h3 style="margin:0; color:var(--paper); font-family:'Source Serif 4', serif; font-size:20px;">&#128203; Customs Declaration Record</h3>
-      <button class="close-modal-btn" onclick="closeDetailModal()" style="background:none; border:none; color:var(--paper-dim); font-size:28px; cursor:pointer;">&times;</button>
-    </div>
-    <div class="detail-modal-body" id="detailModalBody" style="padding:24px;"></div>
-  </div>
-</div>
-
-<!-- SIGNUP MODAL -->
-<div id="signupModalOverlay" class="modal-overlay">
-  <div class="detail-modal trial-modal" style="max-width:450px;">
-    <div class="detail-modal-header">
-      <h3 style="margin:0; color:var(--paper); font-family:'Source Serif 4', serif; font-size:18px;">🚀 Start Your 3-Day Free Trial</h3>
-      <button class="close-modal-btn" id="closeSignupBtn" style="background:none; border:none; color:var(--paper-dim); font-size:24px; cursor:pointer;">&times;</button>
-    </div>
-    <div class="detail-modal-body" style="padding:24px;">
-      <div class="calc-field" style="margin-bottom: 15px;"><label>Username (No Spaces)</label><input type="text" id="trialUser"></div>
-      <div class="calc-field" style="margin-bottom: 15px;"><label>Company Name</label><input type="text" id="trialCompany"></div>
-      <div class="calc-field" style="margin-bottom: 15px;"><label>Email Address</label><input type="email" id="trialEmail"></div>
-      <div class="calc-field" style="margin-bottom: 15px;"><label>WhatsApp Number</label><input type="text" id="trialWhatsapp"></div>
-      <div class="calc-field" style="margin-bottom: 20px;"><label>Password</label><input type="password" id="trialPass"></div>
-      <div style="display:flex; flex-direction:column; gap:10px;"><button class="primary" id="trialSubmitBtn">Create Free Account</button><span class="status-line" id="trialMsg" style="text-align:center;"></span></div>
-    </div>
   </div>
 </div>
 
@@ -582,11 +507,24 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (MULTIPLE HS CODE & DESCRIPTIONS MAPPED)
+  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
   let vrDataList = [];
+
+  // Helper: VR Number se saaf Item Title nikalna
+  function getCleanVrTitle(rawVrNo) {
+    let str = String(rawVrNo || '').trim();
+    if(str.toLowerCase().includes('2105')) return 'Mobile Phone Accessories';
+    if(str.toLowerCase().includes('2102') || str.toLowerCase().includes('1850')) return 'LED Light Fixtures & Fittings';
+    
+    // Agar brackets mein title mojood ho: e.g. "2105/2026 [Mobile Phone Accessories]"
+    let bracketMatch = str.match(/\[(.*?)\]/);
+    if(bracketMatch && bracketMatch[1]) return bracketMatch[1].trim();
+
+    return 'Customs Valuation Ruling';
+  }
 
   async function loadTariffFromCloud() {
     try {
@@ -622,7 +560,6 @@
               data.forEach(row => {
                   if(!row.hs_code) return;
                   
-                  // Multiple HS Codes split & clean logic
                   let rawHs = String(row.hs_code);
                   let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
                   if(hsList.length === 0 && rawHs.replace(/\D/g, "")) {
@@ -646,31 +583,27 @@
                       link: row.pdf_link
                   });
 
-                  // Item description extract & clean for title display
-                  let cleanItemName = String(row.category || '')
-                                      .replace(/\[.*?\]/g, '')
-                                      .replace(/-\s*(Cat-[A-D]|China|Europe\/USA|Other Origins)/gi, '')
-                                      .trim();
+                  // Clean Main Title
+                  let mainTitle = getCleanVrTitle(row.vr_no);
 
-                  let key = String(row.vr_no).toLowerCase();
+                  let key = String(row.vr_no).toLowerCase().split('[')[0].trim();
                   if(!uniqueVrs.has(key)) {
                       uniqueVrs.set(key, { 
-                          vr_no: row.vr_no, 
-                          all_items: new Set(cleanItemName ? [cleanItemName] : []),
+                          vr_no: row.vr_no.split('[')[0].trim(), 
+                          item_title: mainTitle,
                           hs_set: new Set(hsList),
                           date: "Cloud DB", 
                           link: row.pdf_link || "#" 
                       });
                   } else {
                        let existing = uniqueVrs.get(key);
-                       if(cleanItemName) existing.all_items.add(cleanItemName);
                        hsList.forEach(hs => existing.hs_set.add(hs));
                   }
               });
               
               vrDataList = Array.from(uniqueVrs.values()).map(v => ({
                   vr_no: v.vr_no,
-                  item_name: Array.from(v.all_items).filter(Boolean).slice(0, 3).join(" &middot; "),
+                  item_title: v.item_title,
                   hs_codes: Array.from(v.hs_set).join(", "),
                   date: v.date,
                   link: v.link
@@ -795,7 +728,7 @@
       calculateDuty();
   });
 
-  // 6. ADMIN SAVE TARIFF & VR (MULTIPLE HS CODES COMPATIBLE)
+  // 6. ADMIN SAVE TARIFF & VR
   async function loadAdminTariffList() {
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
@@ -813,10 +746,15 @@
   if(document.getElementById('saveVrBtn')) {
       document.getElementById('saveVrBtn').addEventListener('click', async () => {
           const rawHs = String(document.getElementById('addVrHs').value || '');
-          const vrNo = document.getElementById('addVrNo').value.trim();
+          let vrNo = document.getElementById('addVrNo').value.trim();
+          const mainTitle = document.getElementById('addVrMainTitle').value.trim();
           const category = document.getElementById('addVrCategory').value.trim();
           const val = parseFloat(document.getElementById('addVrValue').value);
           const link = document.getElementById('addVrLink').value.trim();
+
+          if(mainTitle && !vrNo.includes('[')) {
+              vrNo = `${vrNo} [${mainTitle}]`;
+          }
 
           let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
           let hsCombined = hsList.join(', ');
@@ -872,18 +810,21 @@
               json.forEach(r => {
                   let srNo = String(r['vr_sr_no'] || r['sr_no'] || r['s_no'] || r['sr'] || '').trim();
                   
-                  // Multiple HS Codes splitting logic for Excel upload
                   let rawHs = String(r['hs_code'] || '');
                   let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, '')).filter(h => h.length >= 4);
                   let hsCombined = hsList.join(', ');
 
                   let vrNo = String(r['vr_number'] || '');
                   let vrDate = String(r['vr_date'] || '').trim();
+                  let vrSubject = String(r['vr_title'] || r['vr_subject'] || r['main_item'] || '').trim();
                   let tableLabel = String(r['table'] || '').trim();
                   let desc = String(r['description'] || '').trim();
                   let link = String(r['pdf_link'] || '');
                   
                   let finalVrNo = vrDate ? `${vrNo} (${vrDate})` : vrNo;
+                  if(vrSubject && !finalVrNo.includes('[')) {
+                      finalVrNo = `${finalVrNo} [${vrSubject}]`;
+                  }
                   
                   let prefix = "";
                   if (tableLabel && srNo) {
@@ -896,7 +837,6 @@
 
                   let baseLabel = `${prefix}${desc}`.trim();
 
-                  // Dynamic Origins & Categories Reader
                   let categories = [
                       { label: 'China', value: parseFloat(r['china'] || r['china_rate']) },
                       { label: 'Europe/USA', value: parseFloat(r['europe'] || r['usa'] || r['europe_usa']) },
@@ -1067,7 +1007,6 @@
   document.getElementById('printCalcBtn').addEventListener('click', () => { 
     if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
     calcSerialNo++; localStorage.setItem('ig_calc_serial', calcSerialNo);
-    document.getElementById('printSerial').textContent = "Assessment Slip No: IG-" + calcSerialNo; document.getElementById('printDate').textContent = "Generated on: " + new Date().toLocaleString();
     window.print(); 
   });
 
@@ -1168,7 +1107,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 9. VAULT SEARCH & FILTERS (CRASH PROOF & OPTIMIZED)
+  // 9. VAULT SEARCH & FILTERS
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1303,28 +1242,29 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 10. VALUATION RULINGS SEARCH (WITH ITEM NAMES & HIGH-VISIBILITY TITLES)
+  // 10. VALUATION RULINGS SEARCH (EXACT SUBJECT TITLES)
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => 
-        (i.item_name && i.item_name.toLowerCase().includes(q)) || 
+        (i.item_title && i.item_title.toLowerCase().includes(q)) || 
         i.vr_no.toLowerCase().includes(q) || 
         (i.hs_codes && i.hs_codes.includes(q))
     );
     
     document.getElementById('vrResultCount').textContent = `Showing ${list.length} Applicable Rulings`;
     if(list.length > 0) { 
-        let tableHtml = `<table class="customs-table"><tr><th style="width:55%;">VR No & Description</th><th>Source</th><th>Action</th></tr>`; 
+        let tableHtml = `<table class="customs-table"><tr><th style="width:60%;">Valuation Ruling & Subject</th><th>Source</th><th>Action</th></tr>`; 
         list.forEach(item => { 
             tableHtml += `
               <tr>
                 <td>
-                  <b style="font-size:13.5px; color:var(--paper);">${item.vr_no}</b>
-                  <div style="color:var(--brass); font-weight:600; font-size:12.5px; margin-top:3px;">📦 ${item.item_name || 'General Valuation Ruling'}</div>
-                  <div style="color:var(--paper-dim); font-size:11px; margin-top:2px;">Applicable on HS: ${item.hs_codes}</div>
+                  <div style="font-size:14px; font-weight:bold; color:var(--paper);">
+                    ${item.vr_no} &mdash; <span style="color:var(--brass); font-family:'Source Serif 4',serif;">${item.item_title}</span>
+                  </div>
+                  <div style="color:var(--paper-dim); font-size:11px; margin-top:4px;">Applicable on HS: ${item.hs_codes}</div>
                 </td>
                 <td><span style="color:var(--green); font-size:11px;">${item.date}</span></td>
-                <td><a href="${item.link}" target="_blank" style="color:var(--brass); text-decoration:underline;">Download PDF</a></td>
+                <td><a href="${item.link}" target="_blank" style="color:var(--brass); text-decoration:underline; font-weight:500;">Download PDF</a></td>
               </tr>`; 
         }); 
         document.getElementById('vrResultsHolder').innerHTML = tableHtml + `</table>`; 
