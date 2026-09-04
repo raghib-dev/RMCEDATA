@@ -878,11 +878,15 @@
 
                   let baseLabel = `${prefix}${desc}`.trim();
 
+                  // Dynamic Origins & Categories Reader
                   let categories = [
-                      { label: 'Cat-A', value: parseFloat(r['cat_a']) },
-                      { label: 'Cat-B', value: parseFloat(r['cat_b']) },
-                      { label: 'Cat-C', value: parseFloat(r['cat_c']) },
-                      { label: 'Cat-D', value: parseFloat(r['cat_d']) }
+                      { label: 'China', value: parseFloat(r['china'] || r['china_rate']) },
+                      { label: 'Europe/USA', value: parseFloat(r['europe'] || r['usa'] || r['europe_usa']) },
+                      { label: 'Other Origins', value: parseFloat(r['other_origins'] || r['other'] || r['other_origin']) },
+                      { label: 'Cat-A', value: parseFloat(r['cat_a'] || r['cata']) },
+                      { label: 'Cat-B', value: parseFloat(r['cat_b'] || r['catb']) },
+                      { label: 'Cat-C', value: parseFloat(r['cat_c'] || r['catc']) },
+                      { label: 'Cat-D', value: parseFloat(r['cat_d'] || r['catd']) }
                   ];
 
                   if(hsCombined && vrNo) {
