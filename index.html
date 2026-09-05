@@ -421,7 +421,7 @@
 
   // NEW SUPABASE VAULT PROJECT (Clearance History / ref_data)
   const SUPABASE_VAULT_URL = 'https://hjwkjmzlvgfuxrwboccj.supabase.co';
-  const SUPABASE_VAULT_ANON_KEY = 'sb_publishable_wnAFnxjsUNiALHrc6SAbBw_57Qub8xV56y5x9r5...'; // <-- Paste full publishable key from screenshot
+  const SUPABASE_VAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhqd2tqbXp2bGdmdXhyd2JvY2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1Mzg4OTQsImV4cCI6MjEwNDExNDg5NH0.LaBASrlQZncBvmW2uekVaepWEN33T9wWPBzKCUKxkWc'; // <-- Paste full publishable key from screenshot
   const dbVault = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_VAULT_URL, SUPABASE_VAULT_ANON_KEY) : null;
 
   if(!db || !dbVault) { alert("Internet disconnected or Supabase library blocked."); return; }
