@@ -1140,7 +1140,7 @@
     return isNaN(parsed) ? 0 : parsed; 
   }
 
-  async function runSearch(){
+async function runSearch(){
     const rawQ = String(searchInput.value || '').trim(); 
     resultsHolder.innerHTML = '';
     
@@ -1157,10 +1157,11 @@
     const currentSearchId = ++searchId;
     
     try {
-      let query = dbVault.from('ref_data').select('*').limit(100);
+      let query = dbVault.from('ref_data').select('*').limit(60);
 
       if (activeFilter === 'all') {
-          query = query.or(`item_description.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%,assessed_hs_code.ilike.%${rawQ}%`);
+          // Description aur GD Number par primary fast scan
+          query = query.or(`item_description.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%`);
       } else {
           query = query.ilike(activeFilter, `%${rawQ}%`);
       }
@@ -1185,7 +1186,7 @@
     } catch (err) { 
       if (currentSearchId === searchId) {
         console.error("Vault Search Error:", err);
-        resultCount.textContent = `Error: ${err.message || 'Check Console'}`; 
+        resultCount.textContent = `Error: ${err.message || 'Timeout'}`; 
       }
     }
   }
