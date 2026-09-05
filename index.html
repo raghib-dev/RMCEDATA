@@ -1140,7 +1140,7 @@
     return isNaN(parsed) ? 0 : parsed; 
   }
 
-async function runSearch(){
+  async function runSearch(){
     const rawQ = String(searchInput.value || '').trim(); 
     resultsHolder.innerHTML = '';
     
@@ -1160,7 +1160,6 @@ async function runSearch(){
       let query = dbVault.from('ref_data').select('*').limit(60);
 
       if (activeFilter === 'all') {
-          // Description aur GD Number par primary fast scan
           query = query.or(`item_description.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%`);
       } else {
           query = query.ilike(activeFilter, `%${rawQ}%`);
