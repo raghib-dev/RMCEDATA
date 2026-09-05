@@ -10,10 +10,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-
 <style>
   :root{ --ink:#0F1E2B; --ink-2:#16293A; --ink-3:#1D3448; --paper:#ECE6D6; --paper-dim:#93A6B3; --brass:#C9A227; --brass-dim:#8A742A; --stamp:#B8503F; --stamp-dim:#7A4038; --green:#5C9382; --hairline:rgba(201,162,39,0.22); --radius:4px; }
   *{box-sizing:border-box;}
@@ -192,17 +188,6 @@
 
   <!-- ADMIN PANEL -->
   <div class="panel" id="panel-upload">
-    <div class="card" id="adminExcelCard">
-      <span class="eyebrow">Firebase Firestore Vault</span>
-      <h2>Upload Customs Bulk Excel/CSV Data</h2>
-      <div style="display:flex; gap:10px; flex-wrap: wrap;">
-        <button class="primary" id="adminLoadExcelBtn" style="background:var(--green); color:#fff;">Upload Excel to Firestore</button>
-        <button class="ghost" id="adminClearExcelBtn">Clear Firestore Vault Data</button>
-        <span class="status-line" id="adminLocalExcelStatus"></span>
-      </div>
-      <input type="file" id="adminLocalExcelInput" accept=".xlsx, .xls, .csv" multiple>
-    </div>
-
     <!-- ADMIN TARIFF UPLOAD -->
     <div class="card" id="adminTariffCard">
       <span class="eyebrow">Tariff Database</span>
@@ -429,26 +414,17 @@
 <script>
 (function(){
 
-  // 1. DUAL SDK INITIALIZATION (SUPABASE FOR CORE, FIREBASE FOR HEAVY VAULT)
-  const SUPABASE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
-  const SUPABASE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
-  const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  // 1. DUAL SUPABASE CLIENTS CONFIGURATION
+  const SUPABASE_CORE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
+  const SUPABASE_CORE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
+  const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAops3PiYJ82nssQMhViWfNSz4ZsLFgqdA",
-    authDomain: "customsvault-dc18a.firebaseapp.com",
-    projectId: "customsvault-dc18a",
-    storageBucket: "customsvault-dc18a.firebasestorage.app",
-    messagingSenderId: "1079110685503",
-    appId: "1:1079110685503:web:f3c3ce896563f34dd4398a"
-  };
+  // NEW SUPABASE VAULT PROJECT (Clearance History / ref_data)
+  const SUPABASE_VAULT_URL = 'https://hjwkjmzlvgfuxrwboccj.supabase.co';
+  const SUPABASE_VAULT_ANON_KEY = 'sb_publishable_wnAFnxjsUNiALHrc6SAbBw_57Qub8xV56y5x9r5...'; // <-- Paste full publishable key from screenshot
+  const dbVault = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_VAULT_URL, SUPABASE_VAULT_ANON_KEY) : null;
 
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  const dbVault = firebase.firestore();
-
-  if(!db) { alert("Internet disconnected or Supabase script blocked."); return; }
+  if(!db || !dbVault) { alert("Internet disconnected or Supabase library blocked."); return; }
 
   // 2. UI NAVIGATION
   const portalHeroSection = document.getElementById('portalHeroSection');
@@ -505,7 +481,7 @@
     });
   });
 
-  // 3. AUTH & LOGIN (SUPABASE)
+  // 3. AUTH & LOGIN (SUPABASE CORE)
   async function handleLogin() {
     const u = headerUser.value.trim().toLowerCase(); const p = headerPass.value.trim();
     if (!u || !p) { alert('Please enter username and password.'); return; }
@@ -554,7 +530,7 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (SUPABASE)
+  // 5. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (SUPABASE CORE)
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
@@ -759,7 +735,7 @@
       calculateDuty();
   });
 
-  // 6. ADMIN SAVE TARIFF & VR (SUPABASE)
+  // 6. ADMIN SAVE TARIFF & VR (SUPABASE CORE)
   async function loadAdminTariffList() {
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
@@ -1030,7 +1006,7 @@
     window.print(); 
   });
 
-  // 8. VR & FIRESTORE SUGGESTIONS
+  // 8. VR & SUPABASE VAULT SUGGESTIONS
   const calcDescInput = document.getElementById('calcDesc'); 
   const descSuggestions = document.getElementById('descSuggestions');
 
@@ -1039,7 +1015,7 @@
       const rawQ = String(this.value || '').trim().toLowerCase(); 
       if(rawQ.length < 2) { 
           descSuggestions.style.display = 'none'; 
-          descSuggestions.innerHTML = '';
+          descSuggestions.innerHTML = ''; 
           return; 
       }
       
@@ -1065,19 +1041,17 @@
           });
       }
 
-      // 2. Customs Clearance History Search (Firestore)
+      // 2. Customs Clearance History Search (Supabase ref_data)
       try {
-          let snap = await dbVault.collection('customs_data')
-              .orderBy('item_description_lower')
-              .startAt(rawQ)
-              .endAt(rawQ + '\uf8ff')
-              .limit(4)
-              .get();
+          const { data: pastGds, error } = await dbVault
+              .from('ref_data')
+              .select('item_description, assessed_hs_code, assessed_unit_value')
+              .ilike('item_description', `%${rawQ}%`)
+              .limit(4);
 
-          if (!snap.empty) {
+          if (!error && pastGds && pastGds.length > 0) {
               html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA</div>`;
-              snap.forEach(doc => {
-                  let item = doc.data();
+              pastGds.forEach(item => {
                   let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
                   html += `
                     <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
@@ -1132,7 +1106,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 9. VAULT SEARCH & FILTERS (POWERED BY FIREBASE FIRESTORE)
+  // 9. VAULT SEARCH & FILTERS (POWERED BY SUPABASE VAULT - ref_data)
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1152,7 +1126,7 @@
     filterChips.querySelectorAll('button').forEach(b => b.classList.remove('active')); 
     e.target.classList.add('active'); 
     activeFilter = e.target.dataset.f; 
-    renderFilteredResults(); 
+    runSearch(); 
   });
   
   searchInput.addEventListener('input', debounce(runSearch, 400)); 
@@ -1167,7 +1141,7 @@
   }
 
   async function runSearch(){
-    const rawQ = String(searchInput.value || '').trim().toLowerCase(); 
+    const rawQ = String(searchInput.value || '').trim(); 
     resultsHolder.innerHTML = '';
     
     if(!rawQ){ 
@@ -1179,29 +1153,26 @@
       return; 
     }
     
-    resultCount.innerHTML = '<span class="loader"></span> Scanning Firestore Vault...'; 
+    resultCount.innerHTML = '<span class="loader"></span> Scanning Supabase Vault...'; 
     const currentSearchId = ++searchId;
     
     try {
-      let queryRef = dbVault.collection('customs_data');
-      let snap;
+      let query = dbVault.from('ref_data').select('*').limit(300);
 
-      if (activeFilter !== 'all') {
-          let fieldKey = activeFilter;
-          if (fieldKey === 'item_description') fieldKey = 'item_description_lower';
-          snap = await queryRef.orderBy(fieldKey).startAt(rawQ).endAt(rawQ + '\uf8ff').limit(300).get();
+      if (activeFilter === 'all') {
+          query = query.or(`item_description.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%,assessed_hs_code.ilike.%${rawQ}%,importer_name.ilike.%${rawQ}%`);
       } else {
-          // Broad prefix search across item descriptions
-          snap = await queryRef.orderBy('item_description_lower').startAt(rawQ).endAt(rawQ + '\uf8ff').limit(300).get();
+          query = query.ilike(activeFilter, `%${rawQ}%`);
       }
+      
+      const { data, error } = await query;
       
       if (currentSearchId !== searchId) return;
 
-      let data = [];
-      snap.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+      if (error) throw error;
       
-      if (data.length === 0) { 
-        resultCount.textContent = 'No match found in Firestore.'; 
+      if (!data || data.length === 0) { 
+        resultCount.textContent = 'No match found in Supabase Vault.'; 
         return; 
       }
       
@@ -1271,7 +1242,7 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 10. VALUATION RULINGS SEARCH (SUPABASE DATA DISPLAY)
+  // 10. VALUATION RULINGS SEARCH (SUPABASE CORE DISPLAY)
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => 
@@ -1303,81 +1274,7 @@
   }
   document.getElementById('vrSearchInput').addEventListener('input', debounce(runVrSearch, 300));
 
-  // 11. BULK EXCEL UPLOAD TO FIRESTORE (BATCH WRITES)
-  if(document.getElementById('adminLoadExcelBtn')) {
-      document.getElementById('adminLoadExcelBtn').addEventListener('click', () => { document.getElementById('adminLocalExcelInput').value = ''; document.getElementById('adminLocalExcelInput').click(); });
-  }
-
-  if(document.getElementById('adminLocalExcelInput')) {
-      document.getElementById('adminLocalExcelInput').addEventListener('change', async e => {
-        if(e.target.files.length === 0) return; 
-        const statusEl = document.getElementById('adminLocalExcelStatus'); 
-        statusEl.innerHTML = `<span class="loader"></span>Reading Excel...`; 
-        let allNewRows = [];
-        try {
-          for(let file of e.target.files) {
-            let data = await new Promise(r => { let reader = new FileReader(); reader.onload = e => r(new Uint8Array(e.target.result)); reader.readAsArrayBuffer(file); });
-            let wb = XLSX.read(data, {type: 'array'}); let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            const formatted = json.map(r => { const getVal = (keys) => { for(let k of keys) { const found = Object.keys(r).find(x => x.trim().toLowerCase() === k.toLowerCase()); if(found && r[found] !== undefined) return String(r[found]).trim(); } return ''; };
-              let desc = getVal(['Item Description', 'Description']);
-              return { 
-                gd_number: getVal(['GD Number', 'GD No', 'GDNUMBER']), 
-                assessed_hs_code: getVal(['Assessed HS Code', 'HS Code']), 
-                item_description: desc,
-                item_description_lower: desc.toLowerCase(),
-                importer_name: getVal(['Importer Name', 'Importer']), 
-                channel: getVal(['Channel']), 
-                dec_unit_value: getVal(['Dec Unit Value', 'Declared Value']), 
-                assessed_unit_value: getVal(['Assessed Unit Value', 'Assessed Value']), 
-                currency: getVal(['Currency', 'Curr']) || 'USD', 
-                quantity: getVal(['Quantity', 'Qty']), 
-                uom: getVal(['UOM']), 
-                origin: getVal(['Origin']), 
-                supplier_name: getVal(['Supplier Name', 'Supplier']), 
-                bl_number: getVal(['BL Number', 'BL No']), 
-                agent_name: getVal(['Agent Name', 'Agent']) 
-              };
-            }); 
-            allNewRows = allNewRows.concat(formatted);
-          }
-
-          // Firestore batch write limit is 500 operations
-          const batchSize = 400;
-          for (let i = 0; i < allNewRows.length; i += batchSize) {
-              const batch = dbVault.batch();
-              const chunk = allNewRows.slice(i, i + batchSize);
-              chunk.forEach(item => {
-                  const docRef = dbVault.collection('customs_data').doc();
-                  batch.set(docRef, item);
-              });
-              statusEl.innerHTML = `<span class="loader"></span>Uploading to Firestore... ${Math.floor((i / allNewRows.length) * 100)}%`;
-              await batch.commit();
-          }
-          statusEl.innerHTML = `✅ Successfully saved ${allNewRows.length} rows to Firestore!`;
-        } catch(err) { 
-          statusEl.innerHTML = `❌ Excel Upload Error: ${err.message}`; 
-        }
-      });
-  }
-
-  if(document.getElementById('adminClearExcelBtn')) {
-      document.getElementById('adminClearExcelBtn').addEventListener('click', async () => { 
-        if(!confirm("Clear ALL Clearance Vault data from Firestore?")) return; 
-        const statusEl = document.getElementById('adminLocalExcelStatus');
-        statusEl.innerHTML = `<span class="loader"></span>Deleting from Firestore...`; 
-        try {
-          const snap = await dbVault.collection('customs_data').limit(400).get();
-          const batch = dbVault.batch();
-          snap.docs.forEach(doc => batch.delete(doc.ref));
-          await batch.commit();
-          statusEl.innerHTML = `🗑️ Cleared batch. Run again if more records exist.`;
-        } catch(err) {
-          statusEl.innerHTML = `❌ Error: ${err.message}`;
-        }
-      });
-  }
-
-  // 12. CLIENT SUB MANAGEMENT (SUPABASE)
+  // 11. CLIENT SUB MANAGEMENT (SUPABASE CORE)
   if(document.getElementById('createSubBtn')) {
       document.getElementById('createSubBtn').addEventListener('click', async () => {
         const u = document.getElementById('newSubUser').value.trim().toLowerCase(); const p = document.getElementById('newSubPass').value.trim(); if(!u || !p) return;
