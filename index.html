@@ -420,11 +420,11 @@
   const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
   // NEW SUPABASE VAULT PROJECT (Clearance History / ref_data)
-  const SUPABASE_VAULT_URL = 'https://hjwkjmzvlgfuxrwboccj.supabase.co';
+  const SUPABASE_VAULT_URL = 'https://hjwkjmzlvgfuxrwboccj.supabase.co';
   const SUPABASE_VAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhqd2tqbXp2bGdmdXhyd2JvY2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1Mzg4OTQsImV4cCI6MjEwNDExNDg5NH0.LaBASrlQZncBvmW2uekVaepWEN33T9wWPBzKCUKxkWc';
   const dbVault = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_VAULT_URL, SUPABASE_VAULT_ANON_KEY) : null;
 
-  if(!db) { alert("Internet disconnected or Supabase library blocked."); return; }
+  if(!db || !dbVault) { alert("Internet disconnected or Supabase library blocked."); return; }
 
   // 2. UI NAVIGATION
   const portalHeroSection = document.getElementById('portalHeroSection');
@@ -1006,7 +1006,7 @@
     window.print(); 
   });
 
-  // 8. VR & REST VAULT SUGGESTIONS
+  // 8. VR & SUPABASE VAULT SUGGESTIONS
   const calcDescInput = document.getElementById('calcDesc'); 
   const descSuggestions = document.getElementById('descSuggestions');
 
@@ -1041,27 +1041,24 @@
           });
       }
 
-      // 2. Customs Clearance History Search (Direct REST API Query)
+      // 2. Customs Clearance History Search (Fast Supabase Vault Query)
       try {
-          const res = await fetch(`${SUPABASE_VAULT_URL}/rest/v1/ref_data?select=item_description,assessed_hs_code,assessed_unit_value&item_description=ilike.*${encodeURIComponent(rawQ)}*&limit=4`, {
-              headers: {
-                  'apikey': SUPABASE_VAULT_ANON_KEY,
-                  'Authorization': `Bearer ${SUPABASE_VAULT_ANON_KEY}`
-              }
-          });
-          if (res.ok) {
-              const pastGds = await res.json();
-              if (pastGds && pastGds.length > 0) {
-                  html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA</div>`;
-                  pastGds.forEach(item => {
-                      let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
-                      html += `
-                        <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
-                          <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
-                          <div style="color:var(--brass); font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
-                        </div>`;
-                  });
-              }
+          const { data: pastGds, error } = await dbVault
+              .from('ref_data')
+              .select('item_description, assessed_hs_code, assessed_unit_value')
+              .ilike('item_description', `%${rawQ}%`)
+              .limit(5);
+
+          if (!error && pastGds && pastGds.length > 0) {
+              html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA</div>`;
+              pastGds.forEach(item => {
+                  let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
+                  html += `
+                    <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
+                      <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
+                      <div style="color:var(--brass); font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
+                    </div>`;
+              });
           }
       } catch(err){}
 
@@ -1109,7 +1106,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 9. VAULT SEARCH & FILTERS (BULLETPROOF DIRECT REST SEARCH)
+  // 9. VAULT SEARCH & FILTERS (OPTIMIZED HIGH-SPEED SEARCH)
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1132,7 +1129,7 @@
     runSearch(); 
   });
   
-  searchInput.addEventListener('input', debounce(runSearch, 400)); 
+  searchInput.addEventListener('input', debounce(runSearch, 350)); 
   filterImporter.addEventListener('change', renderFilteredResults); 
   filterExporter.addEventListener('change', renderFilteredResults); 
   filterOrigin.addEventListener('change', renderFilteredResults); 
@@ -1147,8 +1144,8 @@
     const rawQ = String(searchInput.value || '').trim(); 
     resultsHolder.innerHTML = '';
     
-    if(!rawQ){ 
-      resultCount.textContent = 'Type to search...'; 
+    if(!rawQ || rawQ.length < 2){ 
+      resultCount.textContent = 'Type at least 2 characters to search...'; 
       filterImporter.innerHTML = '<option value="">All Importers</option>'; 
       filterExporter.innerHTML = '<option value="">All Suppliers</option>'; 
       filterOrigin.innerHTML = '<option value="">All Origins</option>'; 
@@ -1160,31 +1157,23 @@
     const currentSearchId = ++searchId;
     
     try {
-      const term = encodeURIComponent(`*${rawQ}*`);
-      let endpoint = `${SUPABASE_VAULT_URL}/rest/v1/ref_data?select=*&limit=150`;
+      let query = dbVault.from('ref_data').select('*').limit(100);
 
       if (activeFilter === 'all') {
-          endpoint += `&or=(item_description.ilike.${term},gd_number.ilike.${term},assessed_hs_code.ilike.${term},importer_name.ilike.${term})`;
+          query = query.or(`item_description.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%,assessed_hs_code.ilike.%${rawQ}%`);
       } else {
-          endpoint += `&${activeFilter}=ilike.${term}`;
+          query = query.ilike(activeFilter, `%${rawQ}%`);
       }
-
-      const response = await fetch(endpoint, {
-          headers: {
-              'apikey': SUPABASE_VAULT_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_VAULT_ANON_KEY}`
-          }
-      });
-
-      if (!response.ok) {
-          const errBody = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errBody}`);
-      }
-
-      const data = await response.json();
+      
+      const { data, error } = await query;
       
       if (currentSearchId !== searchId) return;
 
+      if (error) {
+        console.error("Supabase Vault Error:", error);
+        throw error;
+      }
+      
       if (!data || data.length === 0) { 
         resultCount.textContent = 'No match found in Supabase Vault.'; 
         return; 
@@ -1195,8 +1184,8 @@
       renderFilteredResults();
     } catch (err) { 
       if (currentSearchId === searchId) {
-        console.error("Supabase Vault Error:", err);
-        resultCount.textContent = `Error: ${err.message}`; 
+        console.error("Vault Search Error:", err);
+        resultCount.textContent = `Error: ${err.message || 'Check Console'}`; 
       }
     }
   }
