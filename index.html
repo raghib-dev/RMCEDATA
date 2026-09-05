@@ -1157,7 +1157,7 @@
     const currentSearchId = ++searchId;
     
     try {
-      let query = dbVault.from('ref_data').select('*').limit(60);
+      let query = dbVault.from('ref_data').select('*').limit(2000);
 
       if (activeFilter === 'all') {
           query = query.or(`item_description.ilike.%${rawQ}%,gd_number.ilike.%${rawQ}%`);
