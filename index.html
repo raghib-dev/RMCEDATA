@@ -420,11 +420,11 @@
   const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
   // NEW SUPABASE VAULT PROJECT (Clearance History / ref_data)
-  const SUPABASE_VAULT_URL = 'https://hjwkjmzlvgfuxrwboccj.supabase.co';
+  const SUPABASE_VAULT_URL = 'https://hjwkjmzvlgfuxrwboccj.supabase.co';
   const SUPABASE_VAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhqd2tqbXp2bGdmdXhyd2JvY2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1Mzg4OTQsImV4cCI6MjEwNDExNDg5NH0.LaBASrlQZncBvmW2uekVaepWEN33T9wWPBzKCUKxkWc';
   const dbVault = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_VAULT_URL, SUPABASE_VAULT_ANON_KEY) : null;
 
-  if(!db || !dbVault) { alert("Internet disconnected or Supabase library blocked."); return; }
+  if(!db) { alert("Internet disconnected or Supabase library blocked."); return; }
 
   // 2. UI NAVIGATION
   const portalHeroSection = document.getElementById('portalHeroSection');
