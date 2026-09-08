@@ -1210,9 +1210,10 @@
           });
       }
 
-      // 2. Turso Database Clearance History Suggestion
+      // 2. Turso Database Clearance History Suggestion (Multi-Word)
       try {
-          const res = await executeRawSql(`SELECT item_description, assessed_hs_code, assessed_unit_value FROM ref_data WHERE item_description LIKE '%${rawQ.replace(/'/g, "''")}%' LIMIT 5;`);
+          let whereConds = terms.map(t => `item_description LIKE '%${t.replace(/'/g, "''")}%'`).join(' AND ');
+          const res = await executeRawSql(`SELECT item_description, assessed_hs_code, assessed_unit_value FROM ref_data WHERE ${whereConds} LIMIT 6;`);
           
           if (res && res.results && res.results[0] && res.results[0].response && res.results[0].response.result) {
             const cols = res.results[0].response.result.cols.map(c => c.name);
@@ -1280,7 +1281,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 11. TURSO SEARCH & VAULT FILTERS
+  // 11. TURSO ADVANCED MULTI-WORD SEARCH & VAULT FILTERS
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1327,20 +1328,22 @@
       return; 
     }
     
-    resultCount.innerHTML = '<span class="loader"></span> Scanning Turso Cloud Vault...'; 
+    resultCount.innerHTML = '<span class="loader"></span> Scanning Complete Turso Vault...'; 
     const currentSearchId = ++searchId;
     
     try {
-      const cleanQ = rawQ.replace(/'/g, "''");
-      let queryStr = "SELECT * FROM ref_data WHERE ";
+      const terms = rawQ.replace(/'/g, "''").split(/\s+/).filter(w => w.length > 0);
+      
+      let whereClauses = [];
+      terms.forEach(term => {
+        if (activeFilter === "all") {
+          whereClauses.push(`(item_description LIKE '%${term}%' OR gd_number LIKE '%${term}%' OR assessed_hs_code LIKE '%${term}%' OR importer_name LIKE '%${term}%')`);
+        } else {
+          whereClauses.push(`${activeFilter} LIKE '%${term}%'`);
+        }
+      });
 
-      if (activeFilter === "all") {
-        queryStr += `(item_description LIKE '%${cleanQ}%' OR gd_number LIKE '%${cleanQ}%' OR assessed_hs_code LIKE '%${cleanQ}%') `;
-      } else {
-        queryStr += `${activeFilter} LIKE '%${cleanQ}%' `;
-      }
-
-      queryStr += "LIMIT 500;";
+      const queryStr = `SELECT * FROM ref_data WHERE ${whereClauses.join(' AND ')} ORDER BY id DESC LIMIT 2000;`;
 
       const res = await executeRawSql(queryStr);
       
