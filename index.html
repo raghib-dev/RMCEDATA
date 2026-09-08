@@ -188,20 +188,20 @@
 
   <!-- ADMIN PANEL -->
   <div class="panel" id="panel-upload">
-    <!-- CLOUDFLARE D1 BULK EXCEL UPLOADER -->
+    <!-- TURSO BULK EXCEL UPLOADER -->
     <div class="card" style="border: 1.5px solid var(--brass);">
-      <span class="eyebrow" style="color:var(--brass);">Cloudflare D1 Database</span>
+      <span class="eyebrow" style="color:var(--brass);">Turso libSQL Database (5 GB Cloud Storage)</span>
       <h2>🚀 Bulk Upload Clearance Data (Excel / CSV)</h2>
       <p style="font-size:12px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:15px;">
-        Upload GD Data directly to 5GB Cloudflare D1 Vault. Columns automatically mapped: <code>gd_number</code>, <code>assessed_hs_code</code>, <code>item_description</code>, <code>importer_name</code>, <code>supplier_name</code>, <code>agent_name</code>, <code>origin</code>, <code>quantity</code>, <code>uom</code>, <code>currency</code>, <code>dec_unit_value</code>, <code>assessed_unit_value</code>, <code>bl_number</code>.
+        High-speed bulk ingestion into Turso Cloud Vault. Column headers recognized: <code>gd_number</code>, <code>assessed_hs_code</code>, <code>item_description</code>, <code>importer_name</code>, <code>supplier_name</code>, <code>agent_name</code>, <code>origin</code>, <code>quantity</code>, <code>uom</code>, <code>currency</code>, <code>dec_unit_value</code>, <code>assessed_unit_value</code>, <code>bl_number</code>.
       </p>
       <div class="actions-row">
-        <button class="primary" id="triggerD1UploadBtn">📂 Select Excel / CSV File</button>
-        <input type="file" id="d1FileInput" accept=".xlsx, .xls, .csv" style="display:none;">
-        <span class="status-line" id="d1UploadStatus"></span>
+        <button class="primary" id="triggerTursoUploadBtn">📂 Select Excel / CSV File</button>
+        <input type="file" id="tursoFileInput" accept=".xlsx, .xls, .csv" style="display:none;">
+        <span class="status-line" id="tursoUploadStatus"></span>
       </div>
-      <div id="d1ProgressBar" style="display:none; width:100%; background:var(--ink-3); height:8px; border-radius:4px; margin-top:14px; overflow:hidden;">
-        <div id="d1ProgressFill" style="width:0%; background:var(--brass); height:100%; transition:width 0.2s;"></div>
+      <div id="tursoProgressBar" style="display:none; width:100%; background:var(--ink-3); height:8px; border-radius:4px; margin-top:14px; overflow:hidden;">
+        <div id="tursoProgressFill" style="width:0%; background:var(--brass); height:100%; transition:width 0.2s;"></div>
       </div>
     </div>
 
@@ -431,17 +431,82 @@
 <script>
 (function(){
 
-  // 1. SUPABASE CORE (AUTH, TARIFF, VR) & CLOUDFLARE D1 (VAULT CLEARANCE DATA)
+  // 1. SUPABASE CORE (AUTH, TARIFF, VR)
   const SUPABASE_CORE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
   const SUPABASE_CORE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
   const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
-  // CLOUDFLARE D1 API WORKER URL
-  const D1_API_URL = 'https://d1-api.ragheb-pisces.workers.dev';
+  // 2. TURSO DATABASE REST PIPELINE CLIENT
+  const TURSO_HTTP_URL = 'https://cvault-db-raghib-dev.aws-ap-south-1.turso.io/v2/pipeline';
+  const TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODg4NTA0ODEsImlkIjoiMDFhMDdmYzktYTcwMS03OWUzLTliMTEtMjFkNThjZGFjNjZmIiwia2lkIjoiVW5SSFlSNDA4WGtVRXJBczNzdFdHalBONWNrbVRWclMzQjdqSk1MOVFDdyIsInJpZCI6ImRjYzg3NDhjLTZmOTUtNDUwNS1hNWYyLTNkOTFkZDIwMjRkNSJ9.seTzarEgYi-_fPEISPV4Pyd2ThUQGXi5S6vN4ml2BrfAFMjS94km9bLgP5bXf-1W3ulSCeTh86TAMqACH31gAA';
+
+  async function executeTursoQueries(statements) {
+    const requests = statements.map(stmt => {
+      if (typeof stmt === 'string') {
+        return { type: "execute", stmt: { sql: stmt } };
+      }
+      return {
+        type: "execute",
+        stmt: {
+          sql: stmt.sql,
+          args: (stmt.args || []).map(val => {
+            if (val === null || val === undefined) return { type: "null" };
+            if (typeof val === "number") {
+              return Number.isInteger(val) ? { type: "integer", value: String(val) } : { type: "float", value: val };
+            }
+            return { type: "text", value: String(val) };
+          })
+        }
+      };
+    });
+
+    const response = await fetch(TURSO_HTTP_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${TURSO_AUTH_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ requests })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Turso Error (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.results;
+  }
+
+  async function initTursoSchema() {
+    const schemaSql = [
+      `CREATE TABLE IF NOT EXISTS ref_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gd_number TEXT,
+        assessed_hs_code TEXT,
+        item_description TEXT,
+        importer_name TEXT,
+        supplier_name TEXT,
+        agent_name TEXT,
+        channel TEXT,
+        origin TEXT,
+        quantity REAL,
+        uom TEXT,
+        currency TEXT,
+        dec_unit_value REAL,
+        assessed_unit_value REAL,
+        bl_number TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_desc ON ref_data(item_description);`,
+      `CREATE INDEX IF NOT EXISTS idx_gd ON ref_data(gd_number);`,
+      `CREATE INDEX IF NOT EXISTS idx_hs ON ref_data(assessed_hs_code);`
+    ];
+    await executeTursoQueries(schemaSql);
+  }
 
   if(!db) { alert("Internet disconnected or Supabase library blocked."); return; }
 
-  // 2. UI NAVIGATION
+  // 3. UI NAVIGATION
   const portalHeroSection = document.getElementById('portalHeroSection');
   const portalHomeGrid = document.getElementById('portalHomeGrid');
   const workspaceModal = document.getElementById('workspaceModal');
@@ -496,7 +561,7 @@
     });
   });
 
-  // 3. AUTH & LOGIN (SUPABASE CORE)
+  // 4. AUTH & LOGIN (SUPABASE CORE)
   async function handleLogin() {
     const u = headerUser.value.trim().toLowerCase(); const p = headerPass.value.trim();
     if (!u || !p) { alert('Please enter username and password.'); return; }
@@ -528,7 +593,7 @@
   document.getElementById('headerLogoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
   if(document.getElementById('logoutBtn')) { document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); }); }
 
-  // 4. SIGNUP TRIAL
+  // 5. SIGNUP TRIAL
   document.getElementById('openSignupBtn').addEventListener('click', () => { document.getElementById('signupModalOverlay').style.display = 'flex'; });
   document.getElementById('closeSignupBtn').addEventListener('click', () => { document.getElementById('signupModalOverlay').style.display = 'none'; });
   document.getElementById('trialSubmitBtn').addEventListener('click', async () => {
@@ -545,25 +610,27 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 5. CLOUDFLARE D1 BULK EXCEL UPLOADER LOGIC
-  const triggerD1UploadBtn = document.getElementById('triggerD1UploadBtn');
-  const d1FileInput = document.getElementById('d1FileInput');
-  const d1UploadStatus = document.getElementById('d1UploadStatus');
-  const d1ProgressBar = document.getElementById('d1ProgressBar');
-  const d1ProgressFill = document.getElementById('d1ProgressFill');
+  // 6. TURSO BULK EXCEL UPLOADER LOGIC
+  const triggerTursoUploadBtn = document.getElementById('triggerTursoUploadBtn');
+  const tursoFileInput = document.getElementById('tursoFileInput');
+  const tursoUploadStatus = document.getElementById('tursoUploadStatus');
+  const tursoProgressBar = document.getElementById('tursoProgressBar');
+  const tursoProgressFill = document.getElementById('tursoProgressFill');
 
-  if(triggerD1UploadBtn && d1FileInput) {
-    triggerD1UploadBtn.addEventListener('click', () => { d1FileInput.value = ''; d1FileInput.click(); });
+  if(triggerTursoUploadBtn && tursoFileInput) {
+    triggerTursoUploadBtn.addEventListener('click', () => { tursoFileInput.value = ''; tursoFileInput.click(); });
     
-    d1FileInput.addEventListener('change', async (e) => {
+    tursoFileInput.addEventListener('change', async (e) => {
       if(e.target.files.length === 0) return;
       const file = e.target.files[0];
-      d1UploadStatus.innerHTML = '<span class="loader"></span> Parsing file...';
-      d1UploadStatus.className = 'status-line';
-      d1ProgressBar.style.display = 'block';
-      d1ProgressFill.style.width = '0%';
+      tursoUploadStatus.innerHTML = '<span class="loader"></span> Initializing Turso Schema & parsing file...';
+      tursoUploadStatus.className = 'status-line';
+      tursoProgressBar.style.display = 'block';
+      tursoProgressFill.style.width = '0%';
 
       try {
+        await initTursoSchema();
+
         const buffer = await new Promise(r => {
           const reader = new FileReader();
           reader.onload = ev => r(new Uint8Array(ev.target.result));
@@ -575,7 +642,6 @@
 
         if (!rawJson || rawJson.length === 0) throw new Error("File is empty or invalid format.");
 
-        // Normalize keys
         const rows = rawJson.map(r => {
           let getVal = (patterns) => {
             for (let k in r) {
@@ -607,7 +673,7 @@
 
         if(rows.length === 0) throw new Error("No valid customs records detected in sheet.");
 
-        d1UploadStatus.innerHTML = `<span class="loader"></span> Uploading ${rows.length} records to Cloudflare D1...`;
+        tursoUploadStatus.innerHTML = `<span class="loader"></span> Uploading ${rows.length} records to Turso Cloud...`;
 
         // Batch upload (100 rows per request)
         const batchSize = 100;
@@ -615,34 +681,49 @@
 
         for (let i = 0; i < rows.length; i += batchSize) {
           const chunk = rows.slice(i, i + batchSize);
-          const res = await fetch(`${D1_API_URL}/api/upload`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(chunk)
-          });
+          const stmts = chunk.map(r => ({
+            sql: `INSERT INTO ref_data (
+              gd_number, assessed_hs_code, item_description, importer_name, 
+              supplier_name, agent_name, channel, origin, quantity, 
+              uom, currency, dec_unit_value, assessed_unit_value, bl_number
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [
+              r.gd_number || null,
+              r.assessed_hs_code || null,
+              r.item_description || null,
+              r.importer_name || null,
+              r.supplier_name || null,
+              r.agent_name || null,
+              r.channel || null,
+              r.origin || null,
+              r.quantity || 0,
+              r.uom || null,
+              r.currency || 'USD',
+              r.dec_unit_value || 0,
+              r.assessed_unit_value || 0,
+              r.bl_number || null
+            ]
+          }));
 
-          if (!res.ok) {
-            const errJson = await res.json().catch(() => ({}));
-            throw new Error(errJson.error || `Upload failed with status ${res.status}`);
-          }
+          await executeTursoQueries(stmts);
 
           uploaded += chunk.length;
           const pct = Math.round((uploaded / rows.length) * 100);
-          d1ProgressFill.style.width = `${pct}%`;
-          d1UploadStatus.innerHTML = `<span class="loader"></span> Uploaded ${uploaded} / ${rows.length} (${pct}%)...`;
+          tursoProgressFill.style.width = `${pct}%`;
+          tursoUploadStatus.innerHTML = `<span class="loader"></span> Uploaded ${uploaded} / ${rows.length} (${pct}%)...`;
         }
 
-        d1UploadStatus.innerHTML = `✅ Successfully uploaded <b>${uploaded}</b> records to Cloudflare D1!`;
-        d1UploadStatus.className = 'status-line ok';
+        tursoUploadStatus.innerHTML = `✅ Successfully uploaded <b>${uploaded}</b> records to Turso Vault!`;
+        tursoUploadStatus.className = 'status-line ok';
       } catch (err) {
-        console.error("D1 Upload Error:", err);
-        d1UploadStatus.textContent = `❌ Error: ${err.message}`;
-        d1UploadStatus.className = 'status-line err';
+        console.error("Turso Upload Error:", err);
+        tursoUploadStatus.textContent = `❌ Error: ${err.message}`;
+        tursoUploadStatus.className = 'status-line err';
       }
     });
   }
 
-  // 6. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (SUPABASE CORE)
+  // 7. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (SUPABASE CORE)
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
@@ -847,7 +928,7 @@
       calculateDuty();
   });
 
-  // 7. ADMIN SAVE TARIFF & VR (SUPABASE CORE)
+  // 8. ADMIN SAVE TARIFF & VR (SUPABASE CORE)
   async function loadAdminTariffList() {
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
@@ -1012,7 +1093,7 @@
     });
   }
 
-  // 8. DUTY CALCULATOR & INVOICE
+  // 9. DUTY CALCULATOR & INVOICE
   let invoiceItems = [];
   let calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
 
@@ -1118,7 +1199,7 @@
     window.print(); 
   });
 
-  // 9. VR & CLOUDFLARE D1 SUGGESTIONS
+  // 10. TURSO LIVE SUGGESTIONS & AUTOCOMPLETE
   const calcDescInput = document.getElementById('calcDesc'); 
   const descSuggestions = document.getElementById('descSuggestions');
 
@@ -1153,22 +1234,32 @@
           });
       }
 
-      // 2. Customs Clearance History Search (Cloudflare D1 Worker Query)
+      // 2. Turso Database Clearance History Suggestion
       try {
-          const res = await fetch(`${D1_API_URL}/api/search?q=${encodeURIComponent(rawQ)}&filter=item_description&limit=5`);
-          if (res.ok) {
-              const pastGds = await res.json();
-              if (pastGds && pastGds.length > 0) {
-                  html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA (D1 VAULT)</div>`;
-                  pastGds.forEach(item => {
-                      let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
-                      html += `
-                        <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
-                          <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
-                          <div style="color:var(--brass); font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
-                        </div>`;
-                  });
-              }
+          const res = await executeTursoQueries([{
+            sql: "SELECT item_description, assessed_hs_code, assessed_unit_value FROM ref_data WHERE item_description LIKE ? LIMIT 5",
+            args: [`%${rawQ}%`]
+          }]);
+          
+          if (res && res[0] && res[0].response && res[0].response.result) {
+            const cols = res[0].response.result.cols.map(c => c.name);
+            const pastGds = res[0].response.result.rows.map(row => {
+              let obj = {};
+              row.forEach((val, idx) => { obj[cols[idx]] = val ? val.value : null; });
+              return obj;
+            });
+
+            if (pastGds.length > 0) {
+              html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA (TURSO VAULT)</div>`;
+              pastGds.forEach(item => {
+                  let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
+                  html += `
+                    <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
+                      <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
+                      <div style="color:var(--brass); font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
+                    </div>`;
+              });
+            }
           }
       } catch(err){}
 
@@ -1216,7 +1307,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 10. CLOUDFLARE D1 SEARCH & FILTERS
+  // 11. TURSO SEARCH & VAULT FILTERS
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1263,22 +1354,41 @@
       return; 
     }
     
-    resultCount.innerHTML = '<span class="loader"></span> Scanning Cloudflare D1 Vault...'; 
+    resultCount.innerHTML = '<span class="loader"></span> Scanning Turso Cloud Vault...'; 
     const currentSearchId = ++searchId;
     
     try {
-      const res = await fetch(`${D1_API_URL}/api/search?q=${encodeURIComponent(rawQ)}&filter=${activeFilter}&limit=500`);
+      let queryStr = "SELECT * FROM ref_data WHERE ";
+      let params = [];
+
+      if (activeFilter === "all") {
+        queryStr += "(item_description LIKE ? OR gd_number LIKE ? OR assessed_hs_code LIKE ?) ";
+        params.push(`%${rawQ}%`, `%${rawQ}%`, `%${rawQ}%`);
+      } else {
+        queryStr += `${activeFilter} LIKE ? `;
+        params.push(`%${rawQ}%`);
+      }
+
+      queryStr += "LIMIT 500";
+
+      const res = await executeTursoQueries([{ sql: queryStr, args: params }]);
       
       if (currentSearchId !== searchId) return;
 
-      if (!res.ok) {
-        throw new Error(`D1 API error: ${res.status}`);
+      if (!res || !res[0] || !res[0].response || !res[0].response.result) {
+        resultCount.textContent = 'No match found in Turso Vault.';
+        return;
       }
+
+      const cols = res[0].response.result.cols.map(c => c.name);
+      const data = res[0].response.result.rows.map(row => {
+        let obj = {};
+        row.forEach((val, idx) => { obj[cols[idx]] = val ? val.value : null; });
+        return obj;
+      });
       
-      const data = await res.json();
-      
-      if (!data || data.length === 0) { 
-        resultCount.textContent = 'No match found in D1 Vault.'; 
+      if (data.length === 0) { 
+        resultCount.textContent = 'No match found in Turso Vault.'; 
         return; 
       }
       
@@ -1287,7 +1397,7 @@
       renderFilteredResults();
     } catch (err) { 
       if (currentSearchId === searchId) {
-        console.error("D1 Search Error:", err);
+        console.error("Turso Search Error:", err);
         resultCount.textContent = `Error: ${err.message || 'Timeout'}`; 
       }
     }
@@ -1351,7 +1461,7 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 11. VALUATION RULINGS SEARCH (SUPABASE CORE DISPLAY)
+  // 12. VALUATION RULINGS SEARCH (SUPABASE CORE DISPLAY)
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => 
@@ -1383,7 +1493,7 @@
   }
   document.getElementById('vrSearchInput').addEventListener('input', debounce(runVrSearch, 300));
 
-  // 12. CLIENT SUB MANAGEMENT (SUPABASE CORE)
+  // 13. CLIENT SUB MANAGEMENT (SUPABASE CORE)
   if(document.getElementById('createSubBtn')) {
       document.getElementById('createSubBtn').addEventListener('click', async () => {
         const u = document.getElementById('newSubUser').value.trim().toLowerCase(); const p = document.getElementById('newSubPass').value.trim(); if(!u || !p) return;
