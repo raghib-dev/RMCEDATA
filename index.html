@@ -377,7 +377,7 @@
   <!-- SEARCH PANEL -->
   <div class="panel active" id="panel-search">
     <div class="card">
-      <div class="search-bar"><input type="text" id="searchInput" placeholder=" Type to search GD Number, description, HS code (e.g. 8504 or 8504.40) or importer..."></div>
+      <div class="search-bar"><input type="text" id="searchInput" placeholder=" Type to search GD Number, description, HS code (e.g. 9405.6100, 940561) or importer..."></div>
       <div class="filter-chips" id="filterChips">
         <button class="active" data-f="all">All fields</button>
         <button data-f="item_description">Item Description</button>
@@ -500,7 +500,6 @@
     let s = String(raw).trim();
     if (!s) return '';
     
-    // Agar dot already मौजूद hai
     if (s.includes('.')) {
       let parts = s.split('.');
       let prefix = parts[0].replace(/\D/g, '').padStart(4, '0');
@@ -651,7 +650,6 @@
           reader.readAsArrayBuffer(file);
         });
 
-        // raw: false ensures formatting (including trailing zeros) is kept as text
         const wb = XLSX.read(buffer, { type: 'array', raw: false, cellText: true });
         const rawJson = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
 
@@ -765,20 +763,19 @@
                   if(!row.hs_code) return;
                   
                   let rawHs = String(row.hs_code);
-                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
-                  if(hsList.length === 0 && rawHs.replace(/\D/g, "")) {
-                      hsList = [rawHs.replace(/\D/g, "")];
-                  }
+                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
+                  let hsCombined = hsList.join(', ');
 
                   hsList.forEach(hs => {
-                      if (!VR_MATRIX_DB[hs]) {
-                          VR_MATRIX_DB[hs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
+                      let cleanHs = hs.replace(/\D/g, "");
+                      if (!VR_MATRIX_DB[cleanHs]) {
+                          VR_MATRIX_DB[cleanHs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
                       }
-                      VR_MATRIX_DB[hs].options.push({ id: row.id, label: row.category, value: row.vr_value });
+                      VR_MATRIX_DB[cleanHs].options.push({ id: row.id, label: row.category, value: row.vr_value });
                   });
                   
                   ALL_VR_ITEMS_FLAT.push({
-                      hs_code: hsList.join(', '),
+                      hs_code: hsCombined,
                       vr_no: row.vr_no,
                       label: row.category,
                       value: row.vr_value,
@@ -953,7 +950,7 @@
           const val = parseFloat(document.getElementById('addVrValue').value);
           const link = document.getElementById('addVrLink').value.trim();
 
-          let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, "")).filter(h => h.length >= 4);
+          let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
           let hsCombined = hsList.join(', ');
 
           if(!hsCombined || !vrNo || !category || isNaN(val)) { 
@@ -1307,7 +1304,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 11. TURSO ADVANCED MULTI-WORD & HS-CODE SANITIZED SEARCH
+  // 11. TURSO ADVANCED MULTI-WORD & HS-CODE PREFIX SANITIZED SEARCH
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1358,26 +1355,41 @@
     const currentSearchId = ++searchId;
     
     try {
-      const terms = rawQ.replace(/'/g, "''").split(/\s+/).filter(w => w.length > 0);
+      const cleanRaw = rawQ.replace(/'/g, "''");
+      const terms = cleanRaw.split(/\s+/).filter(w => w.length > 0);
+      
       const digitsOnly = rawQ.replace(/\D/g, "");
+      const trimmedDigits = digitsOnly.replace(/0+$/, ''); // Trailing zero cleanup
 
       let whereClauses = [];
       
       if (activeFilter === "assessed_hs_code") {
-        const cleanHs = digitsOnly || rawQ.replace(/'/g, "''");
-        whereClauses.push(`(assessed_hs_code LIKE '%${cleanHs}%' OR REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${cleanHs}%')`);
+        let hsSubQueries = [
+          `assessed_hs_code LIKE '%${cleanRaw}%'`,
+          `REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${digitsOnly}%'`
+        ];
+        if (trimmedDigits.length >= 4) {
+          hsSubQueries.push(`REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${trimmedDigits}%'`);
+        }
+        whereClauses.push(`(${hsSubQueries.join(' OR ')})`);
       } else if (activeFilter === "all") {
         terms.forEach(term => {
-          let termDigits = term.replace(/\D/g, "");
-          let hsCondition = termDigits.length >= 2 
-            ? `OR assessed_hs_code LIKE '%${termDigits}%' OR REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${termDigits}%'` 
-            : `OR assessed_hs_code LIKE '%${term}%'`;
+          let tDigits = term.replace(/\D/g, "");
+          let tTrimmed = tDigits.replace(/0+$/, '');
+          
+          let hsConditions = [`assessed_hs_code LIKE '%${term}%'`];
+          if (tDigits.length >= 2) {
+            hsConditions.push(`REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${tDigits}%'`);
+          }
+          if (tTrimmed.length >= 4) {
+            hsConditions.push(`REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${tTrimmed}%'`);
+          }
 
           whereClauses.push(`(
             item_description LIKE '%${term}%' 
             OR gd_number LIKE '%${term}%' 
             OR importer_name LIKE '%${term}%' 
-            ${hsCondition}
+            OR (${hsConditions.join(' OR ')})
           )`);
         });
       } else {
