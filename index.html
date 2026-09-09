@@ -190,7 +190,7 @@
   <div class="panel" id="panel-upload">
     <!-- TURSO HIGH SPEED BULK EXCEL UPLOADER -->
     <div class="card" style="border: 1.5px solid var(--brass);">
-      <span class="eyebrow" style="color:var(--brass);">Turso libSQL Database (5 GB High-Speed Ingestion)</span>
+      <span class="eyebrow" style="color:var(--brass);">Turso libSQL Database (5 GB Cloud Storage)</span>
       <h2>🚀 Bulk Upload Clearance Data (Excel / CSV)</h2>
       <p style="font-size:12px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:15px;">
         High-speed transactional batch ingestion into Turso Cloud Vault. Column headers recognized: <code>gd_number</code>, <code>assessed_hs_code</code>, <code>item_description</code>, <code>importer_name</code>, <code>supplier_name</code>, <code>agent_name</code>, <code>origin</code>, <code>quantity</code>, <code>uom</code>, <code>currency</code>, <code>dec_unit_value</code>, <code>assessed_unit_value</code>, <code>bl_number</code>.
@@ -377,7 +377,7 @@
   <!-- SEARCH PANEL -->
   <div class="panel active" id="panel-search">
     <div class="card">
-      <div class="search-bar"><input type="text" id="searchInput" placeholder=" Type to search GD Number, description, HS code or importer..."></div>
+      <div class="search-bar"><input type="text" id="searchInput" placeholder=" Type to search GD Number, description, HS code (e.g. 8504 or 8504.40) or importer..."></div>
       <div class="filter-chips" id="filterChips">
         <button class="active" data-f="all">All fields</button>
         <button data-f="item_description">Item Description</button>
@@ -1281,7 +1281,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 11. TURSO ADVANCED MULTI-WORD SEARCH & VAULT FILTERS
+  // 11. TURSO ADVANCED MULTI-WORD & HS-CODE SANITIZED SEARCH
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1333,15 +1333,32 @@
     
     try {
       const terms = rawQ.replace(/'/g, "''").split(/\s+/).filter(w => w.length > 0);
-      
+      const digitsOnly = rawQ.replace(/\D/g, "");
+
       let whereClauses = [];
-      terms.forEach(term => {
-        if (activeFilter === "all") {
-          whereClauses.push(`(item_description LIKE '%${term}%' OR gd_number LIKE '%${term}%' OR assessed_hs_code LIKE '%${term}%' OR importer_name LIKE '%${term}%')`);
-        } else {
+      
+      if (activeFilter === "assessed_hs_code") {
+        const cleanHs = digitsOnly || rawQ.replace(/'/g, "''");
+        whereClauses.push(`(assessed_hs_code LIKE '%${cleanHs}%' OR REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${cleanHs}%')`);
+      } else if (activeFilter === "all") {
+        terms.forEach(term => {
+          let termDigits = term.replace(/\D/g, "");
+          let hsCondition = termDigits.length >= 2 
+            ? `OR assessed_hs_code LIKE '%${termDigits}%' OR REPLACE(REPLACE(assessed_hs_code, '.', ''), ' ', '') LIKE '%${termDigits}%'` 
+            : `OR assessed_hs_code LIKE '%${term}%'`;
+
+          whereClauses.push(`(
+            item_description LIKE '%${term}%' 
+            OR gd_number LIKE '%${term}%' 
+            OR importer_name LIKE '%${term}%' 
+            ${hsCondition}
+          )`);
+        });
+      } else {
+        terms.forEach(term => {
           whereClauses.push(`${activeFilter} LIKE '%${term}%'`);
-        }
-      });
+        });
+      }
 
       const queryStr = `SELECT * FROM ref_data WHERE ${whereClauses.join(' AND ')} ORDER BY id DESC LIMIT 2000;`;
 
