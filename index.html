@@ -193,7 +193,7 @@
       <span class="eyebrow" style="color:var(--brass);">Turso libSQL Database (5 GB Cloud Storage)</span>
       <h2>🚀 Bulk Upload Clearance Data (Excel / CSV)</h2>
       <p style="font-size:12px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:15px;">
-        High-speed transactional batch ingestion into Turso Cloud Vault. Column headers auto-recognized: <code>gd_number</code>, <code>assessed_hs_code</code>, <code>item_description</code>, <code>importer_name</code>, <code>supplier_name</code>, <code>agent_name</code>, <code>origin</code>, <code>quantity</code>, <code>uom</code>, <code>currency</code>, <code>dec_unit_value</code>, <code>assessed_unit_value</code>, <code>bl_number</code>.
+        High-speed transactional batch ingestion into Turso Cloud Vault. Column headers auto-recognized with precise UOM & unit value detection.
       </p>
       <div class="actions-row">
         <button class="primary" id="triggerTursoUploadBtn">📂 Select Excel / CSV File</button>
@@ -328,7 +328,7 @@
       <div class="calc-section">
         <div class="calc-section-head">Step 2: Valuation Data</div>
         <div class="calc-grid">
-          <div class="calc-field"><label>Unit Price ($)</label><input type="number" id="calcUnitPrice" value="1.0" step="0.01"></div>
+          <div class="calc-field"><label>Unit Price ($)</label><input type="number" id="calcUnitPrice" value="1.0" step="0.0001"></div>
           
           <div class="calc-field" style="position:relative; grid-column: span 1;">
               <label>VR Value (USD) <span id="vrBadge" style="color:var(--green); font-weight:bold; display:none;"></span></label>
@@ -377,7 +377,7 @@
   <!-- SEARCH PANEL -->
   <div class="panel active" id="panel-search">
     <div class="card">
-      <div class="search-bar"><input type="text" id="searchInput" placeholder=" Type to search GD Number, description, HS code (e.g. 9405.6100, 940561) or importer..."></div>
+      <div class="search-bar"><input type="text" id="searchInput" placeholder=" Type to search GD Number, description, HS code (e.g. 9608.6000, 9608) or importer..."></div>
       <div class="filter-chips" id="filterChips">
         <button class="active" data-f="all">All fields</button>
         <button data-f="item_description">Item Description</button>
@@ -517,6 +517,15 @@
     return s;
   }
 
+  // Value Formatter: Small values (e.g. 0.0015) preserve 4 decimals, normal values preserve 2
+  function formatSmartNumber(num) {
+    let n = parseFloat(num);
+    if (isNaN(n)) return '—';
+    if (n === 0) return '0.00';
+    if (Math.abs(n) < 0.01) return n.toFixed(4);
+    return n.toFixed(2);
+  }
+
   if(!db) { alert("Internet disconnected or Supabase library blocked."); return; }
 
   // 3. UI NAVIGATION
@@ -623,7 +632,7 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 6. HIGH-SPEED TRANSACTIONAL TURSO BULK UPLOADER
+  // 6. HIGH-SPEED TRANSACTIONAL TURSO BULK UPLOADER (PRECISE FIELD DETECTION)
   const triggerTursoUploadBtn = document.getElementById('triggerTursoUploadBtn');
   const tursoFileInput = document.getElementById('tursoFileInput');
   const tursoUploadStatus = document.getElementById('tursoUploadStatus');
@@ -656,31 +665,52 @@
         if (!rawJson || rawJson.length === 0) throw new Error("File empty hai ya invalid format.");
 
         const rows = rawJson.map(r => {
-          let getVal = (patterns) => {
+          let getVal = (exactPatterns, includePatterns = []) => {
             for (let k in r) {
               let clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-              for (let p of patterns) {
-                if (clean === p || clean.includes(p)) return r[k];
+              for (let ep of exactPatterns) {
+                if (clean === ep) return r[k];
+              }
+            }
+            if (includePatterns.length > 0) {
+              for (let k in r) {
+                let clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                for (let ip of includePatterns) {
+                  if (clean.includes(ip)) return r[k];
+                }
               }
             }
             return null;
           };
 
+          // Exact vs Include Matching to prevent UOM matching Rate
+          let rawUom = getVal(['uom', 'unit', 'unitofmeasure', 'packunit'], ['unit_name']);
+          let rawAssVal = getVal(['assessedunitvalue','assessedunitval','assessedvalue','assessedval','ass_val','assval','assessedrate','unitvalue','unitval','value_usd','rate_usd','ass_rate','assessed_rate','itemrate','itemvalue','rate'], ['assessed']);
+          let rawDecVal = getVal(['decunitvalue','decunitval','dec_unit_value','declaredunitvalue','decval','declaredvalue','dec_val','dec_value','decrate','declaredrate'], ['declared']);
+
+          // If UOM mistakenly captured a numeric float/rate
+          if (rawUom && !isNaN(parseFloat(rawUom)) && isFinite(rawUom)) {
+            if (!rawAssVal || parseFloat(rawAssVal) === 0) {
+              rawAssVal = rawUom;
+            }
+            rawUom = '—';
+          }
+
           return {
-            gd: getVal(['gdnumber','gdno','gd','gd_no']),
-            hs: formatHsCodeFull(getVal(['assessedhscode','hscode','hs_code','hs'])),
-            desc: getVal(['itemdescription','description','desc','goods_description']),
-            imp: getVal(['importername','importer','party_name','consignee']),
-            supp: getVal(['suppliername','supplier','exporter','shipper']),
-            agent: getVal(['agentname','agent','clearing_agent']),
-            ch: getVal(['channel','color']),
-            orig: getVal(['origin','country_of_origin','country']),
-            qty: parseFloat(getVal(['quantity','qty','weight','net_weight'])) || 0,
-            uom: getVal(['uom','unit']) || 'KG',
-            curr: getVal(['currency','curr']) || 'USD',
-            dec_val: parseFloat(getVal(['decunitvalue','decunitval','dec_unit_value','declaredunitvalue','decval','declaredvalue','dec_val','dec_value'])) || 0,
-            ass_val: parseFloat(getVal(['assessedunitvalue','assessedunitval','assessed_unit_value','assessedvalue','assessedval','ass_val','assval','assessedrate','unitvalue','unitval','value_usd','rate_usd','ass_rate','assessed_rate'])) || 0,
-            bl: getVal(['blnumber','blno','bl','b_l'])
+            gd: getVal(['gdnumber','gdno','gd','gd_no'], ['gd']),
+            hs: formatHsCodeFull(getVal(['assessedhscode','hscode','hs_code','hs'], ['hscode'])),
+            desc: getVal(['itemdescription','description','desc','goods_description'], ['desc']),
+            imp: getVal(['importername','importer','party_name','consignee'], ['importer']),
+            supp: getVal(['suppliername','supplier','exporter','shipper'], ['supplier','exporter']),
+            agent: getVal(['agentname','agent','clearing_agent'], ['agent']),
+            ch: getVal(['channel','color'], ['channel']),
+            orig: getVal(['origin','country_of_origin','country'], ['origin']),
+            qty: parseFloat(getVal(['quantity','qty','weight','net_weight'], ['qty','weight'])) || 0,
+            uom: rawUom || '—',
+            curr: getVal(['currency','curr'], ['curr']) || 'USD',
+            dec_val: parseFloat(rawDecVal) || 0,
+            ass_val: parseFloat(rawAssVal) || 0,
+            bl: getVal(['blnumber','blno','bl','b_l'], ['bl'])
           };
         }).filter(r => r.desc || r.gd || r.hs);
 
@@ -1250,10 +1280,11 @@
               pastGds.forEach(item => {
                   let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
                   let cleanHs = item.assessed_hs_code ? formatHsCodeFull(item.assessed_hs_code) : '—';
+                  let valFormatted = formatSmartNumber(item.assessed_unit_value);
                   html += `
                     <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${cleanHs}', '${item.assessed_unit_value||0}')">
                       <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
-                      <div style="color:var(--brass); font-size:10.5px;">HS: ${cleanHs} | Val: $${item.assessed_unit_value || 0}</div>
+                      <div style="color:var(--brass); font-size:10.5px;">HS: ${cleanHs} | Val: $${valFormatted}</div>
                     </div>`;
               });
             }
@@ -1359,7 +1390,7 @@
       const terms = cleanRaw.split(/\s+/).filter(w => w.length > 0);
       
       const digitsOnly = rawQ.replace(/\D/g, "");
-      const trimmedDigits = digitsOnly.replace(/0+$/, ''); // Trailing zero cleanup
+      const trimmedDigits = digitsOnly.replace(/0+$/, ''); 
 
       let whereClauses = [];
       
@@ -1472,7 +1503,7 @@
       
       let displayAssVal = '—';
       if (m.assessed_unit_value !== undefined && m.assessed_unit_value !== null && m.assessed_unit_value !== '') {
-        displayAssVal = `${(m.currency || 'USD').toUpperCase()} ${parseFloat(m.assessed_unit_value).toFixed(2)}`;
+        displayAssVal = `${(m.currency || 'USD').toUpperCase()} ${formatSmartNumber(m.assessed_unit_value)}`;
       }
 
       let formattedHs = formatHsCodeFull(m.assessed_hs_code) || '—';
@@ -1489,7 +1520,7 @@
     resultsHolder.innerHTML = tableHtml + `</table></div>`;
   }
 
-  // KEY-INSENSITIVE & ZERO-PRESERVED MODAL RENDERER
+  // ACCURATE MODAL RENDERER (Supports small decimals & cleans UOM)
   window.openDetailModal = function(idx) {
     const m = window.currentDisplayedData[idx]; if(!m) return;
     
@@ -1519,7 +1550,7 @@
             val = formatHsCodeFull(rawVal) || '—';
           } else if (k === 'assessed_unit_value' || k === 'dec_unit_value') {
             if (rawVal !== '—' && !isNaN(parseFloat(rawVal))) {
-              val = parseFloat(rawVal).toFixed(2);
+              val = formatSmartNumber(rawVal);
             }
           }
 
