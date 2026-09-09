@@ -494,6 +494,30 @@
     return `'${String(val).replace(/'/g, "''")}'`;
   }
 
+  // HS CODE NORMALIZATION (Preserves full 8-digit dot format)
+  function formatHsCodeFull(raw) {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    if (!s) return '';
+    
+    // Agar dot already मौजूद hai
+    if (s.includes('.')) {
+      let parts = s.split('.');
+      let prefix = parts[0].replace(/\D/g, '').padStart(4, '0');
+      let suffix = parts[1] ? parts[1].replace(/\D/g, '').padEnd(4, '0').substring(0, 4) : '0000';
+      return `${prefix}.${suffix}`;
+    }
+    
+    let digits = s.replace(/\D/g, '');
+    if (digits.length > 4) {
+      let d8 = digits.padEnd(8, '0').substring(0, 8);
+      return `${d8.substring(0, 4)}.${d8.substring(4)}`;
+    } else if (digits.length === 4) {
+      return `${digits}.0000`;
+    }
+    return s;
+  }
+
   if(!db) { alert("Internet disconnected or Supabase library blocked."); return; }
 
   // 3. UI NAVIGATION
@@ -627,8 +651,9 @@
           reader.readAsArrayBuffer(file);
         });
 
-        const wb = XLSX.read(buffer, { type: 'array' });
-        const rawJson = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        // raw: false ensures formatting (including trailing zeros) is kept as text
+        const wb = XLSX.read(buffer, { type: 'array', raw: false, cellText: true });
+        const rawJson = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
 
         if (!rawJson || rawJson.length === 0) throw new Error("File empty hai ya invalid format.");
 
@@ -645,7 +670,7 @@
 
           return {
             gd: getVal(['gdnumber','gdno','gd','gd_no']),
-            hs: getVal(['assessedhscode','hscode','hs_code','hs']),
+            hs: formatHsCodeFull(getVal(['assessedhscode','hscode','hs_code','hs'])),
             desc: getVal(['itemdescription','description','desc','goods_description']),
             imp: getVal(['importername','importer','party_name','consignee']),
             supp: getVal(['suppliername','supplier','exporter','shipper']),
@@ -976,14 +1001,14 @@
           try {
               let file = e.target.files[0];
               let data = await new Promise(r => { let reader = new FileReader(); reader.onload = ev => r(new Uint8Array(ev.target.result)); reader.readAsArrayBuffer(file); });
-              let wb = XLSX.read(data, {type: 'array'});
-              let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+              let wb = XLSX.read(data, {type: 'array', raw: false, cellText: true});
+              let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
 
               let formatted = [];
               json.forEach(r => {
                   let srNo = String(r['vr_sr_no'] || r['sr_no'] || r['s_no'] || r['sr'] || '').trim();
                   let rawHs = String(r['hs_code'] || '');
-                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => h.replace(/\D/g, '')).filter(h => h.length >= 4);
+                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
                   let hsCombined = hsList.join(', ');
 
                   let vrNo = String(r['vr_number'] || '');
@@ -1227,10 +1252,11 @@
               html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA (TURSO VAULT)</div>`;
               pastGds.forEach(item => {
                   let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
+                  let cleanHs = item.assessed_hs_code ? formatHsCodeFull(item.assessed_hs_code) : '—';
                   html += `
-                    <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${item.assessed_hs_code||''}', '${item.assessed_unit_value||0}')">
+                    <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${cleanHs}', '${item.assessed_unit_value||0}')">
                       <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
-                      <div style="color:var(--brass); font-size:10.5px;">HS: ${item.assessed_hs_code || '—'} | Val: $${item.assessed_unit_value || 0}</div>
+                      <div style="color:var(--brass); font-size:10.5px;">HS: ${cleanHs} | Val: $${item.assessed_unit_value || 0}</div>
                     </div>`;
               });
             }
@@ -1437,9 +1463,11 @@
         displayAssVal = `${(m.currency || 'USD').toUpperCase()} ${parseFloat(m.assessed_unit_value).toFixed(2)}`;
       }
 
+      let formattedHs = formatHsCodeFull(m.assessed_hs_code) || '—';
+
       tableHtml += `<tr class="clickable-row" onclick="openDetailModal(${idx})">
         <td><b>${m.gd_number||'—'}</b></td>
-        <td><code>${m.assessed_hs_code||'—'}</code></td>
+        <td><code>${formattedHs}</code></td>
         <td title="${escapeAttr(m.item_description)}">${shortDesc}</td>
         <td>${m.origin||'—'}</td>
         <td><b style="color:var(--brass);">${displayAssVal}</b></td>
@@ -1475,7 +1503,9 @@
           let rawVal = getFieldVal(k);
           
           let val = rawVal;
-          if (k === 'assessed_unit_value' || k === 'dec_unit_value') {
+          if (k === 'assessed_hs_code') {
+            val = formatHsCodeFull(rawVal) || '—';
+          } else if (k === 'assessed_unit_value' || k === 'dec_unit_value') {
             if (rawVal !== '—' && !isNaN(parseFloat(rawVal))) {
               val = parseFloat(rawVal).toFixed(2);
             }
