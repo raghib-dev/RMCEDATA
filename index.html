@@ -233,18 +233,20 @@
     <!-- ADMIN VR MATRIX UPLOAD -->
     <div class="card" id="adminVrCard">
       <span class="eyebrow">Valuation Matrix Database</span>
-      <h2>Add / Update VR Category</h2>
+      <h2 id="vrFormTitle">Add / Update VR Category</h2>
+      <input type="hidden" id="editVrId" value="">
       <div class="calc-grid">
         <div class="calc-field"><label>HS Code(s) (e.g. 85044020, 85044090)</label><input type="text" id="addVrHs" placeholder="e.g. 85044020, 85044090"></div>
         <div class="calc-field"><label>VR Number & Date</label><input type="text" id="addVrNo" placeholder="e.g. 2105/2026 (28-07-2026)"></div>
         <div class="calc-field"><label>VR Title / Main Subject</label><input type="text" id="addVrTitle" placeholder="e.g. Mobile Phone Accessories"></div>
         <div class="calc-field" style="grid-column: span 2;"><label>Category / Item Specific Label</label><input type="text" id="addVrCategory" placeholder="e.g. [Table A - Sr.1] Charger 15W - Cat-A"></div>
         <div class="calc-field"><label>Value (USD)</label><input type="number" id="addVrValue" step="0.01" placeholder="e.g. 7.80"></div>
-        <div class="calc-field"><label>Unit (UOM)</label><input type="text" id="addVrUom" placeholder="e.g. PCS or KG"></div>
+        <div class="calc-field"><label>Unit (UOM)</label><input type="text" id="addVrUom" placeholder="e.g. PCS, ROLL, KG"></div>
         <div class="calc-field"><label>PDF Link</label><input type="text" id="addVrLink" placeholder="https://fbr..."></div>
       </div>
       <div class="actions-row">
         <button class="primary" id="saveVrBtn" style="background:var(--green); color:#fff;">Save VR Record</button>
+        <button class="ghost" id="cancelEditVrBtn" style="display:none; color:var(--stamp); border-color:var(--stamp-dim);">Cancel Edit</button>
         <button class="ghost" id="adminLoadVrExcelBtn" style="margin-left:8px;">📂 Bulk Upload VR (Excel)</button>
         <input type="file" id="adminVrExcelInput" accept=".xlsx, .xls, .csv" style="display:none;">
         <span class="status-line" id="saveVrStatus"></span>
@@ -518,7 +520,7 @@
     return s;
   }
 
-  // Value Formatter: Preserves exact precision for fraction values and clean 2 decimals for whole numbers
+  // Value Formatter
   function formatSmartNumber(num) {
     if (num === null || num === undefined || num === '' || num === '—') return '0.00';
     let strVal = String(num).trim();
@@ -1037,8 +1039,29 @@
       container.innerHTML = html + `</table>`;
   }
 
+  // RESET VR FORM FUNCTION
+  function resetVrForm() {
+      document.getElementById('editVrId').value = '';
+      document.getElementById('addVrHs').value = '';
+      document.getElementById('addVrNo').value = '';
+      document.getElementById('addVrTitle').value = '';
+      document.getElementById('addVrCategory').value = '';
+      document.getElementById('addVrValue').value = '';
+      if (document.getElementById('addVrUom')) document.getElementById('addVrUom').value = '';
+      document.getElementById('addVrLink').value = '';
+      document.getElementById('vrFormTitle').textContent = 'Add / Update VR Category';
+      document.getElementById('saveVrBtn').textContent = 'Save VR Record';
+      document.getElementById('saveVrBtn').style.background = 'var(--green)';
+      document.getElementById('cancelEditVrBtn').style.display = 'none';
+  }
+
+  if(document.getElementById('cancelEditVrBtn')) {
+      document.getElementById('cancelEditVrBtn').addEventListener('click', resetVrForm);
+  }
+
   if(document.getElementById('saveVrBtn')) {
       document.getElementById('saveVrBtn').addEventListener('click', async () => {
+          const editId = document.getElementById('editVrId').value;
           const rawHs = String(document.getElementById('addVrHs').value || '');
           const vrNo = document.getElementById('addVrNo').value.trim();
           const vrTitle = document.getElementById('addVrTitle').value.trim();
@@ -1058,7 +1081,7 @@
           const statusEl = document.getElementById('saveVrStatus'); 
           statusEl.innerHTML = '<span class="loader"></span> Saving...';
 
-          const { error } = await db.from('vr_matrix').insert([{ 
+          const recordPayload = { 
               hs_code: hsCombined, 
               vr_no: vrNo, 
               vr_title: vrTitle || 'General Customs Valuation Ruling',
@@ -1066,17 +1089,24 @@
               vr_value: val, 
               uom: uomInput,
               pdf_link: link 
-          }]);
+          };
+
+          let error = null;
+          if (editId) {
+              const res = await db.from('vr_matrix').update(recordPayload).eq('id', editId);
+              error = res.error;
+          } else {
+              const res = await db.from('vr_matrix').insert([recordPayload]);
+              error = res.error;
+          }
 
           if(error) { 
               statusEl.textContent = `Error: ${error.message}`; 
               statusEl.className = "status-line err"; 
           } else { 
-              statusEl.textContent = "✓ VR Record Saved Successfully!"; 
+              statusEl.textContent = editId ? "✓ VR Record Updated Successfully!" : "✓ VR Record Saved Successfully!"; 
               statusEl.className = "status-line ok"; 
-              document.getElementById('addVrCategory').value = ''; 
-              document.getElementById('addVrValue').value = ''; 
-              if (document.getElementById('addVrUom')) document.getElementById('addVrUom').value = '';
+              resetVrForm();
               loadVrFromCloud(); 
           }
       });
@@ -1168,16 +1198,52 @@
       });
   }
 
+  let adminVrRawList = [];
+
   function renderAdminVrList(data) {
       const container = document.getElementById('adminVrListContainer'); if(!container) return;
+      adminVrRawList = data || [];
       if(data.length === 0) { container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px;">No VR data saved yet.</div>`; return; }
       let html = `<table class="sub-table"><tr><th>HS Code</th><th>VR No</th><th>VR Title</th><th>Category / Origin</th><th>Value (USD)</th><th>Action</th></tr>`;
       data.sort((a,b) => a.hs_code.localeCompare(b.hs_code)).forEach(row => {
           let uomLabel = resolveCleanUom(row.uom || row.unit, row.category);
-          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.vr_no}</td><td style="color:var(--brass); font-weight:600;">${row.vr_title||'—'}</td><td>${row.category}</td><td style="color:var(--green); font-weight:bold;">$${row.vr_value}/${uomLabel}</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button></td></tr>`;
+          html += `<tr>
+            <td><b>${row.hs_code}</b></td>
+            <td>${row.vr_no}</td>
+            <td style="color:var(--brass); font-weight:600;">${row.vr_title||'—'}</td>
+            <td>${row.category}</td>
+            <td style="color:var(--green); font-weight:bold;">$${row.vr_value}/${uomLabel}</td>
+            <td style="white-space:nowrap;">
+              <button class="ghost" style="padding:2px 8px; font-size:10px; color:var(--brass); border-color:var(--brass-dim); margin-right:5px;" onclick="editVrRecord('${row.id}')">Edit</button>
+              <button class="ghost" style="padding:2px 8px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button>
+            </td>
+          </tr>`;
       });
       container.innerHTML = html + `</table>`;
   }
+
+  window.editVrRecord = function(id) {
+      const row = adminVrRawList.find(r => String(r.id) === String(id));
+      if(!row) return;
+
+      document.getElementById('editVrId').value = row.id;
+      document.getElementById('addVrHs').value = row.hs_code || '';
+      document.getElementById('addVrNo').value = row.vr_no || '';
+      document.getElementById('addVrTitle').value = row.vr_title || '';
+      document.getElementById('addVrCategory').value = row.category || '';
+      document.getElementById('addVrValue').value = row.vr_value || '';
+      if(document.getElementById('addVrUom')) {
+          document.getElementById('addVrUom').value = row.uom || resolveCleanUom(row.unit, row.category);
+      }
+      document.getElementById('addVrLink').value = row.pdf_link || '';
+
+      document.getElementById('vrFormTitle').textContent = '✏️ Edit VR Category';
+      document.getElementById('saveVrBtn').textContent = 'Update VR Record';
+      document.getElementById('saveVrBtn').style.background = 'var(--brass)';
+      document.getElementById('cancelEditVrBtn').style.display = 'inline-block';
+
+      window.scrollTo({ top: document.getElementById('adminVrCard').offsetTop - 20, behavior: 'smooth' });
+  };
 
   window.deleteVrRecord = async function(id) { if(!confirm(`Delete this VR record from cloud?`)) return; await db.from('vr_matrix').delete().eq('id', id); loadVrFromCloud(); };
   window.editTariffSlab = function(hs, desc, cd, acd, rd, st, ast, it, ad) { document.getElementById('addTariffHs').value = hs; document.getElementById('addTariffDesc').value = desc !== '—' ? desc : ''; document.getElementById('addTariffCd').value = cd; document.getElementById('addTariffAcd').value = acd; document.getElementById('addTariffRd').value = rd; document.getElementById('addTariffSt').value = st; document.getElementById('addTariffAst').value = ast; document.getElementById('addTariffIt').value = it; document.getElementById('addTariffAd').value = ad; window.scrollTo({ top: document.getElementById('adminTariffCard').offsetTop - 20, behavior: 'smooth' }); };
