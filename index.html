@@ -112,18 +112,18 @@
   .sub-table th { background: var(--ink-3); color: var(--brass); }
   .search-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .search-bar input[type=text]{ flex:1;min-width:220px;background:var(--ink);border:1px solid var(--hairline); color:var(--paper); padding:12px 16px; border-radius:24px; outline:none; }
-  .filter-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .filter-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
   .filter-chips button{ background:var(--ink-3);border:1px solid var(--hairline);color:var(--paper-dim); padding:7px 14px;border-radius:20px;font-size:11px;cursor:pointer; }
   .filter-chips button.active{background:var(--brass);color:var(--ink);font-weight:600;}
+  .filter-chips select{ background:var(--ink-3);border:1px solid var(--hairline);color:var(--paper); padding:6px 12px;border-radius:20px;font-size:11px;outline:none;cursor:pointer; }
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 30, 43, 0.65); backdrop-filter: blur(8px); z-index: 99999; display: none; justify-content: center; align-items: center; padding: 20px; }
   .detail-modal { background: rgba(22, 41, 58, 0.95); border: 1px solid rgba(201, 162, 39, 0.3); border-radius: 8px; width: 100%; max-width: 750px; max-height: 90vh; overflow-y: auto; }
   .detail-modal-header { position: sticky; top: 0; background: var(--ink-3); padding: 18px 24px; border-bottom: 1px solid var(--hairline); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
   .loader{ display:inline-block;width:13px;height:13px;border:2px solid rgba(236,230,214,0.25); border-top-color:var(--brass);border-radius:50%;animation:spin .7s linear infinite; }
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  /* Custom Checkbox Styling */
   .vault-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--brass); margin: 0; vertical-align: middle; }
-  .vault-report-bar { display: none; align-items: center; justify-content: space-between; background: var(--ink-3); border: 1.5px solid var(--brass); padding: 12px 18px; border-radius: 6px; margin-top: 14px; }
+  .vault-report-bar { display: none; align-items: center; justify-content: space-between; background: var(--ink-3); border: 1.5px solid var(--brass); padding: 10px 16px; border-radius: 6px; margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -391,6 +391,14 @@
         <select id="filterImporter" class="inline-filter-select"><option value="">All Importers</option></select>
         <select id="filterExporter" class="inline-filter-select"><option value="">All Suppliers</option></select>
         <select id="filterOrigin" class="inline-filter-select"><option value="">All Origins</option></select>
+        
+        <!-- NEW SORTING CONTROL -->
+        <select id="sortControl" class="inline-filter-select" style="border-color:var(--brass); color:var(--brass); font-weight:600;">
+          <option value="date_desc">📅 Date: Newest to Oldest</option>
+          <option value="date_asc">📅 Date: Oldest to Newest</option>
+          <option value="price_asc">💲 Price: Low to High</option>
+          <option value="price_desc">💲 Price: High to Low</option>
+        </select>
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -546,6 +554,19 @@
     
     if (Math.abs(n) < 0.01) return n.toFixed(4);
     return n.toFixed(2);
+  }
+
+  // Parse GD Date Timestamp from format like KAPS-HC-116204-06-01-2026 or KAPW-HC-8304-12-07-2026
+  function parseGdDate(gdStr) {
+    if (!gdStr) return 0;
+    const match = String(gdStr).match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = parseInt(match[3], 10);
+      return new Date(year, month, day).getTime() || 0;
+    }
+    return 0;
   }
 
   // Smart UOM Resolver
@@ -1373,7 +1394,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 11. TURSO ADVANCED MULTI-WORD, NEWEST-FIRST & CHECKBOX REPORT SEARCH
+  // 11. TURSO ADVANCED MULTI-WORD, GD-DATE SORTING & CHECKBOX REPORT SEARCH
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1381,6 +1402,7 @@
   const filterImporter = document.getElementById('filterImporter'); 
   const filterExporter = document.getElementById('filterExporter'); 
   const filterOrigin = document.getElementById('filterOrigin');
+  const sortControl = document.getElementById('sortControl');
   const vaultReportBar = document.getElementById('vaultReportBar');
   const selectedCountDisplay = document.getElementById('selectedCountDisplay');
   const generateVaultReportBtn = document.getElementById('generateVaultReportBtn');
@@ -1405,6 +1427,13 @@
   filterImporter.addEventListener('change', renderFilteredResults); 
   filterExporter.addEventListener('change', renderFilteredResults); 
   filterOrigin.addEventListener('change', renderFilteredResults); 
+  sortControl.addEventListener('change', renderFilteredResults);
+
+  function parseValForSort(v) { 
+    if(!v) return 0; 
+    const parsed = parseFloat(v.toString().replace(/[^0-9.]/g, '')); 
+    return isNaN(parsed) ? 0 : parsed; 
+  }
 
   async function runSearch(){
     const rawQ = String(searchInput.value || '').trim(); 
@@ -1421,7 +1450,7 @@
       return; 
     }
     
-    resultCount.innerHTML = '<span class="loader"></span> Scanning Complete Turso Vault (Newest First)...'; 
+    resultCount.innerHTML = '<span class="loader"></span> Scanning Complete Turso Vault...'; 
     const currentSearchId = ++searchId;
     
     try {
@@ -1468,7 +1497,6 @@
         });
       }
 
-      // ORDER BY id DESC (Always shows the newest data first)
       const queryStr = `SELECT * FROM ref_data WHERE ${whereClauses.join(' AND ')} ORDER BY id DESC LIMIT 2000;`;
 
       const res = await executeRawSql(queryStr);
@@ -1525,14 +1553,32 @@
 
   function renderFilteredResults() {
     if(!latestSearchResults || latestSearchResults.length === 0) return; 
-    let filtered = latestSearchResults;
+    let filtered = [...latestSearchResults];
     
     if(filterImporter.value) filtered = filtered.filter(m => m.importer_name === filterImporter.value); 
     if(filterExporter.value) filtered = filtered.filter(m => m.supplier_name === filterExporter.value); 
     if(filterOrigin.value) filtered = filtered.filter(m => m.origin === filterOrigin.value);
     
+    // Multi-Criteria Dynamic Sorting
+    const sortVal = sortControl.value;
+    if (sortVal === 'date_desc') {
+      filtered.sort((a, b) => {
+        let diff = parseGdDate(b.gd_number) - parseGdDate(a.gd_number);
+        return diff !== 0 ? diff : (b.id - a.id);
+      });
+    } else if (sortVal === 'date_asc') {
+      filtered.sort((a, b) => {
+        let diff = parseGdDate(a.gd_number) - parseGdDate(b.gd_number);
+        return diff !== 0 ? diff : (a.id - b.id);
+      });
+    } else if (sortVal === 'price_asc') {
+      filtered.sort((a, b) => parseValForSort(a.assessed_unit_value) - parseValForSort(b.assessed_unit_value));
+    } else if (sortVal === 'price_desc') {
+      filtered.sort((a, b) => parseValForSort(b.assessed_unit_value) - parseValForSort(a.assessed_unit_value));
+    }
+
     resultsHolder.innerHTML = ''; 
-    resultCount.textContent = `Found ${filtered.length} records. Showing Newest First.`;
+    resultCount.textContent = `Found ${filtered.length} records.`;
     window.currentDisplayedData = filtered; 
     
     let tableHtml = `
