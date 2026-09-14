@@ -97,7 +97,7 @@
   .calc-results-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--hairline);font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
   .calc-results-row:last-child{border-bottom:none;}
   .invoice-list-container { margin-top: 30px; display: none; }
-  .invoice-header-title { font-family: 'Source Serif 4', serif; color: var(--brass); border-bottom: 1px solid var(--hairline); padding-bottom: 10px; font-size: 20px; margin-bottom: 15px; }
+  .invoice-header-title { font-family: 'Source Serif 4', serif; color: var(--brass); border-bottom: 1px solid var(--hairline); padding-bottom: 10px; font-size: 20px; margin-bottom: 15px; text-transform: uppercase; }
   .item-card { border: 1px solid var(--hairline); border-radius: 6px; margin-bottom: 12px; background: rgba(0,0,0,0.15); overflow: hidden;}
   .item-card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; color: var(--paper); font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: var(--ink-2); }
   .item-card-body { padding: 20px; display: none; border-top: 1px dashed var(--hairline); background: var(--ink-3); }
@@ -370,7 +370,7 @@
 
       <!-- INVOICE LIST SECTION -->
       <div id="invoiceListContainer" class="invoice-list-container">
-        <h2 class="invoice-header-title">📋 Assessment Invoice (<span id="invoiceItemCount">0</span> Items)</h2>
+        <h2 class="invoice-header-title">📋 ESTIMATED DUTY AS PER INVOICE (<span id="invoiceItemCount">0</span> Items)</h2>
         <div id="invoiceItemsWrapper"></div>
         <div id="invoiceGrandTotalWrapper"></div>
         <button class="primary" id="printCalcBtn" style="background:var(--green); color:#fff; width: 100%; margin-top:20px; font-size: 15px;">🖨️ Print Complete Invoice Slip</button>
@@ -392,7 +392,6 @@
         <select id="filterExporter" class="inline-filter-select"><option value="">All Suppliers</option></select>
         <select id="filterOrigin" class="inline-filter-select"><option value="">All Origins</option></select>
         
-        <!-- NEW SORTING CONTROL -->
         <select id="sortControl" class="inline-filter-select" style="border-color:var(--brass); color:var(--brass); font-weight:600;">
           <option value="date_desc">📅 Date: Newest to Oldest</option>
           <option value="date_asc">📅 Date: Oldest to Newest</option>
@@ -1233,7 +1232,7 @@
           <div class="calc-results-row"><span>Sales Tax @ ${data.stPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
           <div class="calc-results-row"><span>Add S.Tax @ ${data.addStPct}%:</span><span>Rs. ${formatCurr(data.addStAmt)}</span></div>
           <div class="calc-results-row"><span>Income Tax @ ${data.itPct}%:</span><span>Rs. ${formatCurr(data.itAmt)}</span></div>
-          <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp);">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
+          <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp); font-weight:700;">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
         </div>
       </div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px solid #000000; border-radius: 4px; background: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;">
@@ -1258,32 +1257,161 @@
     showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); invoiceItems = []; document.getElementById('invoiceListContainer').style.display = 'none'; calculateDuty();
   });
 
-  window.toggleItem = function(idx) { const body = document.getElementById(`body-${idx}`); const icon = document.getElementById(`icon-${idx}`); if(body.style.display === 'block') { body.style.display = 'none'; icon.textContent = '➕'; } else { body.style.display = 'block'; icon.textContent = '➖'; } };
-  window.removeInvoiceItem = function(idx) { invoiceItems.splice(idx, 1); if(invoiceItems.length === 0) { document.getElementById('invoiceListContainer').style.display = 'none'; } else { renderInvoiceList(); } };
+  window.toggleItem = function(idx) { 
+    const body = document.getElementById(`body-${idx}`); 
+    const icon = document.getElementById(`icon-${idx}`); 
+    if(body.style.display === 'block') { 
+      body.style.display = 'none'; 
+      icon.textContent = '➕'; 
+    } else { 
+      body.style.display = 'block'; 
+      icon.textContent = '➖'; 
+    } 
+  };
+  
+  window.removeInvoiceItem = function(idx) { 
+    invoiceItems.splice(idx, 1); 
+    if(invoiceItems.length === 0) { 
+      document.getElementById('invoiceListContainer').style.display = 'none'; 
+    } else { 
+      renderInvoiceList(); 
+    } 
+  };
 
   function renderInvoiceList() {
     document.getElementById('invoiceItemCount').textContent = invoiceItems.length;
     let listHTML = ''; let grandValRs = 0; let grandDutyTaxes = 0; let grandLanded = 0;
+    
     invoiceItems.forEach((item, idx) => {
-      grandValRs += item.impValRs; grandDutyTaxes += item.totalDutyTaxes; grandLanded += item.totalLandedCost;
-      listHTML += `<div class="item-card"><div class="item-card-header" onclick="toggleItem(${idx})"><div><span class="expand-icon" id="icon-${idx}">➕</span><span style="margin-left:10px;">Item ${idx+1}: ${item.desc}</span></div><div><span class="item-total-pill">Rs. ${formatCurr(item.totalLandedCost)}</span><button class="remove-item-btn" onclick="event.stopPropagation(); removeInvoiceItem(${idx})">❌</button></div></div><div class="item-card-body" id="body-${idx}">${generateBreakdownHTML(item)}</div></div>`;
+      grandValRs += item.impValRs; 
+      grandDutyTaxes += item.totalDutyTaxes; 
+      grandLanded += item.totalLandedCost;
+      
+      // Collapsed view now shows only DUTY & TAXES as requested
+      listHTML += `
+        <div class="item-card">
+          <div class="item-card-header" onclick="toggleItem(${idx})">
+            <div>
+              <span class="expand-icon" id="icon-${idx}">➕</span>
+              <span style="margin-left:10px; font-weight:600;">Item ${idx+1}: ${item.desc}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="color:var(--paper); font-size:13px;">Duty & Taxes: <b style="color:var(--stamp);">Rs. ${formatCurr(item.totalDutyTaxes)}</b></span>
+              <button class="remove-item-btn" onclick="event.stopPropagation(); removeInvoiceItem(${idx})">❌</button>
+            </div>
+          </div>
+          <div class="item-card-body" id="body-${idx}">
+            ${generateBreakdownHTML(item)}
+          </div>
+        </div>`;
     });
+
     document.getElementById('invoiceItemsWrapper').innerHTML = listHTML;
     document.getElementById('invoiceGrandTotalWrapper').innerHTML = `
       <div class="grand-total-section">
         <h3 style="margin-top:0; color:var(--brass); border-bottom:1px dashed var(--hairline); padding-bottom:10px;">INVOICE GRAND TOTAL</h3>
         <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Invoice Items:</span><span style="color:var(--paper);">${invoiceItems.length}</span></div>
         <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Import Value (PKR):</span><span style="color:var(--paper);">Rs. ${formatCurr(grandValRs)}</span></div>
-        <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Combined Duties & Taxes:</span><span style="color:var(--stamp);">Rs. ${formatCurr(grandDutyTaxes)}</span></div>
-        <div class="calc-results-row grand-row" style="border-top:2px solid var(--brass); margin-top:10px; padding-top:15px;"><span style="font-size:16px;">GRAND TOTAL LANDED COST:</span><span style="font-size:18px; color:var(--green);">Rs. ${formatCurr(grandLanded)}</span></div>
+        <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Combined Duties & Taxes:</span><span style="color:var(--stamp); font-weight:bold;">Rs. ${formatCurr(grandDutyTaxes)}</span></div>
+        <div class="calc-results-row grand-row" style="border-top:2px solid var(--brass); margin-top:10px; padding-top:15px;"><span style="font-size:16px;">GRAND TOTAL LANDED COST:</span><span style="font-size:18px; color:var(--green); font-weight:bold;">Rs. ${formatCurr(grandLanded)}</span></div>
       </div>
     `;
   }
 
+  // DEDICATED INVOICE PRINT SLIP (Excludes UI tabs and search bars)
   document.getElementById('printCalcBtn').addEventListener('click', () => { 
     if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
     calcSerialNo++; localStorage.setItem('ig_calc_serial', calcSerialNo);
-    window.print(); 
+    
+    const dateStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+    let printWin = window.open('', '_blank');
+    
+    let grandValRs = 0;
+    let grandDutyTaxes = 0;
+    let grandLanded = 0;
+    let itemsDetailHtml = '';
+
+    invoiceItems.forEach((item, idx) => {
+      grandValRs += item.impValRs;
+      grandDutyTaxes += item.totalDutyTaxes;
+      grandLanded += item.totalLandedCost;
+
+      itemsDetailHtml += `
+        <div style="border: 1px solid #ccc; border-radius: 4px; padding: 14px; margin-bottom: 15px; page-break-inside: avoid; background: #fafafa;">
+          <div style="font-weight: bold; font-size: 14px; border-bottom: 1.5px solid #333; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+            <span>Item ${idx+1}: ${item.desc} (HS: ${item.hsCode || '—'})</span>
+            <span style="color: #990000;">Duty & Taxes: Rs. ${formatCurr(item.totalDutyTaxes)}</span>
+          </div>
+          <div style="display: flex; gap: 20px; font-size: 12px; font-family: monospace;">
+            <div style="flex: 1;">
+              <div><b>Type:</b> ${item.type.toUpperCase()} | <b>Origin:</b> ${item.origin || '—'}</div>
+              <div><b>Quantity:</b> ${item.qty} ${item.uom} @ $${item.unitPrice}</div>
+              ${item.vrValue > 0 ? `<div><b>VR Value Applied:</b> $${item.vrValue}</div>` : ''}
+              <div><b>Ex. Rate:</b> Rs. ${item.exRate}</div>
+              <div><b>Value (USD):</b> $${formatCurr(item.impValUsd)}</div>
+              <div><b>Value (PKR):</b> Rs. ${formatCurr(item.impValRs)}</div>
+            </div>
+            <div style="flex: 1;">
+              <div><b>CD (${item.dutyPct}%):</b> Rs. ${formatCurr(item.dutyAmt)}</div>
+              <div><b>ACD (${item.acdPct}%):</b> Rs. ${formatCurr(item.acdAmt)}</div>
+              <div><b>RD (${item.rdPct}%):</b> Rs. ${formatCurr(item.rdAmt)}</div>
+              <div><b>ST (${item.stPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
+              <div><b>AST (${item.addStPct}%):</b> Rs. ${formatCurr(item.addStAmt)}</div>
+              <div><b>IT (${item.itPct}%):</b> Rs. ${formatCurr(item.itAmt)}</div>
+            </div>
+          </div>
+          <div style="border-top: 1px dashed #999; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-size: 12.5px; font-weight: bold;">
+            <span>Item Landed Cost: Rs. ${formatCurr(item.totalLandedCost)}</span>
+            <span>Cost Per ${item.uom}: Rs. ${formatCurr(item.costPerKg)}</span>
+            <span>Duty Per ${item.uom}: Rs. ${formatCurr(item.dutyPerKg)}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    const slipContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Estimated Duty As Per Invoice - Slip #${calcSerialNo}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #111; }
+          .header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .grand-box { border: 2px solid #222; border-radius: 4px; padding: 14px; background: #eee; font-family: monospace; font-size: 13px; margin-top: 20px; page-break-inside: avoid; }
+          @media print { body { margin: 10mm; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 style="margin: 0; font-size: 22px; text-transform: uppercase;">Estimated Duty As Per Invoice</h1>
+            <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide Customs Clearance Valuation Slip</p>
+          </div>
+          <div style="text-align: right; font-size: 12px; font-family: monospace;">
+            <div><b>Slip Ref:</b> IG-${calcSerialNo}</div>
+            <div><b>Date:</b> ${dateStr}</div>
+          </div>
+        </div>
+
+        ${itemsDetailHtml}
+
+        <div class="grand-box">
+          <div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ASSESSMENT SUMMARY (${invoiceItems.length} ITEMS)</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Total Import Value (PKR):</span><span>Rs. ${formatCurr(grandValRs)}</span></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #990000; font-weight: bold;"><span>Total Combined Duties & Taxes:</span><span>Rs. ${formatCurr(grandDutyTaxes)}</span></div>
+          <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #000; padding-top: 6px; font-size: 15px; font-weight: bold; color: #0b4d3b;"><span>GRAND TOTAL LANDED COST:</span><span>Rs. ${formatCurr(grandLanded)}</span></div>
+        </div>
+
+        <div style="margin-top: 25px; text-align: center; font-size: 11px; color: #777; border-top: 1px dashed #aaa; padding-top: 10px;">
+          &copy; 2026 ImportGuide (impguide.online) &middot; Computer Generated Assessment Slip
+        </div>
+        <script>window.onload = function() { window.print(); };<\/script>
+      </body>
+      </html>
+    `;
+
+    printWin.document.write(slipContent);
+    printWin.document.close();
   });
 
   // 10. TURSO LIVE SUGGESTIONS & AUTOCOMPLETE
@@ -1302,7 +1430,6 @@
       let html = '';
       const terms = rawQ.toLowerCase().split(/\s+/).filter(w => w.length > 0);
 
-      // 1. VR Database Search
       let vrMatches = (ALL_VR_ITEMS_FLAT || []).filter(item => {
           let text = (String(item.label || '') + " " + String(item.hs_code || '')).toLowerCase();
           return terms.every(t => text.includes(t));
@@ -1321,7 +1448,6 @@
           });
       }
 
-      // 2. Turso Database Clearance History Suggestion (Multi-Word)
       try {
           let whereConds = terms.map(t => `item_description LIKE '%${t.replace(/'/g, "''")}%'`).join(' AND ');
           const res = await executeRawSql(`SELECT item_description, assessed_hs_code, assessed_unit_value FROM ref_data WHERE ${whereConds} ORDER BY id DESC LIMIT 6;`);
@@ -1559,7 +1685,7 @@
     if(filterExporter.value) filtered = filtered.filter(m => m.supplier_name === filterExporter.value); 
     if(filterOrigin.value) filtered = filtered.filter(m => m.origin === filterOrigin.value);
     
-    // Multi-Criteria Dynamic Sorting
+    // Multi-Criteria Dynamic Sorting (GD-Date parser ensures July comes before January)
     const sortVal = sortControl.value;
     if (sortVal === 'date_desc') {
       filtered.sort((a, b) => {
@@ -1713,8 +1839,8 @@
       <body>
         <div class="header">
           <div class="title">
-            <h1>Previously Cleared (Evidence GDs) Report</h1>
-            <p>Advised By: <b>ImportGuide Vault</b></p>
+            <h1>Customs Clearance Assessment Report</h1>
+            <p>Generated via <b>ImportGuide Cloud Vault</b></p>
           </div>
           <div class="meta">
             <div><b>Report Date:</b> ${dateStr}</div>
@@ -1742,7 +1868,7 @@
         </table>
 
         <div class="footer">
-          &copy; 2026 ImportGuide (impguide.online) &middot; Confidential Import Trade Data Records
+          &copy; 2026 ImportGuide (impguide.online) &middot; Confidential Customs Valuation Ledger
         </div>
 
         <script>
