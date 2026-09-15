@@ -37,7 +37,7 @@
   header{ display:flex;align-items:flex-end;justify-content:space-between; border-bottom:1px solid var(--hairline); padding-bottom:18px;margin-bottom:22px;flex-wrap:wrap;gap:14px; }
   .brand{display:flex;align-items:center;gap:14px;}
   h1{ font-family:'Source Serif 4', serif; font-weight:700;font-size:28px;letter-spacing:0.3px;margin:0;color:var(--paper); }
-  .tabs{display:flex;gap:2px;background:var(--ink-2);padding:3px;border-radius:6px;border:1px solid var(--hairline);}
+  .tabs{display:flex;gap:2px;background:var(--ink-2);padding:3px;border-radius:6px;border:1px solid var(--hairline); flex-wrap: wrap;}
   .tab-btn{ font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.6px;text-transform:uppercase; background:transparent;border:none;color:var(--paper-dim);padding:9px 16px;border-radius:4px;cursor:pointer; transition:all .2s ease; white-space: nowrap; }
   .tab-btn.active{background:var(--brass);color:var(--ink);font-weight:600;}
   .tab-btn:not(.active):hover{color:var(--paper); background: rgba(255,255,255,0.05);}
@@ -161,6 +161,17 @@
   <div class="features-grid">
     <div class="feature-card" onclick="openTool('vr')"><div class="f-icon">📜</div><div><h3>Valuation Rulings (VR)</h3><p>Access all official valuation rulings with instant keyword search and direct PDF downloads.</p></div></div>
     <div class="feature-card" onclick="openTool('calculator')"><div class="f-icon">🧮</div><div><h3>Duty Calculator</h3><p>Commercial &amp; industrial estimated duty/taxes calculation tool with smart item creation.</p></div></div>
+    
+    <!-- OPTION 1: EYECATCHY PSW GST CARD -->
+    <div class="feature-card" onclick="openTool('gst')" style="border: 1.5px solid rgba(201,162,39,0.45); position: relative; background: linear-gradient(145deg, var(--ink-2), rgba(201,162,39,0.06));">
+      <span style="position: absolute; top: 10px; right: 10px; background: var(--stamp); color: #fff; font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.6px; box-shadow: 0 2px 6px rgba(184,80,63,0.4);">⚡ PSW VALIDATOR</span>
+      <div class="f-icon" style="background: rgba(201,162,39,0.18); color: var(--brass);">📊</div>
+      <div>
+        <h3 style="color: var(--brass);">GST / 3rd Schedule Retail</h3>
+        <p>Instant 130% Landed Cost validation to prevent PSW Step-6 submission errors.</p>
+      </div>
+    </div>
+
     <div class="feature-card" onclick="openTool('tariff')"><div class="f-icon">📑</div><div><h3>Customs Tariff</h3><p>Explore recent customs import tariff updates, Import policy, and SROs.</p></div></div>
     <div class="feature-card" onclick="openTool('market')"><div class="f-icon">📈</div><div><h3>PVC Scan &amp; LME Price</h3><p>Live industrial raw material benchmark pricing and global trackers.</p></div></div>
   </div>
@@ -183,6 +194,7 @@
       <button class="tab-btn" data-tab="subscriptions" id="tabSubBtn" style="display:none;">Clients</button>
       <button class="tab-btn" data-tab="vr" id="tabVrBtn">Valuation Rulings</button>
       <button class="tab-btn" data-tab="calculator" id="tabCalcBtn">Duty Calculator</button>
+      <button class="tab-btn" data-tab="gst" id="tabGstBtn">GST 3rd Sch</button>
       <button class="tab-btn" data-tab="tariff" id="tabTariffBtn">Customs Tariff</button>
       <button class="tab-btn active" data-tab="search" id="tabSearchBtn">Search Vault</button>
     </div>
@@ -378,6 +390,74 @@
     </div>
   </div>
 
+  <!-- GST & 3RD SCHEDULE PANEL -->
+  <div class="panel" id="panel-gst">
+    <div class="card">
+      <span class="eyebrow">Sales Tax Assessment &amp; PSW Threshold Validator</span>
+      <h2>GST &amp; 3rd Schedule Retail Price Calculator</h2>
+
+      <div class="calc-section">
+        <div class="calc-section-head">Step 1: Landed Cost Assessment (In PKR)</div>
+        <div class="calc-grid">
+          <div class="calc-field">
+            <label>Import / Assessed Value (PKR)</label>
+            <input type="number" id="gstAssessVal" value="607715" placeholder="e.g. 607715">
+          </div>
+          <div class="calc-field">
+            <label>Customs Duty - CD (PKR)</label>
+            <input type="number" id="gstCdVal" value="81008" placeholder="e.g. 81008">
+          </div>
+          <div class="calc-field">
+            <label>Add. Customs Duty - ACD (PKR)</label>
+            <input type="number" id="gstAcdVal" value="12154" placeholder="e.g. 12154">
+          </div>
+          <div class="calc-field">
+            <label>Federal Excise Duty - FED (PKR)</label>
+            <input type="number" id="gstFedVal" value="0" placeholder="0 if none">
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-section">
+        <div class="calc-section-head">Step 2: Retail Declaration &amp; Validation</div>
+        <div class="calc-grid">
+          <div class="calc-field">
+            <label>Total Declared Quantity</label>
+            <input type="number" id="gstQtyVal" value="1804" placeholder="e.g. 1804">
+          </div>
+          <div class="calc-field">
+            <label>Unit of Measurement (UOM)</label>
+            <select id="gstUomVal">
+              <option value="KGS">KGS</option>
+              <option value="PCS">PCS</option>
+              <option value="MTR">MTR</option>
+              <option value="DOZ">DOZ</option>
+              <option value="UNITS">UNITS</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Entered Retail Price / Unit (PKR)</label>
+            <input type="number" id="gstEnteredRate" value="506" step="0.01" placeholder="Declared Retail Rate">
+          </div>
+          <div class="calc-field">
+            <label>Sales Tax Rate %</label>
+            <input type="number" id="gstTaxPct" value="18" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Status / Result Box -->
+      <div id="gstValidationBox" style="margin-bottom:14px; padding:12px 16px; border-radius:6px; font-family:'IBM Plex Mono',monospace; font-size:12px;"></div>
+
+      <div class="calc-results-box" id="gstResultsBox"></div>
+
+      <div class="actions-row" style="margin-top:16px;">
+        <button class="primary" id="copyGstSummaryBtn" style="background:var(--green); color:#fff;">📋 Copy Summary for WhatsApp</button>
+        <button class="ghost" id="resetGstBtn">🔄 Reset Calculation</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SEARCH PANEL -->
   <div class="panel active" id="panel-search">
     <div class="card">
@@ -536,7 +616,7 @@
     return s;
   }
 
-  // Value Formatter: Preserves exact precision for fraction values and clean decimals
+  // Value Formatter
   function formatSmartNumber(num) {
     if (num === null || num === undefined || num === '' || num === '—') return '0.00';
     let strVal = String(num).trim();
@@ -555,7 +635,6 @@
     return n.toFixed(2);
   }
 
-  // Parse GD Date Timestamp from format like KAPS-HC-116204-06-01-2026 or KAPW-HC-8304-12-07-2026
   function parseGdDate(gdStr) {
     if (!gdStr) return 0;
     const match = String(gdStr).match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
@@ -568,7 +647,6 @@
     return 0;
   }
 
-  // Smart UOM Resolver
   function resolveCleanUom(uomVal, descText) {
     let u = String(uomVal || '').trim();
     let isNumericRate = !isNaN(parseFloat(u)) && isFinite(u) && parseFloat(u) > 0 && parseFloat(u) < 50;
@@ -616,6 +694,8 @@
 
     if(toolName === 'calculator') {
       document.getElementById('tabCalcBtn').classList.add('active'); document.getElementById('panel-calculator').classList.add('active'); calculateDuty();
+    } else if(toolName === 'gst') {
+      document.getElementById('tabGstBtn').classList.add('active'); document.getElementById('panel-gst').classList.add('active'); calculateGSTModule();
     } else if(toolName === 'vr') {
       document.getElementById('tabVrBtn').classList.add('active'); document.getElementById('panel-vr').classList.add('active'); runVrSearch();
     } else if(toolName === 'tariff') {
@@ -634,6 +714,7 @@
       if(btn.dataset.tab==='search') runSearch(); 
       if(btn.dataset.tab==='subscriptions') loadSubscriptionsList(); 
       if(btn.dataset.tab==='calculator') calculateDuty(); 
+      if(btn.dataset.tab==='gst') calculateGSTModule();
       if(btn.dataset.tab==='vr') runVrSearch();
       if(btn.dataset.tab==='tariff') runTariffSearch();
       if(btn.dataset.tab==='upload' && localStorage.getItem('cv_role')==='admin') loadAdminTariffList();
@@ -875,8 +956,8 @@
                   if(!uniqueVrs.has(key)) {
                       uniqueVrs.set(key, { 
                           vr_no: row.vr_no, 
-                          vr_title: title,
-                          hs_set: new Set(hsList),
+                          vr_title: title, 
+                          hs_set: new Set(hsList), 
                           date: "Cloud DB", 
                           link: row.pdf_link || "#" 
                       });
@@ -977,7 +1058,7 @@
   document.getElementById('vrMatrixDropdown').addEventListener('change', function() {
       if(this.value) { 
           document.getElementById('calcVrValue').value = this.value; 
-          document.getElementById('calcUnitPrice').value = this.value;
+          document.getElementById('calcUnitPrice').value = this.value; 
           calculateDuty(); 
       }
   });
@@ -1128,7 +1209,7 @@
                               formatted.push({ 
                                   hs_code: hsCombined, 
                                   vr_no: finalVrNo, 
-                                  vr_title: vrTitle,
+                                  vr_title: vrTitle, 
                                   category: finalCategory, 
                                   vr_value: cat.value, 
                                   pdf_link: link 
@@ -1287,7 +1368,6 @@
       grandDutyTaxes += item.totalDutyTaxes; 
       grandLanded += item.totalLandedCost;
       
-      // Collapsed view now shows only DUTY & TAXES as requested
       listHTML += `
         <div class="item-card">
           <div class="item-card-header" onclick="toggleItem(${idx})">
@@ -1318,7 +1398,7 @@
     `;
   }
 
-  // DEDICATED INVOICE PRINT SLIP (Excludes UI tabs and search bars)
+  // DEDICATED INVOICE PRINT SLIP
   document.getElementById('printCalcBtn').addEventListener('click', () => { 
     if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
     calcSerialNo++; localStorage.setItem('ig_calc_serial', calcSerialNo);
@@ -1685,7 +1765,6 @@
     if(filterExporter.value) filtered = filtered.filter(m => m.supplier_name === filterExporter.value); 
     if(filterOrigin.value) filtered = filtered.filter(m => m.origin === filterOrigin.value);
     
-    // Multi-Criteria Dynamic Sorting (GD-Date parser ensures July comes before January)
     const sortVal = sortControl.value;
     if (sortVal === 'date_desc') {
       filtered.sort((a, b) => {
@@ -1781,7 +1860,7 @@
     }
   }
 
-  // PDF REPORT GENERATOR (FOR SELECTED ENTRIES)
+  // PDF REPORT GENERATOR
   generateVaultReportBtn.addEventListener('click', () => {
     if(selectedRowIndices.size === 0) {
       alert("Pehle kisi record par tick lagayein!");
@@ -1992,7 +2071,7 @@
   window.toggleAccount = async function(u, active) { await db.from('user_accounts').update({ is_active: active }).eq('username', u); loadSubscriptionsList(); };
   window.renewAccount = async function(u) { const exp = new Date(); exp.setDate(exp.getDate() + 30); await db.from('user_accounts').update({ expiry_date: exp.toISOString(), is_active: true }).eq('username', u); loadSubscriptionsList(); };
 
-// --- HS CODE TARIFF DIRECTORY LOGIC ---
+  // 14. HS CODE TARIFF DIRECTORY LOGIC
   window.runTariffSearch = function() {
       const q = document.getElementById('tariffSearchInput').value.trim().toLowerCase();
       let results = [];
@@ -2050,7 +2129,116 @@
       window.scrollTo({top: 0, behavior: 'smooth'});
   };
 
-// --- SESSION & AUTO-LOGOUT LOGIC ---
+  // 15. GST & 3RD SCHEDULE RETAIL ENGINE
+  const gstInputs = ['gstAssessVal', 'gstCdVal', 'gstAcdVal', 'gstFedVal', 'gstQtyVal', 'gstEnteredRate', 'gstTaxPct', 'gstUomVal'];
+  gstInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', calculateGSTModule);
+      el.addEventListener('change', calculateGSTModule);
+    }
+  });
+
+  function calculateGSTModule() {
+    const assessVal = parseFloat(document.getElementById('gstAssessVal').value) || 0;
+    const cd = parseFloat(document.getElementById('gstCdVal').value) || 0;
+    const acd = parseFloat(document.getElementById('gstAcdVal').value) || 0;
+    const fed = parseFloat(document.getElementById('gstFedVal').value) || 0;
+    const qty = parseFloat(document.getElementById('gstQtyVal').value) || 1;
+    const enteredRate = parseFloat(document.getElementById('gstEnteredRate').value) || 0;
+    const taxPct = parseFloat(document.getElementById('gstTaxPct').value) || 18;
+    const uom = document.getElementById('gstUomVal').value || 'KGS';
+
+    // 1. Landed Cost
+    const landedCost = assessVal + cd + acd + fed;
+
+    // 2. PSW 130% Rule
+    const minTotalRetail = landedCost * 1.30;
+    const minPerUnitRate = minTotalRetail / (qty > 0 ? qty : 1);
+
+    // 3. Validation Status
+    const valBox = document.getElementById('gstValidationBox');
+    const isCompliant = enteredRate >= minPerUnitRate;
+
+    if (enteredRate <= 0) {
+      valBox.style.background = 'rgba(201,162,39,0.1)';
+      valBox.style.border = '1px solid var(--brass)';
+      valBox.style.color = 'var(--brass)';
+      valBox.innerHTML = `⚠️ <b>Required:</b> Minimum Retail Price for HS/3rd Schedule must be at least <b>Rs. ${minPerUnitRate.toFixed(2)}</b> per ${uom}.`;
+    } else if (isCompliant) {
+      valBox.style.background = 'rgba(92,147,130,0.15)';
+      valBox.style.border = '1px solid var(--green)';
+      valBox.style.color = 'var(--green)';
+      valBox.innerHTML = `✅ <b>Compliant with PSW & 3rd Schedule:</b> Entered rate Rs. ${enteredRate.toFixed(2)} is valid (Min: Rs. ${minPerUnitRate.toFixed(2)}).`;
+    } else {
+      const diff = (minPerUnitRate - enteredRate).toFixed(2);
+      valBox.style.background = 'rgba(184,80,63,0.15)';
+      valBox.style.border = '1px solid var(--stamp)';
+      valBox.style.color = 'var(--stamp)';
+      valBox.innerHTML = `❌ <b>PSW Submission Error:</b> Retail price cannot be lesser than Rs. ${minPerUnitRate.toFixed(2)} / ${uom} (Short by Rs. ${diff}).`;
+    }
+
+    // 4. Sales Tax Assessment
+    const effectiveUnitRate = Math.max(enteredRate, minPerUnitRate);
+    const totalRetailCalculated = effectiveUnitRate * qty;
+    const salesTaxAmt = (totalRetailCalculated * (taxPct / 100));
+
+    // 5. Result Box Render
+    document.getElementById('gstResultsBox').innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;">
+        <div>
+          <div style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Landed Cost Breakdown</div>
+          <div class="calc-results-row"><span>Assess Value:</span><span>Rs. ${formatCurr(assessVal)}</span></div>
+          <div class="calc-results-row"><span>CD + ACD + FED:</span><span>Rs. ${formatCurr(cd + acd + fed)}</span></div>
+          <div class="calc-results-row" style="font-weight:700; border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Landed Cost:</span><span style="color:var(--paper);">Rs. ${formatCurr(landedCost)}</span></div>
+        </div>
+        <div>
+          <div style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">3rd Schedule Assessment (130%)</div>
+          <div class="calc-results-row"><span>Min. Total Retail (130%):</span><span style="font-weight:600;">Rs. ${formatCurr(minTotalRetail)}</span></div>
+          <div class="calc-results-row"><span>Min. Retail Rate / ${uom}:</span><span style="color:var(--brass); font-weight:700; font-size:13.5px;">Rs. ${minPerUnitRate.toFixed(2)}</span></div>
+          <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Sales Tax @ ${taxPct}%:</span><span style="color:var(--stamp); font-weight:700;">Rs. ${formatCurr(salesTaxAmt)}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Copy Summary
+  document.getElementById('copyGstSummaryBtn')?.addEventListener('click', () => {
+    const assessVal = parseFloat(document.getElementById('gstAssessVal').value) || 0;
+    const cd = parseFloat(document.getElementById('gstCdVal').value) || 0;
+    const acd = parseFloat(document.getElementById('gstAcdVal').value) || 0;
+    const qty = parseFloat(document.getElementById('gstQtyVal').value) || 1;
+    const uom = document.getElementById('gstUomVal').value;
+    const landedCost = assessVal + cd + acd;
+    const minRetailTotal = landedCost * 1.30;
+    const minRate = (minRetailTotal / qty).toFixed(2);
+
+    const text = `*ImportGuide - 3rd Schedule Retail Price Calculation*\n\n` +
+      `• Assessed Value: Rs. ${formatCurr(assessVal)}\n` +
+      `• Duties (CD+ACD): Rs. ${formatCurr(cd + acd)}\n` +
+      `• Total Landed Cost: Rs. ${formatCurr(landedCost)}\n` +
+      `--------------------------------\n` +
+      `• 130% Min Retail Value: Rs. ${formatCurr(minRetailTotal)}\n` +
+      `• Total Quantity: ${qty} ${uom}\n` +
+      `👉 *MINIMUM RETAIL PRICE / ${uom}: Rs. ${minRate}*\n\n` +
+      `_Generated via ImportGuide Portal_`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert("✅ 3rd Schedule Summary WhatsApp ke liye copy ho gaya hai!");
+    });
+  });
+
+  // Reset Form
+  document.getElementById('resetGstBtn')?.addEventListener('click', () => {
+    document.getElementById('gstAssessVal').value = '';
+    document.getElementById('gstCdVal').value = '';
+    document.getElementById('gstAcdVal').value = '';
+    document.getElementById('gstFedVal').value = '0';
+    document.getElementById('gstEnteredRate').value = '';
+    calculateGSTModule();
+  });
+
+  // 16. SESSION & AUTO-LOGOUT LOGIC
   let inactivityTimer;
   const INACTIVITY_TIME = 15 * 60 * 1000;
 
