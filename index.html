@@ -345,7 +345,7 @@
         <div class="calc-section-head">Step 2: Valuation Data</div>
         <div class="calc-grid">
           <div class="calc-field">
-            <label>Unit Price ($)</label>
+            <label>Unit Price ($) [Invoice]</label>
             <input type="number" id="calcUnitPrice" value="1.0" step="0.0001">
             <div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--paper-dim);">
               Total Inv Value: <strong style="color: var(--green);">$<span id="totalInvValDisplay">0.00</span></strong>
@@ -353,13 +353,13 @@
           </div>
           
           <div class="calc-field" style="position:relative; grid-column: span 1;">
-              <label>VR Value (USD) <span id="vrBadge" style="color:var(--green); font-weight:bold; display:none;"></span></label>
+              <label>VR / Data Value (USD) <span id="vrBadge" style="color:var(--green); font-weight:bold; display:none;"></span></label>
               <input type="number" id="calcVrValue" placeholder="0.00" step="0.01" style="background:rgba(0,0,0,0.2); border:1px solid rgba(201,162,39,0.4); width:100%;">
               <select id="vrMatrixDropdown" style="display:none; margin-top:5px; width:100%; padding:8px; background:var(--ink-2); color:var(--brass); border:1px solid var(--brass); border-radius:4px; font-size:11px; outline:none; cursor:pointer;">
                   <option value="">Select VR Category...</option>
               </select>
               <div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--paper-dim);">
-                Total VR Value: <strong style="color: var(--brass);">$<span id="totalVrValDisplay">0.00</span></strong>
+                Total VR/Data Value: <strong style="color: var(--brass);">$<span id="totalVrValDisplay">0.00</span></strong>
               </div>
           </div>
           
@@ -381,7 +381,7 @@
         </div>
       </div>
 
-      <div class="live-preview-title" style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; margin-bottom:5px;">Live Preview (Current Item)</div>
+      <div class="live-preview-title" id="livePreviewTitle" style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; margin-bottom:5px;">Live Preview (Current Item)</div>
       <div class="calc-results-box" id="calcResults"></div>
 
       <div id="calcBtnRow" style="margin-top:20px; display:flex; gap:12px; flex-wrap: wrap;">
@@ -391,7 +391,7 @@
 
       <!-- INVOICE LIST SECTION -->
       <div id="invoiceListContainer" class="invoice-list-container">
-        <h2 class="invoice-header-title">📋 ESTIMATED DUTY AS PER INVOICE (<span id="invoiceItemCount">0</span> Items)</h2>
+        <h2 class="invoice-header-title" id="invoiceMainTitle">📋 ESTIMATED DUTY AS PER INVOICE (<span id="invoiceItemCount">0</span> Items)</h2>
         <div id="invoiceItemsWrapper"></div>
         <div id="invoiceGrandTotalWrapper"></div>
         <button class="primary" id="printCalcBtn" style="background:var(--green); color:#fff; width: 100%; margin-top:20px; font-size: 15px;">🖨️ Print Complete Invoice Slip</button>
@@ -1067,7 +1067,6 @@
   document.getElementById('vrMatrixDropdown').addEventListener('change', function() {
       if(this.value) { 
           document.getElementById('calcVrValue').value = this.value; 
-          document.getElementById('calcUnitPrice').value = this.value; 
           calculateDuty(); 
       }
   });
@@ -1285,7 +1284,7 @@
       dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
 
-    // --- LIVE UPDATE VALUES BELOW INPUT FIELDS ---
+    // Live Total Values Update Under Inputs
     let invTotal = obj.unitPrice * obj.qty;
     let vrTotal = obj.vrValue * obj.qty;
     const invDisplay = document.getElementById('totalInvValDisplay');
@@ -1293,9 +1292,23 @@
     if (invDisplay) invDisplay.innerText = invTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     if (vrDisplay) vrDisplay.innerText = vrTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+    // Check whether VR / Data is Higher than Invoice Unit Price
+    let isVrHigher = (obj.vrValue > obj.unitPrice);
+    obj.isVrApplied = isVrHigher;
+    let assessedUnitPrice = isVrHigher ? obj.vrValue : obj.unitPrice;
+
+    // Live preview title update
+    const liveTitle = document.getElementById('livePreviewTitle');
+    if (liveTitle) {
+      if (isVrHigher) {
+        liveTitle.innerHTML = `Live Preview (Current Item) &mdash; <span style="color:var(--brass); font-weight:700;">[APPLYING VR/DATA VALUE: $${obj.vrValue}]</span>`;
+      } else {
+        liveTitle.innerHTML = `Live Preview (Current Item) &mdash; <span style="color:var(--green); font-weight:700;">[APPLYING INVOICE VALUE: $${obj.unitPrice}]</span>`;
+      }
+    }
+
     const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
-    let assessedUnitPrice = obj.vrValue > obj.unitPrice ? obj.vrValue : obj.unitPrice;
     let baseUsd = assessedUnitPrice * obj.qty; let insUsd = baseUsd * 0.01; let landingUsd = (baseUsd + insUsd) * 0.01; obj.impValUsd = baseUsd + insUsd + landingUsd;
     obj.impValRs = obj.impValUsd * obj.exRate;
     obj.dutyAmt = obj.impValRs * dRate; obj.acdAmt = obj.impValRs * acdRate; obj.rdAmt = obj.impValRs * rdRate;
@@ -1318,6 +1331,7 @@
           <div class="calc-results-row"><span>Origin & Type:</span><span>${data.origin || '—'} &middot; ${data.type.toUpperCase()}</span></div>
           <div class="calc-results-row"><span>Quantity:</span><span>${data.qty} ${data.uom} @ $${data.unitPrice}</span></div>
           ${data.vrValue > 0 ? `<div class="calc-results-row"><span>VR Value (Applied):</span><span style="color:var(--brass); font-weight:600;">$${data.vrValue}</span></div>` : ''}
+          <div class="calc-results-row"><span>Assessment Basis:</span><span style="color:${data.isVrApplied ? 'var(--brass)' : 'var(--green)'}; font-weight:700;">${data.isVrApplied ? 'AS PER VR/DATA' : 'AS PER INVOICE'}</span></div>
           <div class="calc-results-row"><span>Exchange Rate:</span><span>Rs. ${data.exRate}</span></div>
           <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Value (USD):</span><span>$ ${formatCurr(data.impValUsd)}</span></div>
           <div class="calc-results-row"><span>Total Value (PKR):</span><span style="font-weight:700;">Rs. ${formatCurr(data.impValRs)}</span></div>
@@ -1378,20 +1392,27 @@
   };
 
   function renderInvoiceList() {
-    document.getElementById('invoiceItemCount').textContent = invoiceItems.length;
     let listHTML = ''; let grandValRs = 0; let grandDutyTaxes = 0; let grandLanded = 0;
     
+    // Check agar kisi bhi item par VR/Data apply hua hai
+    let hasVrOrDataApplied = invoiceItems.some(item => item.isVrApplied);
+
     invoiceItems.forEach((item, idx) => {
       grandValRs += item.impValRs; 
       grandDutyTaxes += item.totalDutyTaxes; 
       grandLanded += item.totalLandedCost;
       
+      let itemTag = item.isVrApplied ? 
+        `<span style="font-size:10px; background:var(--brass); color:var(--ink); padding:2px 6px; border-radius:3px; margin-left:8px; font-weight:700;">AS PER VR/DATA</span>` : 
+        `<span style="font-size:10px; background:var(--green); color:#fff; padding:2px 6px; border-radius:3px; margin-left:8px; font-weight:700;">AS PER INVOICE</span>`;
+
       listHTML += `
         <div class="item-card">
           <div class="item-card-header" onclick="toggleItem(${idx})">
             <div>
               <span class="expand-icon" id="icon-${idx}">➕</span>
               <span style="margin-left:10px; font-weight:600;">Item ${idx+1}: ${item.desc}</span>
+              ${itemTag}
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <span style="color:var(--paper); font-size:13px;">Duty & Taxes: <b style="color:var(--stamp);">Rs. ${formatCurr(item.totalDutyTaxes)}</b></span>
@@ -1404,10 +1425,17 @@
         </div>`;
     });
 
+    // Dynamic Header Title Update
+    const titleText = hasVrOrDataApplied ? "ESTIMATED DUTY AS PER VR/DATA" : "ESTIMATED DUTY AS PER INVOICE";
+    const headerTitleEl = document.getElementById('invoiceMainTitle');
+    if (headerTitleEl) {
+      headerTitleEl.innerHTML = `📋 ${titleText} (<span id="invoiceItemCount">${invoiceItems.length}</span> Items)`;
+    }
+
     document.getElementById('invoiceItemsWrapper').innerHTML = listHTML;
     document.getElementById('invoiceGrandTotalWrapper').innerHTML = `
       <div class="grand-total-section">
-        <h3 style="margin-top:0; color:var(--brass); border-bottom:1px dashed var(--hairline); padding-bottom:10px;">INVOICE GRAND TOTAL</h3>
+        <h3 style="margin-top:0; color:var(--brass); border-bottom:1px dashed var(--hairline); padding-bottom:10px;">${hasVrOrDataApplied ? 'ASSESSMENT GRAND TOTAL (AS PER VR/DATA)' : 'INVOICE GRAND TOTAL'}</h3>
         <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Invoice Items:</span><span style="color:var(--paper);">${invoiceItems.length}</span></div>
         <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Import Value (PKR):</span><span style="color:var(--paper);">Rs. ${formatCurr(grandValRs)}</span></div>
         <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Combined Duties & Taxes:</span><span style="color:var(--stamp); font-weight:bold;">Rs. ${formatCurr(grandDutyTaxes)}</span></div>
@@ -1428,6 +1456,10 @@
     let grandDutyTaxes = 0;
     let grandLanded = 0;
     let itemsDetailHtml = '';
+    
+    // Print ke liye check karein
+    let hasVrOrDataApplied = invoiceItems.some(item => item.isVrApplied);
+    const slipHeading = hasVrOrDataApplied ? "Estimated Duty As Per VR/Data" : "Estimated Duty As Per Invoice";
 
     invoiceItems.forEach((item, idx) => {
       grandValRs += item.impValRs;
@@ -1444,7 +1476,8 @@
             <div style="flex: 1;">
               <div><b>Type:</b> ${item.type.toUpperCase()} | <b>Origin:</b> ${item.origin || '—'}</div>
               <div><b>Quantity:</b> ${item.qty} ${item.uom} @ $${item.unitPrice}</div>
-              ${item.vrValue > 0 ? `<div><b>VR Value Applied:</b> $${item.vrValue}</div>` : ''}
+              ${item.vrValue > 0 ? `<div><b>VR/Data Value:</b> $${item.vrValue}</div>` : ''}
+              <div><b>Assessed Basis:</b> <b style="color:${item.isVrApplied ? '#990000' : '#0b4d3b'};">${item.isVrApplied ? 'VR/DATA VALUE APPLIED' : 'INVOICE VALUE APPLIED'}</b></div>
               <div><b>Ex. Rate:</b> Rs. ${item.exRate}</div>
               <div><b>Value (USD):</b> $${formatCurr(item.impValUsd)}</div>
               <div><b>Value (PKR):</b> Rs. ${formatCurr(item.impValRs)}</div>
@@ -1471,7 +1504,7 @@
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Estimated Duty As Per Invoice - Slip #${calcSerialNo}</title>
+        <title>${slipHeading} - Slip #${calcSerialNo}</title>
         <style>
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #111; }
           .header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -1482,11 +1515,11 @@
       <body>
         <div class="header">
           <div>
-            <h1 style="margin: 0; font-size: 22px; text-transform: uppercase;">Estimated Duty As Per Invoice</h1>
-            <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide : Know Before You Import Slip</p>
+            <h1 style="margin: 0; font-size: 22px; text-transform: uppercase;">${slipHeading}</h1>
+            <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide Customs Clearance Valuation Slip</p>
           </div>
           <div style="text-align: right; font-size: 12px; font-family: monospace;">
-            <div><b>Job # Ref:</b> IG-${calcSerialNo}</div>
+            <div><b>Slip Ref:</b> IG-${calcSerialNo}</div>
             <div><b>Date:</b> ${dateStr}</div>
           </div>
         </div>
@@ -1494,14 +1527,14 @@
         ${itemsDetailHtml}
 
         <div class="grand-box">
-          <div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ESTIMATED DUTY SUMMARY (${invoiceItems.length} ITEMS)</div>
+          <div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ASSESSMENT SUMMARY (${invoiceItems.length} ITEMS)</div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Total Import Value (PKR):</span><span>Rs. ${formatCurr(grandValRs)}</span></div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #990000; font-weight: bold;"><span>Total Combined Duties & Taxes:</span><span>Rs. ${formatCurr(grandDutyTaxes)}</span></div>
           <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #000; padding-top: 6px; font-size: 15px; font-weight: bold; color: #0b4d3b;"><span>GRAND TOTAL LANDED COST:</span><span>Rs. ${formatCurr(grandLanded)}</span></div>
         </div>
 
         <div style="margin-top: 25px; text-align: center; font-size: 11px; color: #777; border-top: 1px dashed #aaa; padding-top: 10px;">
-          &copy; 2026 ImportGuide (impguide.online) &middot; AI Generated Estimated Duty Calculation (maybe vary duty to exg. rate)
+          &copy; 2026 ImportGuide (impguide.online) &middot; Computer Generated Assessment Slip
         </div>
         <script>window.onload = function() { window.print(); };<\/script>
       </body>
@@ -1587,7 +1620,7 @@
       document.getElementById('calcDesc').value = label;
       document.getElementById('calcHsCode').value = hs;
       document.getElementById('calcVrValue').value = value;
-      document.getElementById('calcUnitPrice').value = value;
+      // Unit price ko change nahi karenge taake user ki invoice value preserve rahe
       
       loadHsDutySlab();
       
@@ -1610,11 +1643,15 @@
       descSuggestions.style.display = 'none';
   };
 
+  // Past Import Data se value ko calcVrValue mein set karna hai taake comparison sahi ho
   window.selectSuggestion = function(desc, hs, assessed) {
     document.getElementById('calcDesc').value = desc;
     if(hs && hs !== '—') { document.getElementById('calcHsCode').value = hs; loadHsDutySlab(); }
-    if(assessed && !isNaN(parseFloat(assessed))) { document.getElementById('calcUnitPrice').value = parseFloat(assessed); }
-    descSuggestions.style.display = 'none'; calculateDuty();
+    if(assessed && !isNaN(parseFloat(assessed))) { 
+      document.getElementById('calcVrValue').value = parseFloat(assessed); 
+    }
+    descSuggestions.style.display = 'none'; 
+    calculateDuty();
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
@@ -2044,7 +2081,7 @@
     document.getElementById('vrResultCount').textContent = `Showing ${list.length} Applicable Rulings`;
     if(list.length > 0) { 
         let tableHtml = `<table class="customs-table"><tr><th style="width:60%;">Valuation Ruling & Main Title</th><th>Status</th><th>Action</th></tr>`; 
-        list.forEach(item => { 
+        list.forEach(item => 
             tableHtml += `
               <tr>
                 <td>
@@ -2056,7 +2093,7 @@
                 <td><span style="color:var(--green); font-size:11px;">${item.date}</span></td>
                 <td><a href="${item.link}" target="_blank" style="color:var(--brass); text-decoration:underline; font-weight:500;">Download PDF</a></td>
               </tr>`; 
-        }); 
+        ); 
         document.getElementById('vrResultsHolder').innerHTML = tableHtml + `</table>`; 
     } else { 
         document.getElementById('vrResultsHolder').innerHTML = `<div style="padding:15px; color:var(--paper-dim);">No Valuation Ruling found matching your query.</div>`; 
