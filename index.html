@@ -1483,10 +1483,10 @@
         <div class="header">
           <div>
             <h1 style="margin: 0; font-size: 22px; text-transform: uppercase;">Estimated Duty As Per Invoice</h1>
-            <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide Customs Clearance Valuation Slip</p>
+            <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide : Know Before You Import Slip</p>
           </div>
           <div style="text-align: right; font-size: 12px; font-family: monospace;">
-            <div><b>Slip Ref:</b> IG-${calcSerialNo}</div>
+            <div><b>Job # Ref:</b> IG-${calcSerialNo}</div>
             <div><b>Date:</b> ${dateStr}</div>
           </div>
         </div>
@@ -1494,14 +1494,14 @@
         ${itemsDetailHtml}
 
         <div class="grand-box">
-          <div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ASSESSMENT SUMMARY (${invoiceItems.length} ITEMS)</div>
+          <div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ESTIMATED DUTY SUMMARY (${invoiceItems.length} ITEMS)</div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Total Import Value (PKR):</span><span>Rs. ${formatCurr(grandValRs)}</span></div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #990000; font-weight: bold;"><span>Total Combined Duties & Taxes:</span><span>Rs. ${formatCurr(grandDutyTaxes)}</span></div>
           <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #000; padding-top: 6px; font-size: 15px; font-weight: bold; color: #0b4d3b;"><span>GRAND TOTAL LANDED COST:</span><span>Rs. ${formatCurr(grandLanded)}</span></div>
         </div>
 
         <div style="margin-top: 25px; text-align: center; font-size: 11px; color: #777; border-top: 1px dashed #aaa; padding-top: 10px;">
-          &copy; 2026 ImportGuide (impguide.online) &middot; Computer Generated Assessment Slip
+          &copy; 2026 ImportGuide (impguide.online) &middot; AI Generated Estimated Duty Calculation (maybe vary duty to exg. rate)
         </div>
         <script>window.onload = function() { window.print(); };<\/script>
       </body>
