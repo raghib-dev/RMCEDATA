@@ -344,7 +344,13 @@
       <div class="calc-section">
         <div class="calc-section-head">Step 2: Valuation Data</div>
         <div class="calc-grid">
-          <div class="calc-field"><label>Unit Price ($)</label><input type="number" id="calcUnitPrice" value="1.0" step="0.0001"></div>
+          <div class="calc-field">
+            <label>Unit Price ($)</label>
+            <input type="number" id="calcUnitPrice" value="1.0" step="0.0001">
+            <div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--paper-dim);">
+              Total Inv Value: <strong style="color: var(--green);">$<span id="totalInvValDisplay">0.00</span></strong>
+            </div>
+          </div>
           
           <div class="calc-field" style="position:relative; grid-column: span 1;">
               <label>VR Value (USD) <span id="vrBadge" style="color:var(--green); font-weight:bold; display:none;"></span></label>
@@ -352,6 +358,9 @@
               <select id="vrMatrixDropdown" style="display:none; margin-top:5px; width:100%; padding:8px; background:var(--ink-2); color:var(--brass); border:1px solid var(--brass); border-radius:4px; font-size:11px; outline:none; cursor:pointer;">
                   <option value="">Select VR Category...</option>
               </select>
+              <div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--paper-dim);">
+                Total VR Value: <strong style="color: var(--brass);">$<span id="totalVrValDisplay">0.00</span></strong>
+              </div>
           </div>
           
           <div class="calc-field"><label>Net Wt / Qty &amp; UOM</label><div style="display:flex; gap:8px;"><input type="number" id="calcQty" value="1000" step="1" style="flex: 1;"><select id="calcUom" style="width: auto; cursor: pointer; padding: 10px 8px;"><option value="KG">KGs</option><option value="PC">PCS</option><option value="CBM">CBM (CUBIC METER)</option><option value="M²">SQM (SQR. METER)</option> </select></div></div>
@@ -1275,6 +1284,15 @@
       unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0, vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0, qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
       dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
+
+    // --- LIVE UPDATE VALUES BELOW INPUT FIELDS ---
+    let invTotal = obj.unitPrice * obj.qty;
+    let vrTotal = obj.vrValue * obj.qty;
+    const invDisplay = document.getElementById('totalInvValDisplay');
+    const vrDisplay = document.getElementById('totalVrValDisplay');
+    if (invDisplay) invDisplay.innerText = invTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    if (vrDisplay) vrDisplay.innerText = vrTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
     const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
     let assessedUnitPrice = obj.vrValue > obj.unitPrice ? obj.vrValue : obj.unitPrice;
