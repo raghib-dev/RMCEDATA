@@ -1620,7 +1620,6 @@
       document.getElementById('calcDesc').value = label;
       document.getElementById('calcHsCode').value = hs;
       document.getElementById('calcVrValue').value = value;
-      // Unit price ko change nahi karenge taake user ki invoice value preserve rahe
       
       loadHsDutySlab();
       
@@ -1643,7 +1642,6 @@
       descSuggestions.style.display = 'none';
   };
 
-  // Past Import Data se value ko calcVrValue mein set karna hai taake comparison sahi ho
   window.selectSuggestion = function(desc, hs, assessed) {
     document.getElementById('calcDesc').value = desc;
     if(hs && hs !== '—') { document.getElementById('calcHsCode').value = hs; loadHsDutySlab(); }
@@ -2081,7 +2079,7 @@
     document.getElementById('vrResultCount').textContent = `Showing ${list.length} Applicable Rulings`;
     if(list.length > 0) { 
         let tableHtml = `<table class="customs-table"><tr><th style="width:60%;">Valuation Ruling & Main Title</th><th>Status</th><th>Action</th></tr>`; 
-        list.forEach(item => 
+        list.forEach(item => {
             tableHtml += `
               <tr>
                 <td>
@@ -2093,7 +2091,7 @@
                 <td><span style="color:var(--green); font-size:11px;">${item.date}</span></td>
                 <td><a href="${item.link}" target="_blank" style="color:var(--brass); text-decoration:underline; font-weight:500;">Download PDF</a></td>
               </tr>`; 
-        ); 
+        }); 
         document.getElementById('vrResultsHolder').innerHTML = tableHtml + `</table>`; 
     } else { 
         document.getElementById('vrResultsHolder').innerHTML = `<div style="padding:15px; color:var(--paper-dim);">No Valuation Ruling found matching your query.</div>`; 
