@@ -541,8 +541,8 @@
   const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
   // 2. ULTRA-FAST TURSO RAW SQL ENGINE (NEW DATABASE CONNECTED)
-  const TURSO_HTTP_URL = 'https://cvault-db-impguide.aws-ap-south-1.turso.io/v2/pipeline';
-  const TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODk4MTgzMzgsImlkIjoiMDFhMGI5N2ItMzkwMS03ZTQzLWFjNzktNGQxZDg0MmNjOWVmIiwia2lkIjoiVzZxR0xHZHdPc3ozMjhmQTRjTklsTEtkYnN4RlpGU2VMY3l6TFhZMnRBbyIsInJpZCI6Ijc0Nzk2NmEyLWVjZWYtNDVmZS05YjM5LTZhODg1Yzg2Y2JlYiJ9.2JLf_CYnshUqR-KefdGIRYInSSFGjSnoHJ996Oj9CrDosmqmbNgXQht0ZcmqVR0CTGndRrWoqoNtQhIlxnjdDA';
+  const TURSO_HTTP_URL = 'https://td-db-impguide.aws-ap-south-1.turso.io/v2/pipeline';
+  const TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODk4MjMyMzUsImlkIjoiMDFhMGI5YzYtZjAwMS03NDMzLTg0YmQtZDM4MGViZDBmMjMyIiwia2lkIjoiVzZxR0xHZHdPc3ozMjhmQTRjTklsTEtkYnN4RlpGU2VMY3l6TFhZMnRBbyIsInJpZCI6IjAxY2ZiYjk0LWVjYjItNGU2ZS1hZTUyLTg5ZTJlZDFhZmExZSJ9.2H9gCo4Va-uYK8hL-GxlWHaUVv88u6J71-XKyihzGrU9yRHEwordKQunvGsRPCa3VFNi5Ehg_0TeUndO_ZguAA';
 
   async function executeRawSql(sql) {
     const response = await fetch(TURSO_HTTP_URL, {
