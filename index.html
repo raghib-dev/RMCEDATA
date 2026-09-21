@@ -540,7 +540,7 @@
   const SUPABASE_CORE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
   const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
-  // 2. ULTRA-FAST TURSO RAW SQL ENGINE (NEW DATABASE CONNECTED)
+  // 2. ULTRA-FAST TURSO RAW SQL ENGINE (CONNECTED DATABASE)
   const TURSO_HTTP_URL = 'https://td-db-impguide.aws-ap-south-1.turso.io/v2/pipeline';
   const TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODk4MjMyMzUsImlkIjoiMDFhMGI5YzYtZjAwMS03NDMzLTg0YmQtZDM4MGViZDBmMjMyIiwia2lkIjoiVzZxR0xHZHdPc3ozMjhmQTRjTklsTEtkYnN4RlpGU2VMY3l6TFhZMnRBbyIsInJpZCI6IjAxY2ZiYjk0LWVjYjItNGU2ZS1hZTUyLTg5ZTJlZDFhZmExZSJ9.2H9gCo4Va-uYK8hL-GxlWHaUVv88u6J71-XKyihzGrU9yRHEwordKQunvGsRPCa3VFNi5Ehg_0TeUndO_ZguAA';
 
@@ -561,65 +561,13 @@
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Turso Error: ${errText}`);
+      throw new Error(`Turso Network Error: ${errText}`);
     }
-    return await response.json();
-  }
-
-  // AUTOMATIC HIGH PERFORMANCE SCHEMA + FTS5 VIRTUAL INDEX TABLE
-  async function initTursoSchema() {
-    const schemaSql = `
-      CREATE TABLE IF NOT EXISTS ref_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        gd_number TEXT,
-        assessed_hs_code TEXT,
-        item_description TEXT,
-        importer_name TEXT,
-        supplier_name TEXT,
-        agent_name TEXT,
-        channel TEXT,
-        origin TEXT,
-        quantity REAL,
-        uom TEXT,
-        currency TEXT,
-        dec_unit_value REAL,
-        assessed_unit_value REAL,
-        bl_number TEXT
-      );
-      CREATE INDEX IF NOT EXISTS idx_desc ON ref_data(item_description);
-      CREATE INDEX IF NOT EXISTS idx_gd ON ref_data(gd_number);
-      CREATE INDEX IF NOT EXISTS idx_hs ON ref_data(assessed_hs_code);
-      CREATE INDEX IF NOT EXISTS idx_imp ON ref_data(importer_name);
-
-      -- FTS5 Full Text Index Table
-      CREATE VIRTUAL TABLE IF NOT EXISTS ref_data_fts USING fts5(
-        item_description, 
-        gd_number, 
-        importer_name, 
-        assessed_hs_code, 
-        content='ref_data', 
-        content_rowid='id'
-      );
-
-      -- Auto sync triggers
-      CREATE TRIGGER IF NOT EXISTS ref_data_ai AFTER INSERT ON ref_data BEGIN
-        INSERT INTO ref_data_fts(rowid, item_description, gd_number, importer_name, assessed_hs_code) 
-        VALUES (new.id, new.item_description, new.gd_number, new.importer_name, new.assessed_hs_code);
-      END;
-
-      CREATE TRIGGER IF NOT EXISTS ref_data_ad AFTER DELETE ON ref_data BEGIN
-        INSERT INTO ref_data_fts(ref_data_fts, rowid, item_description, gd_number, importer_name, assessed_hs_code) 
-        VALUES('delete', old.id, old.item_description, old.gd_number, old.importer_name, old.assessed_hs_code);
-      END;
-
-      CREATE TRIGGER IF NOT EXISTS ref_data_au AFTER UPDATE ON ref_data BEGIN
-        INSERT INTO ref_data_fts(ref_data_fts, rowid, item_description, gd_number, importer_name, assessed_hs_code) 
-        VALUES('delete', old.id, old.item_description, old.gd_number, old.importer_name, old.assessed_hs_code);
-        INSERT INTO ref_data_fts(rowid, item_description, gd_number, importer_name, assessed_hs_code) 
-        VALUES (new.id, new.item_description, new.gd_number, new.importer_name, new.assessed_hs_code);
-      END;
-    `;
-    await executeRawSql(schemaSql);
+    const resData = await response.json();
+    if (resData.results && resData.results[0] && resData.results[0].type === "error") {
+      throw new Error(resData.results[0].error.message || "SQL Error");
+    }
+    return resData;
   }
 
   function sqlEscape(val) {
@@ -818,24 +766,23 @@
     tursoFileInput.addEventListener('change', async (e) => {
       if(e.target.files.length === 0) return;
       const file = e.target.files[0];
-      tursoUploadStatus.innerHTML = '<span class="loader"></span> Initializing schema & parsing file...';
+      tursoUploadStatus.innerHTML = '<span class="loader"></span> Reading and parsing file...';
       tursoUploadStatus.className = 'status-line';
       tursoProgressBar.style.display = 'block';
       tursoProgressFill.style.width = '0%';
 
       try {
-        await initTursoSchema();
-
-        const buffer = await new Promise(r => {
+        const buffer = await new Promise((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = ev => r(new Uint8Array(ev.target.result));
+          reader.onload = ev => resolve(new Uint8Array(ev.target.result));
+          reader.onerror = reject;
           reader.readAsArrayBuffer(file);
         });
 
         const wb = XLSX.read(buffer, { type: 'array', raw: false, cellText: true });
         const rawJson = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
 
-        if (!rawJson || rawJson.length === 0) throw new Error("File empty hai ya invalid format.");
+        if (!rawJson || rawJson.length === 0) throw new Error("File is empty or invalid format.");
 
         const rows = rawJson.map(r => {
           let getVal = (exactPatterns, includePatterns = []) => {
@@ -888,9 +835,9 @@
           };
         }).filter(r => r.desc || r.gd || r.hs);
 
-        if(rows.length === 0) throw new Error("Sheet mein customs records nahi miley.");
+        if(rows.length === 0) throw new Error("No customs records matched columns in file.");
 
-        const batchSize = 1000;
+        const batchSize = 400;
         let uploaded = 0;
 
         for (let i = 0; i < rows.length; i += batchSize) {
@@ -913,10 +860,10 @@
           uploaded += chunk.length;
           const pct = Math.min(100, Math.round((uploaded / rows.length) * 100));
           tursoProgressFill.style.width = `${pct}%`;
-          tursoUploadStatus.innerHTML = `⚡ High-Speed Uploading: <b>${uploaded}</b> / ${rows.length} rows (${pct}%)...`;
+          tursoUploadStatus.innerHTML = `⚡ Ingesting: <b>${uploaded}</b> / ${rows.length} records (${pct}%)...`;
         }
 
-        tursoUploadStatus.innerHTML = `✅ Mukammal! <b>${rows.length}</b> records Turso Vault mein upload ho gaye.`;
+        tursoUploadStatus.innerHTML = `✅ Mukammal! <b>${rows.length}</b> records Turso Database mein upload ho gaye.`;
         tursoUploadStatus.className = 'status-line ok';
       } catch (err) {
         console.error("Turso Upload Error:", err);
@@ -1564,7 +1511,7 @@
     printWin.document.close();
   });
 
-  // 10. TURSO LIVE SUGGESTIONS & AUTOCOMPLETE (OPTIMIZED)
+  // 10. TURSO LIVE SUGGESTIONS & AUTOCOMPLETE
   const calcDescInput = document.getElementById('calcDesc'); 
   const descSuggestions = document.getElementById('descSuggestions');
 
@@ -1611,7 +1558,12 @@
               WHERE ref_data_fts MATCH '${ftsMatch}' 
               ORDER BY r.id DESC LIMIT 6;
             `;
-            res = await executeRawSql(ftsSql);
+            try {
+              res = await executeRawSql(ftsSql);
+            } catch(ftsErr) {
+              const fallbackSql = `SELECT item_description, assessed_hs_code, assessed_unit_value FROM ref_data WHERE item_description LIKE '%${terms[0]}%' ORDER BY id DESC LIMIT 6;`;
+              res = await executeRawSql(fallbackSql);
+            }
           }
           
           if (res && res.results && res.results[0] && res.results[0].response && res.results[0].response.result) {
@@ -1684,7 +1636,7 @@
   };
   document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-  // 11. TURSO ADVANCED FTS-POWERED SEARCH ENGINE (QUOTA SAVER)
+  // 11. TURSO SEARCH ENGINE
   const searchInput = document.getElementById('searchInput'); 
   const filterChips = document.getElementById('filterChips'); 
   const resultsHolder = document.getElementById('resultsHolder'); 
@@ -1740,19 +1692,17 @@
       return; 
     }
     
-    resultCount.innerHTML = '<span class="loader"></span> Scanning Complete Turso Vault...'; 
+    resultCount.innerHTML = '<span class="loader"></span> Scanning Turso Vault...'; 
     const currentSearchId = ++searchId;
     
     try {
       const cleanRaw = rawQ.replace(/'/g, "''");
       const terms = cleanRaw.split(/\s+/).filter(w => w.length > 0);
-      
       const digitsOnly = rawQ.replace(/\D/g, "");
       const trimmedDigits = digitsOnly.replace(/0+$/, ''); 
 
       let queryStr = '';
 
-      // High-speed FTS Search if 'all' or 'item_description'
       if (activeFilter === "all" || activeFilter === "item_description") {
         const ftsTerms = terms.map(t => `${t.replace(/[^a-zA-Z0-9]/g, "")}*`).filter(t => t.length > 1);
         if (ftsTerms.length > 0) {
@@ -1767,7 +1717,6 @@
         }
       }
 
-      // Fallback for HS Code, GD Number or Specific Column
       if (!queryStr) {
         let whereClauses = [];
         if (activeFilter === "assessed_hs_code") {
@@ -1783,7 +1732,14 @@
         queryStr = `SELECT * FROM ref_data WHERE ${whereClauses.join(' AND ')} ORDER BY id DESC LIMIT 1500;`;
       }
 
-      const res = await executeRawSql(queryStr);
+      let res = null;
+      try {
+        res = await executeRawSql(queryStr);
+      } catch (innerErr) {
+        let fallbackClauses = terms.map(t => `item_description LIKE '%${t}%'`).join(' AND ');
+        let fallbackQuery = `SELECT * FROM ref_data WHERE ${fallbackClauses} ORDER BY id DESC LIMIT 1500;`;
+        res = await executeRawSql(fallbackQuery);
+      }
       
       if (currentSearchId !== searchId) return;
 
@@ -1906,7 +1862,6 @@
     updateSelectionUI();
   }
 
-  // CHECKBOX SELECTION LOGIC
   window.toggleRowSelection = function(idx, isChecked) {
     if(isChecked) {
       selectedRowIndices.add(idx);
@@ -2039,7 +1994,7 @@
     reportWindow.document.close();
   });
 
-  // ACCURATE MODAL RENDERER
+  // DETAIL MODAL
   window.openDetailModal = function(idx) {
     const m = window.currentDisplayedData[idx]; if(!m) return;
     
@@ -2092,7 +2047,7 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 12. VALUATION RULINGS SEARCH (SUPABASE CORE DISPLAY)
+  // 12. VALUATION RULINGS SEARCH (SUPABASE CORE)
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => 
@@ -2149,7 +2104,7 @@
   window.toggleAccount = async function(u, active) { await db.from('user_accounts').update({ is_active: active }).eq('username', u); loadSubscriptionsList(); };
   window.renewAccount = async function(u) { const exp = new Date(); exp.setDate(exp.getDate() + 30); await db.from('user_accounts').update({ expiry_date: exp.toISOString(), is_active: true }).eq('username', u); loadSubscriptionsList(); };
 
-  // 14. HS CODE TARIFF DIRECTORY LOGIC
+  // 14. HS CODE TARIFF DIRECTORY
   window.runTariffSearch = function() {
       const q = document.getElementById('tariffSearchInput').value.trim().toLowerCase();
       let results = [];
