@@ -533,97 +533,22 @@
 </div>
 
 <script>
-window.openTool = function(toolName) {
-  var hero = document.getElementById('portalHeroSection');
-  var grid = document.getElementById('portalHomeGrid');
-  var modal = document.getElementById('workspaceModal');
-
-  if (toolName === 'clearance') {
-    var isLoggedIn = localStorage.getItem('cv_role');
-    if (!isLoggedIn) {
-      alert("Please login First! This database can't access without subscription.");
-      var u = document.getElementById('headerUser');
-      if (u) u.focus();
-      return;
-    }
-  }
-
-  if (hero) hero.style.display = 'none';
-  if (grid) grid.style.display = 'none';
-  if (modal) modal.style.display = 'block';
-
-  document.querySelectorAll('.tab-btn').forEach(function(b) { 
-    if(b.id !== 'tabUploadBtn' && b.id !== 'tabSubBtn') b.style.display = 'inline-block'; 
-  });
-  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
-
-  var role = localStorage.getItem('cv_role');
-  if(role === 'admin') { 
-    var tu = document.getElementById('tabUploadBtn');
-    var ts = document.getElementById('tabSubBtn');
-    if(tu) tu.style.display = 'inline-block'; 
-    if(ts) ts.style.display = 'inline-block'; 
-    if(typeof window.loadAdminTariffList === 'function') window.loadAdminTariffList();
-  }
-
-  if(toolName === 'calculator') {
-    var b1 = document.getElementById('tabCalcBtn');
-    var p1 = document.getElementById('panel-calculator');
-    if(b1) b1.classList.add('active');
-    if(p1) p1.classList.add('active');
-    if(typeof window.calculateDuty === 'function') window.calculateDuty();
-  } else if(toolName === 'gst') {
-    var b2 = document.getElementById('tabGstBtn');
-    var p2 = document.getElementById('panel-gst');
-    if(b2) b2.classList.add('active');
-    if(p2) p2.classList.add('active');
-    if(typeof window.calculateGSTModule === 'function') window.calculateGSTModule();
-  } else if(toolName === 'vr') {
-    var b3 = document.getElementById('tabVrBtn');
-    var p3 = document.getElementById('panel-vr');
-    if(b3) b3.classList.add('active');
-    if(p3) p3.classList.add('active');
-    if(typeof window.runVrSearch === 'function') window.runVrSearch();
-  } else if(toolName === 'tariff') {
-    var b4 = document.getElementById('tabTariffBtn');
-    var p4 = document.getElementById('panel-tariff');
-    if(b4) b4.classList.add('active');
-    if(p4) p4.classList.add('active');
-    if(typeof window.runTariffSearch === 'function') window.runTariffSearch();
-  } else {
-    var b5 = document.getElementById('tabSearchBtn');
-    var p5 = document.getElementById('panel-search');
-    if(b5) b5.classList.add('active');
-    if(p5) p5.classList.add('active');
-    if(typeof window.runSearch === 'function') window.runSearch();
-  }
-  window.scrollTo({top: 0, behavior: 'smooth'});
-};
-
-window.goHome = function() {
-  var hero = document.getElementById('portalHeroSection');
-  var grid = document.getElementById('portalHomeGrid');
-  var modal = document.getElementById('workspaceModal');
-  if (hero) hero.style.display = 'block';
-  if (grid) grid.style.display = 'grid';
-  if (modal) modal.style.display = 'none';
-};
-
 (function(){
-  // 1. SUPABASE CORE
-  var SUPABASE_CORE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
-  var SUPABASE_CORE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
-  var db = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
-  // 2. TURSO ENGINE
-  var TURSO_HTTP_URL = 'https://td-db-impguide.aws-ap-south-1.turso.io/v2/pipeline';
-  var TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODk4MjMyMzUsImlkIjoiMDFhMGI5YzYtZjAwMS03NDMzLTg0YmQtZDM4MGViZDBmMjMyIiwia2lkIjoiVzZxR0xHZHdPc3ozMjhmQTRjTklsTEtkYnN4RlpGU2VMY3l6TFhZMnRBbyIsInJpZCI6IjAxY2ZiYjk0LWVjYjItNGU2ZS1hZTUyLTg5ZTJlZDFhZmExZSJ9.2H9gCo4Va-uYK8hL-GxlWHaUVv88u6J71-XKyihzGrU9yRHEwordKQunvGsRPCa3VFNi5Ehg_0TeUndO_ZguAA';
+  // 1. SUPABASE CORE (AUTH, TARIFF, VR)
+  const SUPABASE_CORE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
+  const SUPABASE_CORE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
+  const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
+
+  // 2. ULTRA-FAST TURSO RAW SQL ENGINE (CONNECTED DATABASE)
+  const TURSO_HTTP_URL = 'https://td-db-impguide.aws-ap-south-1.turso.io/v2/pipeline';
+  const TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODk4MjMyMzUsImlkIjoiMDFhMGI5YzYtZjAwMS03NDMzLTg0YmQtZDM4MGViZDBmMjMyIiwia2lkIjoiVzZxR0xHZHdPc3ozMjhmQTRjTklsTEtkYnN4RlpGU2VMY3l6TFhZMnRBbyIsInJpZCI6IjAxY2ZiYjk0LWVjYjItNGU2ZS1hZTUyLTg5ZTJlZDFhZmExZSJ9.2H9gCo4Va-uYK8hL-GxlWHaUVv88u6J71-XKyihzGrU9yRHEwordKQunvGsRPCa3VFNi5Ehg_0TeUndO_ZguAA';
 
   async function executeRawSql(sql) {
-    var response = await fetch(TURSO_HTTP_URL, {
+    const response = await fetch(TURSO_HTTP_URL, {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + TURSO_AUTH_TOKEN,
+        "Authorization": `Bearer ${TURSO_AUTH_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -635,10 +560,10 @@ window.goHome = function() {
     });
 
     if (!response.ok) {
-      var errText = await response.text();
-      throw new Error("Turso Network Error: " + errText);
+      const errText = await response.text();
+      throw new Error(`Turso Network Error: ${errText}`);
     }
-    var resData = await response.json();
+    const resData = await response.json();
     if (resData.results && resData.results[0] && resData.results[0].type === "error") {
       throw new Error(resData.results[0].error.message || "SQL Error");
     }
@@ -648,60 +573,70 @@ window.goHome = function() {
   function sqlEscape(val) {
     if (val === null || val === undefined || val === '') return 'NULL';
     if (typeof val === 'number') return isNaN(val) ? '0' : val;
-    return "'" + String(val).replace(/'/g, "''") + "'";
+    return `'${String(val).replace(/'/g, "''")}'`;
   }
 
+  // HS CODE NORMALIZATION (Preserves full 8-digit dot format)
   function formatHsCodeFull(raw) {
     if (!raw) return '';
-    var s = String(raw).trim();
+    let s = String(raw).trim();
     if (!s) return '';
+    
     if (s.includes('.')) {
-      var parts = s.split('.');
-      var prefix = parts[0].replace(/\D/g, '').padStart(4, '0');
-      var suffix = parts[1] ? parts[1].replace(/\D/g, '').padEnd(4, '0').substring(0, 4) : '0000';
-      return prefix + '.' + suffix;
+      let parts = s.split('.');
+      let prefix = parts[0].replace(/\D/g, '').padStart(4, '0');
+      let suffix = parts[1] ? parts[1].replace(/\D/g, '').padEnd(4, '0').substring(0, 4) : '0000';
+      return `${prefix}.${suffix}`;
     }
-    var digits = s.replace(/\D/g, '');
+    
+    let digits = s.replace(/\D/g, '');
     if (digits.length > 4) {
-      var d8 = digits.padEnd(8, '0').substring(0, 8);
-      return d8.substring(0, 4) + '.' + d8.substring(4);
+      let d8 = digits.padEnd(8, '0').substring(0, 8);
+      return `${d8.substring(0, 4)}.${d8.substring(4)}`;
     } else if (digits.length === 4) {
-      return digits + '.0000';
+      return `${digits}.0000`;
     }
     return s;
   }
 
+  // Value Formatter
   function formatSmartNumber(num) {
     if (num === null || num === undefined || num === '' || num === '—') return '0.00';
-    var strVal = String(num).trim();
-    var n = parseFloat(strVal);
-    if (isNaN(n) || n === 0) return '0.00';
+    let strVal = String(num).trim();
+    let n = parseFloat(strVal);
+    if (isNaN(n)) return '0.00';
+    if (n === 0) return '0.00';
+    
     if (strVal.includes('.')) {
-      var decimals = strVal.split('.')[1];
-      if (decimals.length > 2) return n.toFixed(Math.min(decimals.length, 4));
+      let decimals = strVal.split('.')[1];
+      if (decimals.length > 2) {
+        return n.toFixed(Math.min(decimals.length, 4));
+      }
     }
+    
     if (Math.abs(n) < 0.01) return n.toFixed(4);
     return n.toFixed(2);
   }
 
   function parseGdDate(gdStr) {
     if (!gdStr) return 0;
-    var match = String(gdStr).match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+    const match = String(gdStr).match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
     if (match) {
-      var day = parseInt(match[1], 10);
-      var month = parseInt(match[2], 10) - 1;
-      var year = parseInt(match[3], 10);
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = parseInt(match[3], 10);
       return new Date(year, month, day).getTime() || 0;
     }
     return 0;
   }
 
   function resolveCleanUom(uomVal, descText) {
-    var u = String(uomVal || '').trim();
-    var isNumericRate = !isNaN(parseFloat(u)) && isFinite(u) && parseFloat(u) > 0 && parseFloat(u) < 50;
+    let u = String(uomVal || '').trim();
+    let isNumericRate = !isNaN(parseFloat(u)) && isFinite(u) && parseFloat(u) > 0 && parseFloat(u) < 50;
+    
     if (!u || u === '—' || isNumericRate || u === 'NULL') {
       if (descText) {
-        var m = String(descText).match(/\b(PCS|KGS?|UNITS?|SETS?|DOZ|MTRS?|ROLLS?|BAGS?|PKTS?|PRS|PAIRS?|U)\b/i);
+        let m = String(descText).match(/\b(PCS|KGS?|UNITS?|SETS?|DOZ|MTRS?|ROLLS?|BAGS?|PKTS?|PRS|PAIRS?|U)\b/i);
         if (m) return m[1].toUpperCase();
       }
       return 'U';
@@ -709,176 +644,178 @@ window.goHome = function() {
     return u.toUpperCase();
   }
 
-  var headerLoginBtn = document.getElementById('headerLoginBtn');
-  var headerUser = document.getElementById('headerUser');
-  var headerPass = document.getElementById('headerPass');
+  if(!db) { alert("Internet disconnected or Supabase library blocked."); return; }
 
-  // Tabs binding
-  document.querySelectorAll('.tab-btn').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
-      btn.classList.add('active');
-      var targetPanel = document.getElementById('panel-'+btn.dataset.tab);
-      if(targetPanel) targetPanel.classList.add('active');
+  // 3. UI NAVIGATION
+  const portalHeroSection = document.getElementById('portalHeroSection');
+  const portalHomeGrid = document.getElementById('portalHomeGrid');
+  const workspaceModal = document.getElementById('workspaceModal');
+  const headerLoginBtn = document.getElementById('headerLoginBtn');
+  const headerUser = document.getElementById('headerUser');
+  const headerPass = document.getElementById('headerPass');
 
-      if(btn.dataset.tab==='search' && typeof runSearch === 'function') runSearch(); 
-      if(btn.dataset.tab==='subscriptions' && typeof loadSubscriptionsList === 'function') loadSubscriptionsList(); 
-      if(btn.dataset.tab==='calculator' && typeof window.calculateDuty === 'function') window.calculateDuty(); 
-      if(btn.dataset.tab==='gst' && typeof window.calculateGSTModule === 'function') window.calculateGSTModule();
-      if(btn.dataset.tab==='vr' && typeof window.runVrSearch === 'function') window.runVrSearch();
-      if(btn.dataset.tab==='tariff' && typeof window.runTariffSearch === 'function') window.runTariffSearch();
-      if(btn.dataset.tab==='upload' && localStorage.getItem('cv_role')==='admin' && typeof window.loadAdminTariffList === 'function') window.loadAdminTariffList();
+  window.openTool = function(toolName) {
+    if (toolName === 'clearance') {
+      const isLoggedIn = localStorage.getItem('cv_role');
+      if (!isLoggedIn) {
+        alert("Please login First! This database can't access without subscription.");
+        document.getElementById('headerUser').focus();
+        return;
+      }
+    }
+
+    portalHeroSection.style.display = 'none'; portalHomeGrid.style.display = 'none'; workspaceModal.style.display = 'block';
+    document.querySelectorAll('.tab-btn').forEach(b => { if(b.id !== 'tabUploadBtn' && b.id !== 'tabSubBtn') b.style.display = 'inline-block'; });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+    const role = localStorage.getItem('cv_role');
+    if(role === 'admin') { 
+        document.getElementById('tabUploadBtn').style.display = 'inline-block'; 
+        document.getElementById('tabSubBtn').style.display = 'inline-block'; 
+        loadAdminTariffList();
+    }
+
+    if(toolName === 'calculator') {
+      document.getElementById('tabCalcBtn').classList.add('active'); document.getElementById('panel-calculator').classList.add('active'); calculateDuty();
+    } else if(toolName === 'gst') {
+      document.getElementById('tabGstBtn').classList.add('active'); document.getElementById('panel-gst').classList.add('active'); calculateGSTModule();
+    } else if(toolName === 'vr') {
+      document.getElementById('tabVrBtn').classList.add('active'); document.getElementById('panel-vr').classList.add('active'); runVrSearch();
+    } else if(toolName === 'tariff') {
+      document.getElementById('tabTariffBtn').classList.add('active'); document.getElementById('panel-tariff').classList.add('active'); if(typeof runTariffSearch === 'function') runTariffSearch();
+    } else {
+      document.getElementById('tabSearchBtn').classList.add('active'); document.getElementById('panel-search').classList.add('active');
+    }
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  };
+  window.goHome = function() { portalHeroSection.style.display = 'block'; portalHomeGrid.style.display = 'grid'; workspaceModal.style.display = 'none'; };
+
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active'); document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab==='search') runSearch(); 
+      if(btn.dataset.tab==='subscriptions') loadSubscriptionsList(); 
+      if(btn.dataset.tab==='calculator') calculateDuty(); 
+      if(btn.dataset.tab==='gst') calculateGSTModule();
+      if(btn.dataset.tab==='vr') runVrSearch();
+      if(btn.dataset.tab==='tariff') runTariffSearch();
+      if(btn.dataset.tab==='upload' && localStorage.getItem('cv_role')==='admin') loadAdminTariffList();
     });
   });
 
-  // Client Login
+  // 4. AUTH & LOGIN (SUPABASE CORE)
   async function handleLogin() {
-    if(!db) return;
-    var u = headerUser.value.trim().toLowerCase(); 
-    var p = headerPass.value.trim();
+    const u = headerUser.value.trim().toLowerCase(); const p = headerPass.value.trim();
     if (!u || !p) { alert('Please enter username and password.'); return; }
-    headerLoginBtn.disabled = true; 
-    headerLoginBtn.innerHTML = '<span class="loader"></span>';
-    
-    var { data, error } = await db.from('user_accounts').select('*').eq('username', u).single();
-    headerLoginBtn.disabled = false; 
-    headerLoginBtn.textContent = 'Client Login';
+    headerLoginBtn.disabled = true; headerLoginBtn.innerHTML = '<span class="loader"></span>';
+    const { data, error } = await db.from('user_accounts').select('*').eq('username', u).single();
+    headerLoginBtn.disabled = false; headerLoginBtn.textContent = 'Client Login';
 
     if (error || !data || data.password !== p) { alert('Invalid username or password.'); return; }
-    var now = new Date(); var expiry = new Date(data.expiry_date);
+    const now = new Date(); const expiry = new Date(data.expiry_date);
     if (!data.is_active || (u !== 'admin' && now > expiry)) { alert('Subscription expired or account disabled.'); return; }
 
-    localStorage.setItem('cv_role', u === 'admin' ? 'admin' : 'viewer'); 
-    localStorage.setItem('cv_username', u === 'admin' ? 'Administrator' : data.username);
-    if(u !== 'admin') localStorage.setItem('cv_expiry', data.expiry_date); 
-    else localStorage.removeItem('cv_expiry');
+    localStorage.setItem('cv_role', u === 'admin' ? 'admin' : 'viewer'); localStorage.setItem('cv_username', u === 'admin' ? 'Administrator' : data.username);
+    if(u !== 'admin') localStorage.setItem('cv_expiry', data.expiry_date); else localStorage.removeItem('cv_expiry');
     applyRole(u === 'admin' ? 'admin' : 'viewer', u === 'admin' ? 'Administrator' : data.username);
   }
 
-  if(headerLoginBtn) headerLoginBtn.addEventListener('click', handleLogin);
-  if(headerUser) headerUser.addEventListener('keydown', function(e) { if(e.key === 'Enter') handleLogin(); });
-  if(headerPass) headerPass.addEventListener('keydown', function(e) { if(e.key === 'Enter') handleLogin(); });
+  headerLoginBtn.addEventListener('click', handleLogin);
+  headerUser.addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); }); headerPass.addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });
 
   function applyRole(role, username) {
-    var authBox = document.getElementById('portalHeaderAuth');
-    var statusBox = document.getElementById('portalUserStatus');
-    var displayEl = document.getElementById('loggedInUserDisplay');
-    if(authBox) authBox.style.display = 'none'; 
-    if(statusBox) statusBox.style.display = 'flex'; 
-    if(displayEl) displayEl.textContent = username.toUpperCase();
-    
-    var expiry = localStorage.getItem('cv_expiry'); 
-    var banner = document.getElementById('expiryBanner');
-    if (expiry && banner) {
-      var expDate = new Date(expiry); 
-      var daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
-      banner.style.display = 'flex'; 
-      banner.innerHTML = '<div style="background:var(--ink-2); padding:10px; width:100%; border-bottom:1px solid var(--hairline); margin-bottom:15px; text-align:center; font-size:13px; color:var(--brass);">👋 Welcome, <b>' + username + '</b>! Subscription expires on: <b>' + expDate.toLocaleDateString() + '</b> (' + (daysLeft > 0 ? daysLeft + ' days remaining' : 'Expired') + ')</div>';
+    document.getElementById('portalHeaderAuth').style.display = 'none'; document.getElementById('portalUserStatus').style.display = 'flex'; document.getElementById('loggedInUserDisplay').textContent = username.toUpperCase();
+    const expiry = localStorage.getItem('cv_expiry'); const banner = document.getElementById('expiryBanner');
+    if (expiry) {
+      const expDate = new Date(expiry); const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+      banner.style.display = 'flex'; banner.innerHTML = `<div style="background:var(--ink-2); padding:10px; width:100%; border-bottom:1px solid var(--hairline); margin-bottom:15px; text-align:center; font-size:13px; color:var(--brass);">👋 Welcome, <b>${username}</b>! Subscription expires on: <b>${expDate.toLocaleDateString()}</b> (${daysLeft > 0 ? daysLeft + ' days remaining' : 'Expired'})</div>`;
     }
-    if (role === 'admin') { 
-      var tu = document.getElementById('tabUploadBtn');
-      var ts = document.getElementById('tabSubBtn');
-      if(tu) tu.style.display = 'inline-block'; 
-      if(ts) ts.style.display = 'inline-block'; 
-    }
+    if (role === 'admin') { document.getElementById('tabUploadBtn').style.display = 'inline-block'; document.getElementById('tabSubBtn').style.display = 'inline-block'; }
   }
+  document.getElementById('headerLogoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
+  if(document.getElementById('logoutBtn')) { document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); }); }
 
-  var logoutBtnHeader = document.getElementById('headerLogoutBtn');
-  if(logoutBtnHeader) logoutBtnHeader.addEventListener('click', function() { localStorage.clear(); location.reload(); });
-  var logoutFooter = document.getElementById('logoutBtn');
-  if(logoutFooter) logoutFooter.addEventListener('click', function() { localStorage.clear(); location.reload(); });
+  // 5. SIGNUP TRIAL
+  document.getElementById('openSignupBtn').addEventListener('click', () => { document.getElementById('signupModalOverlay').style.display = 'flex'; });
+  document.getElementById('closeSignupBtn').addEventListener('click', () => { document.getElementById('signupModalOverlay').style.display = 'none'; });
+  document.getElementById('trialSubmitBtn').addEventListener('click', async () => {
+    const u = document.getElementById('trialUser').value.trim().toLowerCase(); const c = document.getElementById('trialCompany').value.trim(); const e = document.getElementById('trialEmail').value.trim(); const w = document.getElementById('trialWhatsapp').value.trim(); const p = document.getElementById('trialPass').value.trim(); const trialMsg = document.getElementById('trialMsg');
+    if(!u || !c || !e || !w || !p) { trialMsg.textContent = 'Please fill all fields.'; trialMsg.className='status-line err'; return; }
+    if(u.includes(' ')) { trialMsg.textContent = 'No spaces in username.'; trialMsg.className='status-line err'; return; }
+    document.getElementById('trialSubmitBtn').disabled = true; trialMsg.innerHTML = '<span class="loader"></span> Creating account...'; trialMsg.className = 'status-line';
+    const { data: existingUser } = await db.from('user_accounts').select('username').eq('username', u).single();
+    if(existingUser) { trialMsg.textContent = 'Username taken.'; trialMsg.className='status-line err'; document.getElementById('trialSubmitBtn').disabled = false; return; }
+    const expiryDate = new Date(); expiryDate.setDate(expiryDate.getDate() + 3);
+    const { error } = await db.from('user_accounts').insert([{ username: u, password: p, email: e, whatsapp: w, company_name: c, is_active: true, expiry_date: expiryDate.toISOString() }]);
+    document.getElementById('trialSubmitBtn').disabled = false;
+    if(error) { trialMsg.textContent = 'Error saving account.'; trialMsg.className='status-line err'; } 
+    else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
+  });
 
-  // Signup trial
-  var openSign = document.getElementById('openSignupBtn');
-  var closeSign = document.getElementById('closeSignupBtn');
-  var submitTrial = document.getElementById('trialSubmitBtn');
-  if(openSign) openSign.addEventListener('click', function() { document.getElementById('signupModalOverlay').style.display = 'flex'; });
-  if(closeSign) closeSign.addEventListener('click', function() { document.getElementById('signupModalOverlay').style.display = 'none'; });
-  if(submitTrial) {
-    submitTrial.addEventListener('click', async function() {
-      if(!db) return;
-      var u = document.getElementById('trialUser').value.trim().toLowerCase(); 
-      var c = document.getElementById('trialCompany').value.trim(); 
-      var e = document.getElementById('trialEmail').value.trim(); 
-      var w = document.getElementById('trialWhatsapp').value.trim(); 
-      var p = document.getElementById('trialPass').value.trim(); 
-      var trialMsg = document.getElementById('trialMsg');
-      if(!u || !c || !e || !w || !p) { trialMsg.textContent = 'Please fill all fields.'; trialMsg.className='status-line err'; return; }
-      if(u.includes(' ')) { trialMsg.textContent = 'No spaces in username.'; trialMsg.className='status-line err'; return; }
-      submitTrial.disabled = true; 
-      trialMsg.innerHTML = '<span class="loader"></span> Creating account...'; 
-      trialMsg.className = 'status-line';
-      var { data: existingUser } = await db.from('user_accounts').select('username').eq('username', u).single();
-      if(existingUser) { trialMsg.textContent = 'Username taken.'; trialMsg.className='status-line err'; submitTrial.disabled = false; return; }
-      var expiryDate = new Date(); expiryDate.setDate(expiryDate.getDate() + 3);
-      var { error } = await db.from('user_accounts').insert([{ username: u, password: p, email: e, whatsapp: w, company_name: c, is_active: true, expiry_date: expiryDate.toISOString() }]);
-      submitTrial.disabled = false;
-      if(error) { trialMsg.textContent = 'Error saving account.'; trialMsg.className='status-line err'; } 
-      else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(function() { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
-    });
-  }
-
-  // 6. Turso Batch Uploader
-  var triggerTursoUploadBtn = document.getElementById('triggerTursoUploadBtn');
-  var tursoFileInput = document.getElementById('tursoFileInput');
-  var tursoUploadStatus = document.getElementById('tursoUploadStatus');
-  var tursoProgressBar = document.getElementById('tursoProgressBar');
-  var tursoProgressFill = document.getElementById('tursoProgressFill');
+  // 6. HIGH-SPEED TRANSACTIONAL TURSO BULK UPLOADER
+  const triggerTursoUploadBtn = document.getElementById('triggerTursoUploadBtn');
+  const tursoFileInput = document.getElementById('tursoFileInput');
+  const tursoUploadStatus = document.getElementById('tursoUploadStatus');
+  const tursoProgressBar = document.getElementById('tursoProgressBar');
+  const tursoProgressFill = document.getElementById('tursoProgressFill');
 
   if(triggerTursoUploadBtn && tursoFileInput) {
-    triggerTursoUploadBtn.addEventListener('click', function() { tursoFileInput.value = ''; tursoFileInput.click(); });
-    tursoFileInput.addEventListener('change', async function(e) {
+    triggerTursoUploadBtn.addEventListener('click', () => { tursoFileInput.value = ''; tursoFileInput.click(); });
+    
+    tursoFileInput.addEventListener('change', async (e) => {
       if(e.target.files.length === 0) return;
-      var file = e.target.files[0];
+      const file = e.target.files[0];
       tursoUploadStatus.innerHTML = '<span class="loader"></span> Reading and parsing file...';
       tursoUploadStatus.className = 'status-line';
       tursoProgressBar.style.display = 'block';
       tursoProgressFill.style.width = '0%';
 
       try {
-        var buffer = await new Promise(function(resolve, reject) {
-          var reader = new FileReader();
-          reader.onload = function(ev) { resolve(new Uint8Array(ev.target.result)); };
+        const buffer = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = ev => resolve(new Uint8Array(ev.target.result));
           reader.onerror = reject;
           reader.readAsArrayBuffer(file);
         });
 
-        var wb = XLSX.read(buffer, { type: 'array', raw: false, cellText: true });
-        var rawJson = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
+        const wb = XLSX.read(buffer, { type: 'array', raw: false, cellText: true });
+        const rawJson = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
+
         if (!rawJson || rawJson.length === 0) throw new Error("File is empty or invalid format.");
 
-        var rows = rawJson.map(function(r) {
-          var getVal = function(exactPatterns, includePatterns) {
-            includePatterns = includePatterns || [];
-            for (var k in r) {
-              var clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-              for (var i = 0; i < exactPatterns.length; i++) {
-                if (clean === exactPatterns[i]) return r[k];
+        const rows = rawJson.map(r => {
+          let getVal = (exactPatterns, includePatterns = []) => {
+            for (let k in r) {
+              let clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+              for (let ep of exactPatterns) {
+                if (clean === ep) return r[k];
               }
             }
             if (includePatterns.length > 0) {
-              for (var k2 in r) {
-                var clean2 = k2.toLowerCase().replace(/[^a-z0-9]/g, '');
-                for (var j = 0; j < includePatterns.length; j++) {
-                  if (clean2.includes(includePatterns[j])) return r[k2];
+              for (let k in r) {
+                let clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                for (let ip of includePatterns) {
+                  if (clean.includes(ip)) return r[k];
                 }
               }
             }
             return null;
           };
 
-          var rawUom = getVal(['uom', 'unit', 'unitofmeasure', 'packunit'], ['unit_name']);
-          var rawAssVal = getVal(['assessedunitvalue','assessedunitval','assessedvalue','assessedval','ass_val','assval','assessedrate','unitvalue','unitval','value_usd','rate_usd','ass_rate','assessed_rate','itemrate','itemvalue','rate'], ['assessed']);
-          var rawDecVal = getVal(['decunitvalue','decunitval','dec_unit_value','declaredunitvalue','decval','declaredvalue','dec_val','dec_value','decrate','declaredrate'], ['declared']);
+          let rawUom = getVal(['uom', 'unit', 'unitofmeasure', 'packunit'], ['unit_name']);
+          let rawAssVal = getVal(['assessedunitvalue','assessedunitval','assessedvalue','assessedval','ass_val','assval','assessedrate','unitvalue','unitval','value_usd','rate_usd','ass_rate','assessed_rate','itemrate','itemvalue','rate'], ['assessed']);
+          let rawDecVal = getVal(['decunitvalue','decunitval','dec_unit_value','declaredunitvalue','decval','declaredvalue','dec_val','dec_value','decrate','declaredrate'], ['declared']);
 
           if (rawUom && !isNaN(parseFloat(rawUom)) && isFinite(rawUom)) {
-            if (!rawAssVal || parseFloat(rawAssVal) === 0) rawAssVal = rawUom;
+            if (!rawAssVal || parseFloat(rawAssVal) === 0) {
+              rawAssVal = rawUom;
+            }
             rawUom = '—';
           }
 
-          var desc = getVal(['itemdescription','description','desc','goods_description'], ['desc']);
-          var finalUom = resolveCleanUom(rawUom, desc);
+          let desc = getVal(['itemdescription','description','desc','goods_description'], ['desc']);
+          let finalUom = resolveCleanUom(rawUom, desc);
 
           return {
             gd: getVal(['gdnumber','gdno','gd','gd_no'], ['gd']),
@@ -896,48 +833,57 @@ window.goHome = function() {
             ass_val: parseFloat(rawAssVal) || 0,
             bl: getVal(['blnumber','blno','bl','b_l'], ['bl'])
           };
-        }).filter(function(r) { return r.desc || r.gd || r.hs; });
+        }).filter(r => r.desc || r.gd || r.hs);
 
         if(rows.length === 0) throw new Error("No customs records matched columns in file.");
 
-        var batchSize = 400;
-        var uploaded = 0;
+        const batchSize = 400;
+        let uploaded = 0;
 
-        for (var i = 0; i < rows.length; i += batchSize) {
-          var chunk = rows.slice(i, i + batchSize);
-          var valueRows = chunk.map(function(r) { 
-            return "(" + sqlEscape(r.gd) + ", " + sqlEscape(r.hs) + ", " + sqlEscape(r.desc) + ", " + sqlEscape(r.imp) + ", " + sqlEscape(r.supp) + ", " + sqlEscape(r.agent) + ", " + sqlEscape(r.ch) + ", " + sqlEscape(r.orig) + ", " + r.qty + ", " + sqlEscape(r.uom) + ", " + sqlEscape(r.curr) + ", " + r.dec_val + ", " + r.ass_val + ", " + sqlEscape(r.bl) + ")";
-          }).join(',');
+        for (let i = 0; i < rows.length; i += batchSize) {
+          const chunk = rows.slice(i, i + batchSize);
 
-          var batchSql = "INSERT INTO ref_data (gd_number, assessed_hs_code, item_description, importer_name, supplier_name, agent_name, channel, origin, quantity, uom, currency, dec_unit_value, assessed_unit_value, bl_number) VALUES " + valueRows + ";";
+          const valueRows = chunk.map(r => 
+            `(${sqlEscape(r.gd)}, ${sqlEscape(r.hs)}, ${sqlEscape(r.desc)}, ${sqlEscape(r.imp)}, ${sqlEscape(r.supp)}, ${sqlEscape(r.agent)}, ${sqlEscape(r.ch)}, ${sqlEscape(r.orig)}, ${r.qty}, ${sqlEscape(r.uom)}, ${sqlEscape(r.curr)}, ${r.dec_val}, ${r.ass_val}, ${sqlEscape(r.bl)})`
+          ).join(',');
+
+          const batchSql = `
+            INSERT INTO ref_data (
+              gd_number, assessed_hs_code, item_description, importer_name, 
+              supplier_name, agent_name, channel, origin, quantity, 
+              uom, currency, dec_unit_value, assessed_unit_value, bl_number
+            ) VALUES ${valueRows};
+          `;
+
           await executeRawSql(batchSql);
+
           uploaded += chunk.length;
-          var pct = Math.min(100, Math.round((uploaded / rows.length) * 100));
-          tursoProgressFill.style.width = pct + "%";
-          tursoUploadStatus.innerHTML = "⚡ Ingesting: <b>" + uploaded + "</b> / " + rows.length + " records (" + pct + "%)...";
+          const pct = Math.min(100, Math.round((uploaded / rows.length) * 100));
+          tursoProgressFill.style.width = `${pct}%`;
+          tursoUploadStatus.innerHTML = `⚡ Ingesting: <b>${uploaded}</b> / ${rows.length} records (${pct}%)...`;
         }
 
-        tursoUploadStatus.innerHTML = "✅ Mukammal! <b>" + rows.length + "</b> records Turso Database mein upload ho gaye.";
+        tursoUploadStatus.innerHTML = `✅ Mukammal! <b>${rows.length}</b> records Turso Database mein upload ho gaye.`;
         tursoUploadStatus.className = 'status-line ok';
       } catch (err) {
-        tursoUploadStatus.textContent = "❌ Error: " + err.message;
+        console.error("Turso Upload Error:", err);
+        tursoUploadStatus.textContent = `❌ Error: ${err.message}`;
         tursoUploadStatus.className = 'status-line err';
       }
     });
   }
 
-  // 7. Tariff & VR Slabs
-  var AUTO_HS_DUTY_SLABS = {};
-  var VR_MATRIX_DB = {};
-  var ALL_VR_ITEMS_FLAT = [];
-  var vrDataList = [];
+  // 7. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (SUPABASE CORE)
+  let AUTO_HS_DUTY_SLABS = {};
+  let VR_MATRIX_DB = {};
+  let ALL_VR_ITEMS_FLAT = [];
+  let vrDataList = [];
 
   async function loadTariffFromCloud() {
-    if(!db) return;
     try {
-      var { data } = await db.from('tariff_rates').select('*');
+      const { data } = await db.from('tariff_rates').select('*');
       if (data) {
-        data.forEach(function(row) {
+        data.forEach(row => {
           AUTO_HS_DUTY_SLABS[String(row.hs_code).replace(/\D/g, "")] = {
             description: row.description || '', cd: row.cd, acd: row.acd, rd: row.rd, st: row.st, addSt: row.ast, it: row.it, ad: row.anti_dumping || 0, source: "Cloud DB"
           };
@@ -948,79 +894,83 @@ window.goHome = function() {
   loadTariffFromCloud();
 
   async function loadVrFromCloud() {
-    if(!db) return;
-    var container = document.getElementById('adminVrListContainer');
-    try {
-      var { data, error } = await db.from('vr_matrix').select('*');
-      if (error && container && localStorage.getItem('cv_role') === 'admin') {
-        container.innerHTML = '<span style="color:var(--stamp);">Error: ' + error.message + '</span>';
-        return;
-      }
-      if (data) {
-        VR_MATRIX_DB = {};
-        ALL_VR_ITEMS_FLAT = [];
-        var uniqueVrs = new Map();
-
-        data.forEach(function(row) {
-          if(!row.hs_code) return;
-          var rawHs = String(row.hs_code);
-          var hsList = rawHs.split(/[,;\/\s]+/).map(function(h) { return formatHsCodeFull(h); }).filter(function(h) { return h.length >= 4; });
-          var hsCombined = hsList.join(', ');
-
-          hsList.forEach(function(hs) {
-            var cleanHs = hs.replace(/\D/g, "");
-            if (!VR_MATRIX_DB[cleanHs]) {
-              VR_MATRIX_DB[cleanHs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
-            }
-            VR_MATRIX_DB[cleanHs].options.push({ id: row.id, label: row.category, value: row.vr_value });
-          });
+      const container = document.getElementById('adminVrListContainer');
+      try {
+          const { data, error } = await db.from('vr_matrix').select('*');
           
-          ALL_VR_ITEMS_FLAT.push({
-            hs_code: hsCombined,
-            vr_no: row.vr_no,
-            label: row.category,
-            value: row.vr_value,
-            link: row.pdf_link
-          });
-
-          var title = row.vr_title || 'General Customs Valuation Ruling';
-          var key = String(row.vr_no).toLowerCase().trim();
-          if(!uniqueVrs.has(key)) {
-            uniqueVrs.set(key, { 
-              vr_no: row.vr_no, 
-              vr_title: title, 
-              hs_set: new Set(hsList), 
-              date: "Cloud DB", 
-              link: row.pdf_link || "#" 
-            });
-          } else {
-            var existing = uniqueVrs.get(key);
-            if(row.vr_title) existing.vr_title = row.vr_title;
-            hsList.forEach(function(hs) { existing.hs_set.add(hs); });
+          if (error) {
+              if (container && localStorage.getItem('cv_role') === 'admin') {
+                  container.innerHTML = `<span style="color:var(--stamp);">Error: ${error.message}</span>`;
+              }
+              return;
           }
-        });
-        
-        vrDataList = Array.from(uniqueVrs.values()).map(function(v) {
-          return {
-            vr_no: v.vr_no,
-            vr_title: v.vr_title,
-            hs_codes: Array.from(v.hs_set).join(", "),
-            date: v.date,
-            link: v.link
-          };
-        });
 
-        if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
-        if (typeof window.runVrSearch === 'function') window.runVrSearch();
+          if (data) {
+              VR_MATRIX_DB = {};
+              ALL_VR_ITEMS_FLAT = [];
+              let uniqueVrs = new Map();
+
+              data.forEach(row => {
+                  if(!row.hs_code) return;
+                  
+                  let rawHs = String(row.hs_code);
+                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
+                  let hsCombined = hsList.join(', ');
+
+                  hsList.forEach(hs => {
+                      let cleanHs = hs.replace(/\D/g, "");
+                      if (!VR_MATRIX_DB[cleanHs]) {
+                          VR_MATRIX_DB[cleanHs] = { vr_no: row.vr_no, link: row.pdf_link, options: [] };
+                      }
+                      VR_MATRIX_DB[cleanHs].options.push({ id: row.id, label: row.category, value: row.vr_value });
+                  });
+                  
+                  ALL_VR_ITEMS_FLAT.push({
+                      hs_code: hsCombined,
+                      vr_no: row.vr_no,
+                      label: row.category,
+                      value: row.vr_value,
+                      link: row.pdf_link
+                  });
+
+                  let title = row.vr_title || 'General Customs Valuation Ruling';
+                  let key = String(row.vr_no).toLowerCase().trim();
+                  if(!uniqueVrs.has(key)) {
+                      uniqueVrs.set(key, { 
+                          vr_no: row.vr_no, 
+                          vr_title: title, 
+                          hs_set: new Set(hsList), 
+                          date: "Cloud DB", 
+                          link: row.pdf_link || "#" 
+                      });
+                  } else {
+                       let existing = uniqueVrs.get(key);
+                       if(row.vr_title) existing.vr_title = row.vr_title;
+                       hsList.forEach(hs => existing.hs_set.add(hs));
+                  }
+              });
+              
+              vrDataList = Array.from(uniqueVrs.values()).map(v => ({
+                  vr_no: v.vr_no,
+                  vr_title: v.vr_title,
+                  hs_codes: Array.from(v.hs_set).join(", "),
+                  date: v.date,
+                  link: v.link
+              }));
+
+              if(localStorage.getItem('cv_role') === 'admin') renderAdminVrList(data);
+              if (typeof runVrSearch === 'function') runVrSearch();
+          }
+      } catch(e) {
+          if (container && localStorage.getItem('cv_role') === 'admin') {
+              container.innerHTML = `<span style="color:var(--stamp);">System Error: ${e.message}</span>`;
+          }
       }
-    } catch(e) {}
   }
   loadVrFromCloud();
 
   function showHsSlabMessage(message, type) {
-    var box = document.getElementById("autoHsSlabMessage"); 
-    if (!box) return; 
-    box.innerText = message;
+    const box = document.getElementById("autoHsSlabMessage"); if (!box) return; box.innerText = message;
     if (type === "success") { box.style.color = "var(--green)"; box.style.borderColor = "var(--green)"; } 
     else if (type === "warning") { box.style.color = "var(--brass)"; box.style.borderColor = "var(--brass)"; } 
     else if (type === "error") { box.style.color = "var(--stamp)"; box.style.borderColor = "var(--stamp)"; } 
@@ -1028,679 +978,1323 @@ window.goHome = function() {
   }
 
   function loadHsDutySlab() {
-    var hsInput = document.getElementById("calcHsCode"); 
-    if (!hsInput) return;
-    var hsCode = hsInput.value.trim().replace(/\D/g, "");
+    const hsInput = document.getElementById("calcHsCode"); if (!hsInput) return;
+    const hsCode = hsInput.value.trim().replace(/\D/g, "");
     if (!hsCode) { showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); return; }
     
-    var slab = AUTO_HS_DUTY_SLABS[hsCode];
+    let slab = AUTO_HS_DUTY_SLABS[hsCode];
     if(!slab && hsCode.length >= 6) slab = AUTO_HS_DUTY_SLABS[hsCode.substring(0, 6)];
     
     if (!slab) { showHsSlabMessage("⚠️ HS Code not found in Tariff Database. Manual rates will be auto-saved upon calculation.", "error"); return; }
 
-    var finalAst = slab.addSt !== undefined ? slab.addSt : 3;
-    var finalIt = slab.it !== undefined ? slab.it : 6;
-    var isInd = document.getElementById('calcType') && document.getElementById('calcType').value === 'industry';
-    
+    let finalAst = slab.addSt !== undefined ? slab.addSt : 3;
+    let finalIt = slab.it !== undefined ? slab.it : 6;
+    const isInd = document.getElementById('calcType').value === 'industry';
     if (isInd) {
-      finalAst = 0;
-      if (finalIt === 6) finalIt = 5.5;
-      else if (finalIt === 3.5) finalIt = 2;
+        finalAst = 0;
+        if (finalIt === 6) finalIt = 5.5;
+        else if (finalIt === 3.5) finalIt = 2;
     }
 
     if (slab.cd !== undefined) document.getElementById("calcDuty").value = slab.cd;
     if (slab.acd !== undefined) document.getElementById("calcAcd").value = slab.acd;
     if (slab.rd !== undefined) document.getElementById("calcRd").value = slab.rd;
     if (slab.st !== undefined) document.getElementById("calcSt").value = slab.st;
-    if (document.getElementById("calcAddSt")) document.getElementById("calcAddSt").value = finalAst;
-    if (document.getElementById("calcIt")) document.getElementById("calcIt").value = finalIt;
-    if (slab.ad !== undefined && document.getElementById("calcAd")) document.getElementById("calcAd").value = slab.ad;
+    document.getElementById("calcAddSt").value = finalAst;
+    document.getElementById("calcIt").value = finalIt;
+    if (slab.ad !== undefined) document.getElementById("calcAd").value = slab.ad;
 
     showHsSlabMessage("✓ Auto slab loaded for HS Code " + hsCode + (slab.description ? " (" + slab.description + ")" : ""), "success");
-    window.calculateDuty();
+    calculateDuty();
   }
-
-  var calcHsCodeEl = document.getElementById("calcHsCode");
-  if(calcHsCodeEl) {
-    calcHsCodeEl.addEventListener("blur", loadHsDutySlab);
-    calcHsCodeEl.addEventListener("input", function() {
-      var hs = this.value.trim().replace(/\D/g, "");
-      var slab = AUTO_HS_DUTY_SLABS[hs] || (hs.length >= 6 ? AUTO_HS_DUTY_SLABS[hs.substring(0, 6)] : null);
-      var msg = ""; var type = "normal";
+  document.getElementById("calcHsCode").addEventListener("blur", loadHsDutySlab);
+  
+  document.getElementById("calcHsCode").addEventListener("input", function() {
+      const hs = this.value.trim().replace(/\D/g, "");
+      let slab = AUTO_HS_DUTY_SLABS[hs] || (hs.length >= 6 ? AUTO_HS_DUTY_SLABS[hs.substring(0, 6)] : null);
+      let msg = ""; let type = "normal";
       
       if(!slab && hs.length >= 4) { msg = "⚠️ HS Code not found. Manual rates will be auto-saved."; type = "error"; } 
       else if(slab) { msg = "✓ Slab ready for HS Code " + hs; type = "success"; }
 
-      var vrDropdown = document.getElementById('vrMatrixDropdown'); 
-      var vrBadge = document.getElementById('vrBadge');
-      var matrixData = VR_MATRIX_DB[hs];
+      const vrDropdown = document.getElementById('vrMatrixDropdown'); const vrBadge = document.getElementById('vrBadge');
+      let matrixData = VR_MATRIX_DB[hs];
       if(!matrixData && hs.length >= 6) matrixData = VR_MATRIX_DB[hs.substring(0, 6)];
 
       if (matrixData) {
-        if(vrBadge) {
-          vrBadge.innerHTML = '(<a href="' + matrixData.link + '" target="_blank" style="color:var(--green); text-decoration:underline;">VR: ' + matrixData.vr_no + ' PDF</a>)';
+          vrBadge.innerHTML = `(<a href="${matrixData.link}" target="_blank" style="color:var(--green); text-decoration:underline;">VR: ${matrixData.vr_no} PDF</a>)`;
           vrBadge.style.display = 'inline';
-        }
-        if(vrDropdown) {
-          var optionsHtml = '<option value="">Select VR Category / Item...</option>';
-          matrixData.options.forEach(function(opt) { optionsHtml += '<option value="' + opt.value + '">' + opt.label + ' - $' + opt.value + '/KG</option>'; });
-          vrDropdown.innerHTML = optionsHtml; 
-          vrDropdown.style.display = 'block';
-        }
-        if(msg) msg += " | 📜 VR " + matrixData.vr_no + " Applicable! Select category."; 
-        else msg = "📜 VR " + matrixData.vr_no + " Applicable! Select category.";
-        type = "success";
+          let optionsHtml = `<option value="">Select VR Category / Item...</option>`;
+          matrixData.options.forEach(opt => { optionsHtml += `<option value="${opt.value}">${opt.label} - $${opt.value}/KG</option>`; });
+          vrDropdown.innerHTML = optionsHtml; vrDropdown.style.display = 'block';
+          if(msg) msg += ` | 📜 VR ${matrixData.vr_no} Applicable! Select category.`; else msg = `📜 VR ${matrixData.vr_no} Applicable! Select category.`;
+          type = "success";
       } else {
-        if(vrBadge) vrBadge.style.display = 'none';
-        if(vrDropdown) { vrDropdown.style.display = 'none'; vrDropdown.innerHTML = ''; }
-        var cVr = document.getElementById('calcVrValue');
-        if(cVr) cVr.value = '';
+          vrBadge.style.display = 'none';
+          if(vrDropdown) { vrDropdown.style.display = 'none'; vrDropdown.innerHTML = ''; }
+          document.getElementById('calcVrValue').value = '';
       }
       if(msg) showHsSlabMessage(msg, type);
-    });
-  }
-
-  var vrMatDrop = document.getElementById('vrMatrixDropdown');
-  if(vrMatDrop) {
-    vrMatDrop.addEventListener('change', function() {
-      if(this.value) { 
-        document.getElementById('calcVrValue').value = this.value; 
-        window.calculateDuty(); 
-      }
-    });
-  }
-
-  async function autoSaveCurrentSlab(hsCode) {
-    if(!hsCode || hsCode.length < 4 || !db) return;
-    var cleanHs = hsCode.replace(/\D/g, "");
-    var currentDesc = document.getElementById('calcDesc') ? document.getElementById('calcDesc').value.trim() : '';
-    var existingDesc = AUTO_HS_DUTY_SLABS[cleanHs] ? AUTO_HS_DUTY_SLABS[cleanHs].description : currentDesc;
-    var slabData = {
-      hs_code: cleanHs, 
-      description: existingDesc,
-      cd: parseFloat(document.getElementById('calcDuty') ? document.getElementById('calcDuty').value : 0) || 0, 
-      acd: parseFloat(document.getElementById('calcAcd') ? document.getElementById('calcAcd').value : 0) || 0, 
-      rd: parseFloat(document.getElementById('calcRd') ? document.getElementById('calcRd').value : 0) || 0, 
-      st: parseFloat(document.getElementById('calcSt') ? document.getElementById('calcSt').value : 0) || 0, 
-      ast: parseFloat(document.getElementById('calcAddSt') ? document.getElementById('calcAddSt').value : 0) || 0, 
-      it: parseFloat(document.getElementById('calcIt') ? document.getElementById('calcIt').value : 0) || 0, 
-      anti_dumping: parseFloat(document.getElementById('calcAd') ? document.getElementById('calcAd').value : 0) || 0
-    };
-    AUTO_HS_DUTY_SLABS[cleanHs] = { description: existingDesc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Auto-Saved" };
-    try { 
-      await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' }); 
-      if(localStorage.getItem('cv_role') === 'admin' && typeof window.loadAdminTariffList === 'function') window.loadAdminTariffList(); 
-    } catch(e) {}
-  }
-
-  var calcTypeEl = document.getElementById('calcType');
-  if(calcTypeEl) {
-    calcTypeEl.addEventListener('change', function() {
-      var itEl = document.getElementById('calcIt'); 
-      var astEl = document.getElementById('calcAddSt');
-      var currentIt = parseFloat(itEl ? itEl.value : 0) || 0;
-      if (this.value === 'industry') {
-        if(astEl) astEl.value = 0;
-        if(itEl) {
-          if (currentIt === 6) itEl.value = 5.5; 
-          else if (currentIt === 3.5) itEl.value = 2;
-        }
-      } else {
-        var hsCode = document.getElementById("calcHsCode") ? document.getElementById("calcHsCode").value.trim().replace(/\D/g, "") : '';
-        var baseAst = 3;
-        if (hsCode) {
-          var slab = AUTO_HS_DUTY_SLABS[hsCode] || (hsCode.length >= 6 ? AUTO_HS_DUTY_SLABS[hsCode.substring(0,6)] : null);
-          if (slab && slab.addSt !== undefined) baseAst = slab.addSt;
-        }
-        if(astEl) astEl.value = baseAst;
-        if(itEl) {
-          if (currentIt === 5.5) itEl.value = 6; 
-          else if (currentIt === 2) itEl.value = 3.5;
-        }
-      }
-      window.calculateDuty();
-    });
-  }
-
-  // Admin VR & Tariff functions
-  window.loadAdminTariffList = async function() {
-    if(!db) return;
-    var container = document.getElementById('adminTariffListContainer');
-    if(!container) return;
-    container.innerHTML = '<div class="loader"></div> Loading tariff slabs...';
-    var { data, error } = await db.from('tariff_rates').select('*').order('hs_code', { ascending: true });
-    if(error || !data) { container.innerHTML = '<span style="color:var(--stamp);">Error loading slabs.</span>'; return; }
-    if(data.length === 0) { container.innerHTML = '<div style="color:var(--paper-dim); font-size:12px;">No tariff slabs saved yet.</div>'; return; }
-    var html = '<table class="sub-table"><tr><th>HS Code</th><th>Description</th><th>CD %</th><th>ACD %</th><th>RD %</th><th>ST %</th><th>AST %</th><th>IT %</th><th>AD %</th><th>Actions</th></tr>';
-    data.forEach(function(row) {
-      html += '<tr><td><b>' + row.hs_code + '</b></td><td>' + (row.description || '—') + '</td><td>' + row.cd + '%</td><td>' + row.acd + '%</td><td>' + row.rd + '%</td><td>' + row.st + '%</td><td>' + row.ast + '%</td><td>' + row.it + '%</td><td>' + (row.anti_dumping||0) + '%</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--brass); border-color:var(--brass-dim); margin-right:4px;" onclick="editTariffSlab(\'' + row.hs_code + '\', \'' + (row.description||'').replace(/'/g, "\\'") + '\', ' + row.cd + ', ' + row.acd + ', ' + row.rd + ', ' + row.st + ', ' + row.ast + ', ' + row.it + ', ' + (row.anti_dumping||0) + ')">Edit</button><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteTariffSlab(\'' + row.hs_code + '\')">Delete</button></td></tr>';
-    });
-    container.innerHTML = html + '</table>';
-  };
-
-  function renderAdminVrList(data) {
-    var container = document.getElementById('adminVrListContainer'); 
-    if(!container) return;
-    if(data.length === 0) { container.innerHTML = '<div style="color:var(--paper-dim); font-size:12px;">No VR data saved yet.</div>'; return; }
-    var html = '<table class="sub-table"><tr><th>HS Code</th><th>VR No</th><th>VR Title</th><th>Category / Origin</th><th>Value (USD)</th><th>Action</th></tr>';
-    data.sort(function(a,b) { return a.hs_code.localeCompare(b.hs_code); }).forEach(function(row) {
-      html += '<tr><td><b>' + row.hs_code + '</b></td><td>' + row.vr_no + '</td><td style="color:var(--brass); font-weight:600;">' + (row.vr_title||'—') + '</td><td>' + row.category + '</td><td style="color:var(--green); font-weight:bold;">$' + row.vr_value + '</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord(\'' + row.id + '\')">Delete</button></td></tr>';
-    });
-    container.innerHTML = html + '</table>';
-  }
-
-  window.deleteVrRecord = async function(id) { 
-    if(!confirm("Delete this VR record from cloud?")) return; 
-    await db.from('vr_matrix').delete().eq('id', id); 
-    loadVrFromCloud(); 
-  };
-  
-  window.editTariffSlab = function(hs, desc, cd, acd, rd, st, ast, it, ad) { 
-    document.getElementById('addTariffHs').value = hs; 
-    document.getElementById('addTariffDesc').value = desc !== '—' ? desc : ''; 
-    document.getElementById('addTariffCd').value = cd; 
-    document.getElementById('addTariffAcd').value = acd; 
-    document.getElementById('addTariffRd').value = rd; 
-    document.getElementById('addTariffSt').value = st; 
-    document.getElementById('addTariffAst').value = ast; 
-    document.getElementById('addTariffIt').value = it; 
-    document.getElementById('addTariffAd').value = ad; 
-    window.scrollTo({ top: document.getElementById('adminTariffCard').offsetTop - 20, behavior: 'smooth' }); 
-  };
-  
-  window.deleteTariffSlab = async function(hsCode) { 
-    if(!confirm("Delete tariff slab for HS Code " + hsCode + "?")) return; 
-    await db.from('tariff_rates').delete().eq('hs_code', hsCode); 
-    delete AUTO_HS_DUTY_SLABS[hsCode]; 
-    window.loadAdminTariffList(); 
-  };
-
-  var saveTarBtn = document.getElementById('saveTariffBtn');
-  if(saveTarBtn) {
-    saveTarBtn.addEventListener('click', async function() {
-      var hs = String(document.getElementById('addTariffHs').value).replace(/\D/g, ""); 
-      var desc = document.getElementById('addTariffDesc').value.trim(); 
-      if(!hs) { alert("Please enter HS Code"); return; }
-      var slabData = { hs_code: hs, description: desc, cd: parseFloat(document.getElementById('addTariffCd').value)||0, acd: parseFloat(document.getElementById('addTariffAcd').value)||0, rd: parseFloat(document.getElementById('addTariffRd').value)||0, st: parseFloat(document.getElementById('addTariffSt').value)||0, ast: parseFloat(document.getElementById('addTariffAst').value)||0, it: parseFloat(document.getElementById('addTariffIt').value)||0, anti_dumping: parseFloat(document.getElementById('addTariffAd').value)||0 };
-      var statusEl = document.getElementById('saveTariffStatus'); 
-      statusEl.innerHTML = '<span class="loader"></span> Saving...';
-      var { error } = await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' });
-      if(error) { statusEl.textContent = "Error: Ensure 'tariff_rates' table exists."; statusEl.className = "status-line err"; } 
-      else { statusEl.textContent = "✓ Slab Saved Successfully!"; statusEl.className = "status-line ok"; AUTO_HS_DUTY_SLABS[hs] = { description: desc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Cloud DB" }; window.loadAdminTariffList(); }
-    });
-  }
-
-  // 8. DUTY CALCULATOR & INVOICE
-  var invoiceItems = [];
-  var calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
-
-  var calcInputIds = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcIt', 'calcAd'];
-  calcInputIds.forEach(function(id) { 
-    var el = document.getElementById(id); 
-    if(el && id !== 'calcType') { 
-      el.addEventListener('input', function() { window.calculateDuty(); }); 
-      el.addEventListener('change', function() { window.calculateDuty(); }); 
-    } 
   });
 
-  var formatCurr = function(val) {
-    return (typeof val === 'number' && !isNaN(val)) ? val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
-  };
+  document.getElementById('vrMatrixDropdown').addEventListener('change', function() {
+      if(this.value) { 
+          document.getElementById('calcVrValue').value = this.value; 
+          calculateDuty(); 
+      }
+  });
+
+  async function autoSaveCurrentSlab(hsCode) {
+      if(!hsCode || hsCode.length < 4) return;
+      const cleanHs = hsCode.replace(/\D/g, "");
+      const currentDesc = document.getElementById('calcDesc').value.trim();
+      let existingDesc = AUTO_HS_DUTY_SLABS[cleanHs] ? AUTO_HS_DUTY_SLABS[cleanHs].description : currentDesc;
+      const slabData = {
+          hs_code: cleanHs, description: existingDesc,
+          cd: parseFloat(document.getElementById('calcDuty').value)||0, acd: parseFloat(document.getElementById('calcAcd').value)||0, rd: parseFloat(document.getElementById('calcRd').value)||0, st: parseFloat(document.getElementById('calcSt').value)||0, ast: parseFloat(document.getElementById('calcAddSt').value)||0, it: parseFloat(document.getElementById('calcIt').value)||0, anti_dumping: parseFloat(document.getElementById('calcAd').value)||0
+      };
+      AUTO_HS_DUTY_SLABS[cleanHs] = { description: existingDesc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Auto-Saved" };
+      try { await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' }); if(localStorage.getItem('cv_role') === 'admin') loadAdminTariffList(); } catch(e) {}
+  }
+
+  document.getElementById('calcType').addEventListener('change', function() {
+      const itEl = document.getElementById('calcIt'); const astEl = document.getElementById('calcAddSt');
+      let currentIt = parseFloat(itEl.value) || 0;
+      if (this.value === 'industry') {
+          astEl.value = 0;
+          if (currentIt === 6) itEl.value = 5.5; else if (currentIt === 3.5) itEl.value = 2;
+      } else {
+          const hsCode = document.getElementById("calcHsCode").value.trim().replace(/\D/g, "");
+          let baseAst = 3;
+          if (hsCode) {
+              let slab = AUTO_HS_DUTY_SLABS[hsCode] || (hsCode.length >= 6 ? AUTO_HS_DUTY_SLABS[hsCode.substring(0,6)] : null);
+              if (slab && slab.addSt !== undefined) baseAst = slab.addSt;
+          }
+          astEl.value = baseAst;
+          if (currentIt === 5.5) itEl.value = 6; else if (currentIt === 2) itEl.value = 3.5;
+      }
+      calculateDuty();
+  });
+
+  // 8. ADMIN SAVE TARIFF & VR (SUPABASE CORE)
+  async function loadAdminTariffList() {
+      const container = document.getElementById('adminTariffListContainer');
+      if(!container) return;
+      container.innerHTML = '<div class="loader"></div> Loading tariff slabs...';
+      const { data, error } = await db.from('tariff_rates').select('*').order('hs_code', { ascending: true });
+      if(error || !data) { container.innerHTML = `<span style="color:var(--stamp);">Error loading slabs.</span>`; return; }
+      if(data.length === 0) { container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px;">No tariff slabs saved yet.</div>`; return; }
+      let html = `<table class="sub-table"><tr><th>HS Code</th><th>Description</th><th>CD %</th><th>ACD %</th><th>RD %</th><th>ST %</th><th>AST %</th><th>IT %</th><th>AD %</th><th>Actions</th></tr>`;
+      data.forEach(row => {
+          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.description || '—'}</td><td>${row.cd}%</td><td>${row.acd}%</td><td>${row.rd}%</td><td>${row.st}%</td><td>${row.ast}%</td><td>${row.it}%</td><td>${row.anti_dumping||0}%</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--brass); border-color:var(--brass-dim); margin-right:4px;" onclick="editTariffSlab('${row.hs_code}', '${(row.description||'').replace(/'/g, "\\'")}', ${row.cd}, ${row.acd}, ${row.rd}, ${row.st}, ${row.ast}, ${row.it}, ${row.anti_dumping||0})">Edit</button><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteTariffSlab('${row.hs_code}')">Delete</button></td></tr>`;
+      });
+      container.innerHTML = html + `</table>`;
+  }
+
+  if(document.getElementById('saveVrBtn')) {
+      document.getElementById('saveVrBtn').addEventListener('click', async () => {
+          const rawHs = String(document.getElementById('addVrHs').value || '');
+          const vrNo = document.getElementById('addVrNo').value.trim();
+          const vrTitle = document.getElementById('addVrTitle').value.trim();
+          const category = document.getElementById('addVrCategory').value.trim();
+          const val = parseFloat(document.getElementById('addVrValue').value);
+          const link = document.getElementById('addVrLink').value.trim();
+
+          let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
+          let hsCombined = hsList.join(', ');
+
+          if(!hsCombined || !vrNo || !category || isNaN(val)) { 
+              alert("Please fill HS Code(s), VR Number, Category, and Value."); 
+              return; 
+          }
+
+          const statusEl = document.getElementById('saveVrStatus'); 
+          statusEl.innerHTML = '<span class="loader"></span> Saving...';
+
+          const { error } = await db.from('vr_matrix').insert([{ 
+              hs_code: hsCombined, 
+              vr_no: vrNo, 
+              vr_title: vrTitle || 'General Customs Valuation Ruling',
+              category: category, 
+              vr_value: val, 
+              pdf_link: link 
+          }]);
+
+          if(error) { 
+              statusEl.textContent = `Error: ${error.message}`; 
+              statusEl.className = "status-line err"; 
+          } else { 
+              statusEl.textContent = "✓ VR Record Saved Successfully!"; 
+              statusEl.className = "status-line ok"; 
+              document.getElementById('addVrCategory').value = ''; 
+              document.getElementById('addVrValue').value = ''; 
+              loadVrFromCloud(); 
+          }
+      });
+  }
+
+  if(document.getElementById('adminLoadVrExcelBtn')) {
+      document.getElementById('adminLoadVrExcelBtn').addEventListener('click', () => { 
+          document.getElementById('adminVrExcelInput').value = ''; 
+          document.getElementById('adminVrExcelInput').click(); 
+      });
+  }
+
+  if(document.getElementById('adminVrExcelInput')) {
+      document.getElementById('adminVrExcelInput').addEventListener('change', async e => {
+          if(e.target.files.length === 0) return;
+          const statusEl = document.getElementById('saveVrStatus');
+          statusEl.innerHTML = `<span class="loader"></span> Reading Excel...`;
+          try {
+              let file = e.target.files[0];
+              let data = await new Promise(r => { let reader = new FileReader(); reader.onload = ev => r(new Uint8Array(ev.target.result)); reader.readAsArrayBuffer(file); });
+              let wb = XLSX.read(data, {type: 'array', raw: false, cellText: true});
+              let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: '' });
+
+              let formatted = [];
+              json.forEach(r => {
+                  let srNo = String(r['vr_sr_no'] || r['sr_no'] || r['s_no'] || r['sr'] || '').trim();
+                  let rawHs = String(r['hs_code'] || '');
+                  let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
+                  let hsCombined = hsList.join(', ');
+
+                  let vrNo = String(r['vr_number'] || '');
+                  let vrDate = String(r['vr_date'] || '').trim();
+                  let vrTitle = String(r['vr_title'] || r['vr_subject'] || r['main_item'] || 'General Valuation Ruling').trim();
+                  let tableLabel = String(r['table'] || '').trim();
+                  let desc = String(r['description'] || '').trim();
+                  let link = String(r['pdf_link'] || '');
+                  let finalVrNo = vrDate ? `${vrNo} (${vrDate})` : vrNo;
+                  
+                  let prefix = "";
+                  if (tableLabel && srNo) prefix = `[Table ${tableLabel} - Sr.${srNo}] `;
+                  else if (tableLabel) prefix = `[Table ${tableLabel}] `;
+                  else if (srNo) prefix = `[Sr.${srNo}] `;
+
+                  let baseLabel = `${prefix}${desc}`.trim();
+
+                  let categories = [
+                      { label: 'China', value: parseFloat(r['china'] || r['china_rate']) },
+                      { label: 'Europe/USA', value: parseFloat(r['europe'] || r['usa'] || r['europe_usa']) },
+                      { label: 'Other Origins', value: parseFloat(r['other_origins'] || r['other'] || r['other_origin']) },
+                      { label: 'Cat-A', value: parseFloat(r['cat_a'] || r['cata']) },
+                      { label: 'Cat-B', value: parseFloat(r['cat_b'] || r['catb']) },
+                      { label: 'Cat-C', value: parseFloat(r['cat_c'] || r['catc']) },
+                      { label: 'Cat-D', value: parseFloat(r['cat_d'] || r['catd']) }
+                  ];
+
+                  if(hsCombined && vrNo) {
+                      categories.forEach(cat => {
+                          if (!isNaN(cat.value) && cat.value > 0) {
+                              let finalCategory = `${baseLabel} - ${cat.label}`.trim();
+                              formatted.push({ 
+                                  hs_code: hsCombined, 
+                                  vr_no: finalVrNo, 
+                                  vr_title: vrTitle, 
+                                  category: finalCategory, 
+                                  vr_value: cat.value, 
+                                  pdf_link: link 
+                              });
+                          }
+                      });
+                  }
+              });
+
+              if(formatted.length === 0) throw new Error("No valid rows found. Check column headers.");
+              
+              statusEl.innerHTML = `<span class="loader"></span> Uploading ${formatted.length} VRs...`;
+              const chunkSize = 50;
+              for (let c = 0; c < formatted.length; c += chunkSize) {
+                  const { error } = await db.from('vr_matrix').insert(formatted.slice(c, c + chunkSize));
+                  if(error) throw error;
+              }
+              statusEl.innerHTML = `✅ Successfully saved ${formatted.length} VR entries!`;
+              loadVrFromCloud();
+          } catch(err) {
+              statusEl.innerHTML = `❌ Excel Error: ${err.message}`;
+          }
+      });
+  }
+
+  function renderAdminVrList(data) {
+      const container = document.getElementById('adminVrListContainer'); if(!container) return;
+      if(data.length === 0) { container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px;">No VR data saved yet.</div>`; return; }
+      let html = `<table class="sub-table"><tr><th>HS Code</th><th>VR No</th><th>VR Title</th><th>Category / Origin</th><th>Value (USD)</th><th>Action</th></tr>`;
+      data.sort((a,b) => a.hs_code.localeCompare(b.hs_code)).forEach(row => {
+          html += `<tr><td><b>${row.hs_code}</b></td><td>${row.vr_no}</td><td style="color:var(--brass); font-weight:600;">${row.vr_title||'—'}</td><td>${row.category}</td><td style="color:var(--green); font-weight:bold;">$${row.vr_value}</td><td><button class="ghost" style="padding:2px 6px; font-size:10px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteVrRecord('${row.id}')">Delete</button></td></tr>`;
+      });
+      container.innerHTML = html + `</table>`;
+  }
+
+  window.deleteVrRecord = async function(id) { if(!confirm(`Delete this VR record from cloud?`)) return; await db.from('vr_matrix').delete().eq('id', id); loadVrFromCloud(); };
+  window.editTariffSlab = function(hs, desc, cd, acd, rd, st, ast, it, ad) { document.getElementById('addTariffHs').value = hs; document.getElementById('addTariffDesc').value = desc !== '—' ? desc : ''; document.getElementById('addTariffCd').value = cd; document.getElementById('addTariffAcd').value = acd; document.getElementById('addTariffRd').value = rd; document.getElementById('addTariffSt').value = st; document.getElementById('addTariffAst').value = ast; document.getElementById('addTariffIt').value = it; document.getElementById('addTariffAd').value = ad; window.scrollTo({ top: document.getElementById('adminTariffCard').offsetTop - 20, behavior: 'smooth' }); };
+  window.deleteTariffSlab = async function(hsCode) { if(!confirm(`Delete tariff slab for HS Code ${hsCode}?`)) return; await db.from('tariff_rates').delete().eq('hs_code', hsCode); delete AUTO_HS_DUTY_SLABS[hsCode]; loadAdminTariffList(); };
+
+  if(document.getElementById('saveTariffBtn')) {
+    document.getElementById('saveTariffBtn').addEventListener('click', async () => {
+      const hs = String(document.getElementById('addTariffHs').value).replace(/\D/g, ""); const desc = document.getElementById('addTariffDesc').value.trim(); if(!hs) { alert("Please enter HS Code"); return; }
+      const slabData = { hs_code: hs, description: desc, cd: parseFloat(document.getElementById('addTariffCd').value)||0, acd: parseFloat(document.getElementById('addTariffAcd').value)||0, rd: parseFloat(document.getElementById('addTariffRd').value)||0, st: parseFloat(document.getElementById('addTariffSt').value)||0, ast: parseFloat(document.getElementById('addTariffAst').value)||0, it: parseFloat(document.getElementById('addTariffIt').value)||0, anti_dumping: parseFloat(document.getElementById('addTariffAd').value)||0 };
+      const statusEl = document.getElementById('saveTariffStatus'); statusEl.innerHTML = '<span class="loader"></span> Saving...';
+      const { error } = await db.from('tariff_rates').upsert([slabData], { onConflict: 'hs_code' });
+      if(error) { statusEl.textContent = "Error: Ensure 'tariff_rates' table exists."; statusEl.className = "status-line err"; } 
+      else { statusEl.textContent = "✓ Slab Saved Successfully!"; statusEl.className = "status-line ok"; AUTO_HS_DUTY_SLABS[hs] = { description: desc, cd: slabData.cd, acd: slabData.acd, rd: slabData.rd, st: slabData.st, addSt: slabData.ast, it: slabData.it, ad: slabData.anti_dumping, source: "Cloud DB" }; loadAdminTariffList(); }
+    });
+  }
+
+  // 9. DUTY CALCULATOR & INVOICE
+  let invoiceItems = [];
+  let calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
+
+  const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcIt', 'calcAd'];
+  calcInputs.forEach(id => { const el = document.getElementById(id); if(el && id !== 'calcType') { el.addEventListener('input', calculateDuty); el.addEventListener('change', calculateDuty); } });
+
+  const formatCurr = (val) => val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   function getCalcData() {
-    var obj = {
-      type: document.getElementById('calcType') ? document.getElementById('calcType').value : 'commercial', 
-      hsCode: document.getElementById('calcHsCode') ? document.getElementById('calcHsCode').value : '', 
-      desc: document.getElementById('calcDesc') ? document.getElementById('calcDesc').value : '', 
-      origin: document.getElementById('calcOrigin') ? document.getElementById('calcOrigin').value : '',
-      unitPrice: parseFloat(document.getElementById('calcUnitPrice') ? document.getElementById('calcUnitPrice').value : 0) || 0, 
-      vrValue: parseFloat(document.getElementById('calcVrValue') ? document.getElementById('calcVrValue').value : 0) || 0, 
-      qty: parseFloat(document.getElementById('calcQty') ? document.getElementById('calcQty').value : 1) || 1, 
-      uom: document.getElementById('calcUom') ? document.getElementById('calcUom').value : 'KG', 
-      exRate: parseFloat(document.getElementById('calcExRate') ? document.getElementById('calcExRate').value : 0) || 0,
-      dutyPct: document.getElementById('calcDuty') ? document.getElementById('calcDuty').value : '0', 
-      acdPct: document.getElementById('calcAcd') ? document.getElementById('calcAcd').value : '0', 
-      rdPct: document.getElementById('calcRd') ? document.getElementById('calcRd').value : '0', 
-      stPct: document.getElementById('calcSt') ? document.getElementById('calcSt').value : '0', 
-      addStPct: document.getElementById('calcAddSt') ? document.getElementById('calcAddSt').value : '0', 
-      itPct: document.getElementById('calcIt') ? document.getElementById('calcIt').value : '0', 
-      adPct: document.getElementById('calcAd') ? document.getElementById('calcAd').value : '0'
+    const obj = {
+      type: document.getElementById('calcType').value, hsCode: document.getElementById('calcHsCode').value, desc: document.getElementById('calcDesc').value, origin: document.getElementById('calcOrigin').value,
+      unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0, vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0, qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
+      dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
 
-    var invTotal = obj.unitPrice * obj.qty;
-    var vrTotal = obj.vrValue * obj.qty;
-    var invDisplay = document.getElementById('totalInvValDisplay');
-    var vrDisplay = document.getElementById('totalVrValDisplay');
+    let invTotal = obj.unitPrice * obj.qty;
+    let vrTotal = obj.vrValue * obj.qty;
+    const invDisplay = document.getElementById('totalInvValDisplay');
+    const vrDisplay = document.getElementById('totalVrValDisplay');
     if (invDisplay) invDisplay.innerText = invTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     if (vrDisplay) vrDisplay.innerText = vrTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    var isVrHigher = (obj.vrValue > obj.unitPrice);
+    let isVrHigher = (obj.vrValue > obj.unitPrice);
     obj.isVrApplied = isVrHigher;
-    var assessedUnitPrice = isVrHigher ? obj.vrValue : obj.unitPrice;
+    let assessedUnitPrice = isVrHigher ? obj.vrValue : obj.unitPrice;
 
-    var liveTitle = document.getElementById('livePreviewTitle');
+    const liveTitle = document.getElementById('livePreviewTitle');
     if (liveTitle) {
       if (isVrHigher) {
-        liveTitle.innerHTML = 'Live Preview (Current Item) &mdash; <span style="color:var(--brass); font-weight:700;">[APPLYING VR/DATA VALUE: $' + obj.vrValue + ']</span>';
+        liveTitle.innerHTML = `Live Preview (Current Item) &mdash; <span style="color:var(--brass); font-weight:700;">[APPLYING VR/DATA VALUE: $${obj.vrValue}]</span>`;
       } else {
-        liveTitle.innerHTML = 'Live Preview (Current Item) &mdash; <span style="color:var(--green); font-weight:700;">[APPLYING INVOICE VALUE: $' + obj.unitPrice + ']</span>';
+        liveTitle.innerHTML = `Live Preview (Current Item) &mdash; <span style="color:var(--green); font-weight:700;">[APPLYING INVOICE VALUE: $${obj.unitPrice}]</span>`;
       }
     }
 
-    var dRate = parseFloat(obj.dutyPct)/100; 
-    var acdRate = parseFloat(obj.acdPct)/100; 
-    var rdRate = parseFloat(obj.rdPct)/100; 
-    var stRate = parseFloat(obj.stPct)/100; 
-    var addStRate = parseFloat(obj.addStPct)/100; 
-    var itRate = parseFloat(obj.itPct)/100; 
-    var adRate = parseFloat(obj.adPct)/100;
+    const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
-    var baseUsd = assessedUnitPrice * obj.qty; 
-    var insUsd = baseUsd * 0.01; 
-    var landingUsd = (baseUsd + insUsd) * 0.01; 
-    obj.impValUsd = baseUsd + insUsd + landingUsd;
+    let baseUsd = assessedUnitPrice * obj.qty; let insUsd = baseUsd * 0.01; let landingUsd = (baseUsd + insUsd) * 0.01; obj.impValUsd = baseUsd + insUsd + landingUsd;
     obj.impValRs = obj.impValUsd * obj.exRate;
-    obj.dutyAmt = obj.impValRs * dRate; 
-    obj.acdAmt = obj.impValRs * acdRate; 
-    obj.rdAmt = obj.impValRs * rdRate;
-
-    var valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt;
-    obj.stAmt = valueForSt * stRate; 
-    obj.addStAmt = valueForSt * addStRate;
-
-    var valueForIt = valueForSt + obj.stAmt + obj.addStAmt; 
-    obj.itAmt = valueForIt * itRate;
+    obj.dutyAmt = obj.impValRs * dRate; obj.acdAmt = obj.impValRs * acdRate; obj.rdAmt = obj.impValRs * rdRate;
+    let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt; obj.stAmt = valueForSt * stRate; obj.addStAmt = valueForSt * addStRate;
+    let valueForIt = valueForSt + obj.stAmt + obj.addStAmt; obj.itAmt = valueForIt * itRate;
     obj.adAmt = obj.impValRs * adRate;
     obj.totalDutyTaxes = obj.dutyAmt + obj.acdAmt + obj.rdAmt + obj.stAmt + obj.addStAmt + obj.itAmt + obj.adAmt;
     obj.totalLandedCost = obj.impValRs + obj.totalDutyTaxes;
-    obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); 
-    obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
+    obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
     return obj;
   }
 
   function generateBreakdownHTML(data) {
-    return '<div class="print-breakdown-wrapper" style="display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 10px;">' +
-      '<div class="print-grid-col" style="flex: 1; min-width: 250px;">' +
-        '<div style="color:var(--brass); font-family:\'IBM Plex Mono\',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Item Summary</div>' +
-        '<div class="calc-results-row"><span>Description:</span><span>' + (data.desc || '—') + '</span></div>' +
-        '<div class="calc-results-row"><span>HS Code:</span><span>' + (data.hsCode || '—') + '</span></div>' +
-        '<div class="calc-results-row"><span>Origin & Type:</span><span>' + (data.origin || '—') + ' &middot; ' + data.type.toUpperCase() + '</span></div>' +
-        '<div class="calc-results-row"><span>Quantity:</span><span>' + data.qty + ' ' + data.uom + ' @ $' + data.unitPrice + '</span></div>' +
-        (data.vrValue > 0 ? ('<div class="calc-results-row"><span>VR Value (Applied):</span><span style="color:var(--brass); font-weight:600;">$' + data.vrValue + '</span></div>') : '') +
-        '<div class="calc-results-row"><span>Assessment Basis:</span><span style="color:' + (data.isVrApplied ? 'var(--brass)' : 'var(--green)') + '; font-weight:700;">' + (data.isVrApplied ? 'AS PER VR/DATA' : 'AS PER INVOICE') + '</span></div>' +
-        '<div class="calc-results-row"><span>Exchange Rate:</span><span>Rs. ' + data.exRate + '</span></div>' +
-        '<div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Value (USD):</span><span>$ ' + formatCurr(data.impValUsd) + '</span></div>' +
-        '<div class="calc-results-row"><span>Total Value (PKR):</span><span style="font-weight:700;">Rs. ' + formatCurr(data.impValRs) + '</span></div>' +
-      '</div>' +
-      '<div class="print-grid-col" style="flex: 1; min-width: 250px;">' +
-        '<div style="color:var(--brass); font-family:\'IBM Plex Mono\',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Taxes Breakdown</div>' +
-        '<div class="calc-results-row"><span>Custom Duty @ ' + data.dutyPct + '%:</span><span>Rs. ' + formatCurr(data.dutyAmt) + '</span></div>' +
-        '<div class="calc-results-row"><span>ACD Amount @ ' + data.acdPct + '%:</span><span>Rs. ' + formatCurr(data.acdAmt) + '</span></div>' +
-        '<div class="calc-results-row"><span>RD Amount @ ' + data.rdPct + '%:</span><span>Rs. ' + formatCurr(data.rdAmt) + '</span></div>' +
-        '<div class="calc-results-row"><span>Anti-Dumping @ ' + data.adPct + '%:</span><span>Rs. ' + formatCurr(data.adAmt) + '</span></div>' +
-        '<div class="calc-results-row"><span>Sales Tax @ ' + data.stPct + '%:</span><span>Rs. ' + formatCurr(data.stAmt) + '</span></div>' +
-        '<div class="calc-results-row"><span>Add S.Tax @ ' + data.addStPct + '%:</span><span>Rs. ' + formatCurr(data.addStAmt) + '</span></div>' +
-        '<div class="calc-results-row"><span>Income Tax @ ' + data.itPct + '%:</span><span>Rs. ' + formatCurr(data.itAmt) + '</span></div>' +
-        '<div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp); font-weight:700;">Rs. ' + formatCurr(data.totalDutyTaxes) + '</span></div>' +
-      '</div>' +
-    '</div>' +
-    '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px solid #000000; border-radius: 4px; background: #e0e0e0; font-family: \'IBM Plex Mono\', monospace; font-size: 12.5px;">' +
-      '<div style="flex: 1; text-align: left; color: #000000; font-weight: 600;">Item Landed Cost: <strong style="color: #000000; font-size: 14px; margin-left: 6px;">Rs. ' + formatCurr(data.totalLandedCost) + '</strong></div>' +
-      '<div style="flex: 1; text-align: center; color: #000000; font-weight: 600;">PRODUCT COST + DUTY = PER ' + data.uom + ': <strong style="color: #000000; margin-left: 6px;">Rs. ' + formatCurr(data.costPerKg) + '</strong></div>' +
-      '<div style="flex: 1; text-align: right; color: #000000; font-weight: 600;">Duty Per ' + data.uom + ': <strong style="color: #000000; margin-left: 6px;">Rs. ' + formatCurr(data.dutyPerKg) + '</strong></div>' +
-    '</div>';
+    return `
+      <div class="print-breakdown-wrapper" style="display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 10px;">
+        <div class="print-grid-col" style="flex: 1; min-width: 250px;">
+          <div style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Item Summary</div>
+          <div class="calc-results-row"><span>Description:</span><span>${data.desc || '—'}</span></div>
+          <div class="calc-results-row"><span>HS Code:</span><span>${data.hsCode || '—'}</span></div>
+          <div class="calc-results-row"><span>Origin & Type:</span><span>${data.origin || '—'} &middot; ${data.type.toUpperCase()}</span></div>
+          <div class="calc-results-row"><span>Quantity:</span><span>${data.qty} ${data.uom} @ $${data.unitPrice}</span></div>
+          ${data.vrValue > 0 ? `<div class="calc-results-row"><span>VR Value (Applied):</span><span style="color:var(--brass); font-weight:600;">$${data.vrValue}</span></div>` : ''}
+          <div class="calc-results-row"><span>Assessment Basis:</span><span style="color:${data.isVrApplied ? 'var(--brass)' : 'var(--green)'}; font-weight:700;">${data.isVrApplied ? 'AS PER VR/DATA' : 'AS PER INVOICE'}</span></div>
+          <div class="calc-results-row"><span>Exchange Rate:</span><span>Rs. ${data.exRate}</span></div>
+          <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Value (USD):</span><span>$ ${formatCurr(data.impValUsd)}</span></div>
+          <div class="calc-results-row"><span>Total Value (PKR):</span><span style="font-weight:700;">Rs. ${formatCurr(data.impValRs)}</span></div>
+        </div>
+        <div class="print-grid-col" style="flex: 1; min-width: 250px;">
+          <div style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Taxes Breakdown</div>
+          <div class="calc-results-row"><span>Custom Duty @ ${data.dutyPct}%:</span><span>Rs. ${formatCurr(data.dutyAmt)}</span></div>
+          <div class="calc-results-row"><span>ACD Amount @ ${data.acdPct}%:</span><span>Rs. ${formatCurr(data.acdAmt)}</span></div>
+          <div class="calc-results-row"><span>RD Amount @ ${data.rdPct}%:</span><span>Rs. ${formatCurr(data.rdAmt)}</span></div>
+          <div class="calc-results-row"><span>Anti-Dumping @ ${data.adPct}%:</span><span>Rs. ${formatCurr(data.adAmt)}</span></div>
+          <div class="calc-results-row"><span>Sales Tax @ ${data.stPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
+          <div class="calc-results-row"><span>Add S.Tax @ ${data.addStPct}%:</span><span>Rs. ${formatCurr(data.addStAmt)}</span></div>
+          <div class="calc-results-row"><span>Income Tax @ ${data.itPct}%:</span><span>Rs. ${formatCurr(data.itAmt)}</span></div>
+          <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp); font-weight:700;">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
+        </div>
+      </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px solid #000000; border-radius: 4px; background: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;">
+        <div style="flex: 1; text-align: left; color: #000000; font-weight: 600;">Item Landed Cost: <strong style="color: #000000; font-size: 14px; margin-left: 6px;">Rs. ${formatCurr(data.totalLandedCost)}</strong></div>
+        <div style="flex: 1; text-align: center; color: #000000; font-weight: 600;">PRODUCT COST + DUTY = PER KGs: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.costPerKg)}</strong></div>
+        <div style="flex: 1; text-align: right; color: #000000; font-weight: 600;">Duty Per KG: <strong style="color: #000000; margin-left: 6px;">Rs. ${formatCurr(data.dutyPerKg)}</strong></div>
+    </div>
+    `;
   }
 
-  window.calculateDuty = function() { 
-    var resBox = document.getElementById('calcResults');
-    if(resBox) resBox.innerHTML = generateBreakdownHTML(getCalcData()); 
-  };
+  function calculateDuty() { document.getElementById('calcResults').innerHTML = generateBreakdownHTML(getCalcData()); }
 
-  var addInvBtn = document.getElementById('addToInvoiceBtn');
-  if(addInvBtn) {
-    addInvBtn.addEventListener('click', function() {
-      var data = getCalcData(); 
-      if(!data.desc) { alert('Please enter an Item Description first.'); return; }
-      if(data.hsCode) { autoSaveCurrentSlab(data.hsCode); }
-      invoiceItems.push(data); 
-      var invContainer = document.getElementById('invoiceListContainer');
-      if(invContainer) invContainer.style.display = 'block'; 
-      renderInvoiceList();
-      document.getElementById('calcDesc').value = ''; 
-      document.getElementById('calcHsCode').value = ''; 
-      document.getElementById('calcVrValue').value = ''; 
-      showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); 
-      window.calculateDuty();
-    });
-  }
+  document.getElementById('addToInvoiceBtn').addEventListener('click', () => {
+    const data = getCalcData(); if(!data.desc) { alert('Please enter an Item Description first.'); return; }
+    if(data.hsCode) { autoSaveCurrentSlab(data.hsCode); }
+    invoiceItems.push(data); document.getElementById('invoiceListContainer').style.display = 'block'; renderInvoiceList();
+    document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcVrValue').value = ''; showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); calculateDuty();
+  });
 
-  var resetCalcBtn = document.getElementById('resetCalcBtn');
-  if(resetCalcBtn) {
-    resetCalcBtn.addEventListener('click', function() {
-      document.getElementById('calcDesc').value = ''; 
-      document.getElementById('calcHsCode').value = ''; 
-      document.getElementById('calcAd').value = '0'; 
-      document.getElementById('calcVrValue').value = '';
-      var ast = document.getElementById('calcAddSt');
-      if(ast) {
-        ast.value = '3';
-      }
-      showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); 
-      invoiceItems = []; 
-      var invContainer = document.getElementById('invoiceListContainer');
-      if(invContainer) invContainer.style.display = 'none'; 
-      window.calculateDuty();
-    });
-  }
+  document.getElementById('resetCalcBtn').addEventListener('click', () => {
+    document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcAd').value = '0'; document.getElementById('calcVrValue').value = '';
+    showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); invoiceItems = []; document.getElementById('invoiceListContainer').style.display = 'none'; calculateDuty();
+  });
 
   window.toggleItem = function(idx) { 
-    var body = document.getElementById('body-' + idx); 
-    var icon = document.getElementById('icon-' + idx); 
-    if(!body) return;
+    const body = document.getElementById(`body-${idx}`); 
+    const icon = document.getElementById(`icon-${idx}`); 
     if(body.style.display === 'block') { 
       body.style.display = 'none'; 
-      if(icon) icon.textContent = '➕'; 
+      icon.textContent = '➕'; 
     } else { 
       body.style.display = 'block'; 
-      if(icon) icon.textContent = '➖'; 
+      icon.textContent = '➖'; 
     } 
   };
   
   window.removeInvoiceItem = function(idx) { 
     invoiceItems.splice(idx, 1); 
-    var invContainer = document.getElementById('invoiceListContainer');
     if(invoiceItems.length === 0) { 
-      if(invContainer) invContainer.style.display = 'none'; 
+      document.getElementById('invoiceListContainer').style.display = 'none'; 
     } else { 
       renderInvoiceList(); 
     } 
   };
 
   function renderInvoiceList() {
-    var listHTML = ''; var grandValRs = 0; var grandDutyTaxes = 0; var grandLanded = 0;
-    var hasVrOrDataApplied = invoiceItems.some(function(item) { return item.isVrApplied; });
+    let listHTML = ''; let grandValRs = 0; let grandDutyTaxes = 0; let grandLanded = 0;
+    let hasVrOrDataApplied = invoiceItems.some(item => item.isVrApplied);
 
-    invoiceItems.forEach(function(item, idx) {
+    invoiceItems.forEach((item, idx) => {
       grandValRs += item.impValRs; 
       grandDutyTaxes += item.totalDutyTaxes; 
       grandLanded += item.totalLandedCost;
       
-      var itemTag = item.isVrApplied ? 
-        '<span style="font-size:10px; background:var(--brass); color:var(--ink); padding:2px 6px; border-radius:3px; margin-left:8px; font-weight:700;">AS PER VR/DATA</span>' : 
-        '<span style="font-size:10px; background:var(--green); color:#fff; padding:2px 6px; border-radius:3px; margin-left:8px; font-weight:700;">AS PER INVOICE</span>';
+      let itemTag = item.isVrApplied ? 
+        `<span style="font-size:10px; background:var(--brass); color:var(--ink); padding:2px 6px; border-radius:3px; margin-left:8px; font-weight:700;">AS PER VR/DATA</span>` : 
+        `<span style="font-size:10px; background:var(--green); color:#fff; padding:2px 6px; border-radius:3px; margin-left:8px; font-weight:700;">AS PER INVOICE</span>`;
 
-      listHTML += '<div class="item-card">' +
-        '<div class="item-card-header" onclick="toggleItem(' + idx + ')">' +
-          '<div>' +
-            '<span class="expand-icon" id="icon-' + idx + '">➕</span>' +
-            '<span style="margin-left:10px; font-weight:600;">Item ' + (idx+1) + ': ' + item.desc + '</span>' +
-            itemTag +
-          '</div>' +
-          '<div style="display:flex; align-items:center; gap:12px;">' +
-            '<span style="color:var(--paper); font-size:13px;">Duty & Taxes: <b style="color:var(--stamp);">Rs. ' + formatCurr(item.totalDutyTaxes) + '</b></span>' +
-            '<button class="remove-item-btn" onclick="event.stopPropagation(); removeInvoiceItem(' + idx + ')">❌</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="item-card-body" id="body-' + idx + '">' +
-          generateBreakdownHTML(item) +
-        '</div>' +
-      '</div>';
+      listHTML += `
+        <div class="item-card">
+          <div class="item-card-header" onclick="toggleItem(${idx})">
+            <div>
+              <span class="expand-icon" id="icon-${idx}">➕</span>
+              <span style="margin-left:10px; font-weight:600;">Item ${idx+1}: ${item.desc}</span>
+              ${itemTag}
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="color:var(--paper); font-size:13px;">Duty & Taxes: <b style="color:var(--stamp);">Rs. ${formatCurr(item.totalDutyTaxes)}</b></span>
+              <button class="remove-item-btn" onclick="event.stopPropagation(); removeInvoiceItem(${idx})">❌</button>
+            </div>
+          </div>
+          <div class="item-card-body" id="body-${idx}">
+            ${generateBreakdownHTML(item)}
+          </div>
+        </div>`;
     });
 
-    var titleText = hasVrOrDataApplied ? "ESTIMATED DUTY AS PER VR/DATA" : "ESTIMATED DUTY AS PER INVOICE";
-    var headerTitleEl = document.getElementById('invoiceMainTitle');
+    const titleText = hasVrOrDataApplied ? "ESTIMATED DUTY AS PER VR/DATA" : "ESTIMATED DUTY AS PER INVOICE";
+    const headerTitleEl = document.getElementById('invoiceMainTitle');
     if (headerTitleEl) {
-      headerTitleEl.innerHTML = '📋 ' + titleText + ' (<span id="invoiceItemCount">' + invoiceItems.length + '</span> Items)';
+      headerTitleEl.innerHTML = `📋 ${titleText} (<span id="invoiceItemCount">${invoiceItems.length}</span> Items)`;
     }
 
-    var wrapper = document.getElementById('invoiceItemsWrapper');
-    if(wrapper) wrapper.innerHTML = listHTML;
+    document.getElementById('invoiceItemsWrapper').innerHTML = listHTML;
+    document.getElementById('invoiceGrandTotalWrapper').innerHTML = `
+      <div class="grand-total-section">
+        <h3 style="margin-top:0; color:var(--brass); border-bottom:1px dashed var(--hairline); padding-bottom:10px;">${hasVrOrDataApplied ? 'ASSESSMENT GRAND TOTAL (AS PER VR/DATA)' : 'INVOICE GRAND TOTAL'}</h3>
+        <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Invoice Items:</span><span style="color:var(--paper);">${invoiceItems.length}</span></div>
+        <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Import Value (PKR):</span><span style="color:var(--paper);">Rs. ${formatCurr(grandValRs)}</span></div>
+        <div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Combined Duties & Taxes:</span><span style="color:var(--stamp); font-weight:bold;">Rs. ${formatCurr(grandDutyTaxes)}</span></div>
+        <div class="calc-results-row grand-row" style="border-top:2px solid var(--brass); margin-top:10px; padding-top:15px;"><span style="font-size:16px;">GRAND TOTAL LANDED COST:</span><span style="font-size:18px; color:var(--green); font-weight:bold;">Rs. ${formatCurr(grandLanded)}</span></div>
+      </div>
+    `;
+  }
+
+  // DEDICATED INVOICE PRINT SLIP
+  document.getElementById('printCalcBtn').addEventListener('click', () => { 
+    if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
+    calcSerialNo++; localStorage.setItem('ig_calc_serial', calcSerialNo);
     
-    var grandWrapper = document.getElementById('invoiceGrandTotalWrapper');
-    if(grandWrapper) {
-      grandWrapper.innerHTML = '<div class="grand-total-section">' +
-        '<h3 style="margin-top:0; color:var(--brass); border-bottom:1px dashed var(--hairline); padding-bottom:10px;">' + (hasVrOrDataApplied ? 'ASSESSMENT GRAND TOTAL (AS PER VR/DATA)' : 'INVOICE GRAND TOTAL') + '</h3>' +
-        '<div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Invoice Items:</span><span style="color:var(--paper);">' + invoiceItems.length + '</span></div>' +
-        '<div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Import Value (PKR):</span><span style="color:var(--paper);">Rs. ' + formatCurr(grandValRs) + '</span></div>' +
-        '<div class="calc-results-row grand-row" style="border-bottom:none !important;"><span>Total Combined Duties & Taxes:</span><span style="color:var(--stamp); font-weight:bold;">Rs. ' + formatCurr(grandDutyTaxes) + '</span></div>' +
-        '<div class="calc-results-row grand-row" style="border-top:2px solid var(--brass); margin-top:10px; padding-top:15px;"><span style="font-size:16px;">GRAND TOTAL LANDED COST:</span><span style="font-size:18px; color:var(--green); font-weight:bold;">Rs. ' + formatCurr(grandLanded) + '</span></div>' +
-      '</div>';
-    }
-  }
+    const dateStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+    let printWin = window.open('', '_blank');
+    
+    let grandValRs = 0;
+    let grandDutyTaxes = 0;
+    let grandLanded = 0;
+    let itemsDetailHtml = '';
+    
+    let hasVrOrDataApplied = invoiceItems.some(item => item.isVrApplied);
+    const slipHeading = hasVrOrDataApplied ? "Estimated Duty As Per VR/Data" : "Estimated Duty As Per Invoice";
 
-  // Print Complete Invoice Slip
-  var printCalcBtn = document.getElementById('printCalcBtn');
-  if(printCalcBtn) {
-    printCalcBtn.addEventListener('click', function() { 
-      if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
-      calcSerialNo++; 
-      localStorage.setItem('ig_calc_serial', calcSerialNo);
-      
-      var dateStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
-      var printWin = window.open('', '_blank');
-      var grandValRs = 0;
-      var grandDutyTaxes = 0;
-      var grandLanded = 0;
-      var itemsDetailHtml = '';
-      
-      var hasVrOrDataApplied = invoiceItems.some(function(item) { return item.isVrApplied; });
-      var slipHeading = hasVrOrDataApplied ? "Estimated Duty As Per VR/Data" : "Estimated Duty As Per Invoice";
+    invoiceItems.forEach((item, idx) => {
+      grandValRs += item.impValRs;
+      grandDutyTaxes += item.totalDutyTaxes;
+      grandLanded += item.totalLandedCost;
 
-      invoiceItems.forEach(function(item, idx) {
-        grandValRs += item.impValRs;
-        grandDutyTaxes += item.totalDutyTaxes;
-        grandLanded += item.totalLandedCost;
-
-        itemsDetailHtml += '<div style="border: 1px solid #ccc; border-radius: 4px; padding: 14px; margin-bottom: 15px; page-break-inside: avoid; background: #fafafa;">' +
-            '<div style="font-weight: bold; font-size: 14px; border-bottom: 1.5px solid #333; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">' +
-              '<span>Item ' + (idx+1) + ': ' + item.desc + ' (HS: ' + (item.hsCode || '—') + ')</span>' +
-              '<span style="color: #990000;">Duty & Taxes: Rs. ' + formatCurr(item.totalDutyTaxes) + '</span>' +
-            '</div>' +
-            '<div style="display: flex; gap: 20px; font-size: 12px; font-family: monospace;">' +
-              '<div style="flex: 1;">' +
-                '<div><b>Type:</b> ' + item.type.toUpperCase() + ' | <b>Origin:</b> ' + (item.origin || '—') + '</div>' +
-                '<div><b>Quantity:</b> ' + item.qty + ' ' + item.uom + ' @ $' + item.unitPrice + '</div>' +
-                (item.vrValue > 0 ? ('<div><b>VR/Data Value:</b> $' + item.vrValue + '</div>') : '') +
-                '<div><b>Assessed Basis:</b> <b style="color:' + (item.isVrApplied ? '#990000' : '#0b4d3b') + ';">' + (item.isVrApplied ? 'VR/DATA VALUE APPLIED' : 'INVOICE VALUE APPLIED') + '</b></div>' +
-                '<div><b>Ex. Rate:</b> Rs. ' + item.exRate + '</div>' +
-                '<div><b>Value (USD):</b> $' + formatCurr(item.impValUsd) + '</div>' +
-                '<div><b>Value (PKR):</b> Rs. ' + formatCurr(item.impValRs) + '</div>' +
-              '</div>' +
-              '<div style="flex: 1;">' +
-                '<div><b>CD (' + item.dutyPct + '%):</b> Rs. ' + formatCurr(item.dutyAmt) + '</div>' +
-                '<div><b>ACD (' + item.acdPct + '%):</b> Rs. ' + formatCurr(item.acdAmt) + '</div>' +
-                '<div><b>RD (' + item.rdPct + '%):</b> Rs. ' + formatCurr(item.rdAmt) + '</div>' +
-                '<div><b>ST (' + item.stPct + '%):</b> Rs. ' + formatCurr(item.stAmt) + '</div>' +
-                '<div><b>AST (' + item.addStPct + '%):</b> Rs. ' + formatCurr(item.addStAmt) + '</div>' +
-                '<div><b>IT (' + item.itPct + '%):</b> Rs. ' + formatCurr(item.itAmt) + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="border-top: 1px dashed #999; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-size: 12.5px; font-weight: bold;">' +
-              '<span>Item Landed Cost: Rs. ' + formatCurr(item.totalLandedCost) + '</span>' +
-              '<span>Cost Per ' + item.uom + ': Rs. ' + formatCurr(item.costPerKg) + '</span>' +
-              '<span>Duty Per ' + item.uom + ': Rs. ' + formatCurr(item.dutyPerKg) + '</span>' +
-            '</div>' +
-          '</div>';
-      });
-
-      var slipContent = '<!DOCTYPE html><html><head><title>' + slipHeading + ' - Slip #' + calcSerialNo + '</title><style>body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #111; } .header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; } .grand-box { border: 2px solid #222; border-radius: 4px; padding: 14px; background: #eee; font-family: monospace; font-size: 13px; margin-top: 20px; page-break-inside: avoid; } @media print { body { margin: 10mm; } }</style></head><body>' +
-        '<div class="header"><div><h1 style="margin: 0; font-size: 22px; text-transform: uppercase;">' + slipHeading + '</h1><p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide Customs Clearance Valuation Slip</p></div><div style="text-align: right; font-size: 12px; font-family: monospace;"><div><b>Slip Ref:</b> IG-' + calcSerialNo + '</div><div><b>Date:</b> ' + dateStr + '</div></div></div>' +
-        itemsDetailHtml +
-        '<div class="grand-box"><div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ASSESSMENT SUMMARY (' + invoiceItems.length + ' ITEMS)</div><div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Total Import Value (PKR):</span><span>Rs. ' + formatCurr(grandValRs) + '</span></div><div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #990000; font-weight: bold;"><span>Total Combined Duties & Taxes:</span><span>Rs. ' + formatCurr(grandDutyTaxes) + '</span></div><div style="display: flex; justify-content: space-between; border-top: 1.5px solid #000; padding-top: 6px; font-size: 15px; font-weight: bold; color: #0b4d3b;"><span>GRAND TOTAL LANDED COST:</span><span>Rs. ' + formatCurr(grandLanded) + '</span></div></div>' +
-        '<div style="margin-top: 25px; text-align: center; font-size: 11px; color: #777; border-top: 1px dashed #aaa; padding-top: 10px;">&copy; 2026 ImportGuide (impguide.online) &middot; Computer Generated Assessment Slip</div>' +
-        '<script>window.onload = function() { window.print(); };<\/script></body></html>';
-
-      printWin.document.write(slipContent);
-      printWin.document.close();
+      itemsDetailHtml += `
+        <div style="border: 1px solid #ccc; border-radius: 4px; padding: 14px; margin-bottom: 15px; page-break-inside: avoid; background: #fafafa;">
+          <div style="font-weight: bold; font-size: 14px; border-bottom: 1.5px solid #333; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+            <span>Item ${idx+1}: ${item.desc} (HS: ${item.hsCode || '—'})</span>
+            <span style="color: #990000;">Duty & Taxes: Rs. ${formatCurr(item.totalDutyTaxes)}</span>
+          </div>
+          <div style="display: flex; gap: 20px; font-size: 12px; font-family: monospace;">
+            <div style="flex: 1;">
+              <div><b>Type:</b> ${item.type.toUpperCase()} | <b>Origin:</b> ${item.origin || '—'}</div>
+              <div><b>Quantity:</b> ${item.qty} ${item.uom} @ $${item.unitPrice}</div>
+              ${item.vrValue > 0 ? `<div><b>VR/Data Value:</b> $${item.vrValue}</div>` : ''}
+              <div><b>Assessed Basis:</b> <b style="color:${item.isVrApplied ? '#990000' : '#0b4d3b'};">${item.isVrApplied ? 'VR/DATA VALUE APPLIED' : 'INVOICE VALUE APPLIED'}</b></div>
+              <div><b>Ex. Rate:</b> Rs. ${item.exRate}</div>
+              <div><b>Value (USD):</b> $${formatCurr(item.impValUsd)}</div>
+              <div><b>Value (PKR):</b> Rs. ${formatCurr(item.impValRs)}</div>
+            </div>
+            <div style="flex: 1;">
+              <div><b>CD (${item.dutyPct}%):</b> Rs. ${formatCurr(item.dutyAmt)}</div>
+              <div><b>ACD (${item.acdPct}%):</b> Rs. ${formatCurr(item.acdAmt)}</div>
+              <div><b>RD (${item.rdPct}%):</b> Rs. ${formatCurr(item.rdAmt)}</div>
+              <div><b>ST (${item.stPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
+              <div><b>AST (${item.addStPct}%):</b> Rs. ${formatCurr(item.addStAmt)}</div>
+              <div><b>IT (${item.itPct}%):</b> Rs. ${formatCurr(item.itAmt)}</div>
+            </div>
+          </div>
+          <div style="border-top: 1px dashed #999; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-size: 12.5px; font-weight: bold;">
+            <span>Item Landed Cost: Rs. ${formatCurr(item.totalLandedCost)}</span>
+            <span>Cost Per ${item.uom}: Rs. ${formatCurr(item.costPerKg)}</span>
+            <span>Duty Per ${item.uom}: Rs. ${formatCurr(item.dutyPerKg)}</span>
+          </div>
+        </div>
+      `;
     });
-  }
 
-  // 6. GST Module Initial Setup & Inputs
-  var gstInputs = ['gstAssessVal', 'gstCdVal', 'gstAcdVal', 'gstFedVal', 'gstQtyVal', 'gstEnteredRate', 'gstTaxPct', 'gstUomVal'];
-  gstInputs.forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', function() { window.calculateGSTModule(); });
-      el.addEventListener('change', function() { window.calculateGSTModule(); });
-    }
+    const slipContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${slipHeading} - Slip #${calcSerialNo}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #111; }
+          .header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .grand-box { border: 2px solid #222; border-radius: 4px; padding: 14px; background: #eee; font-family: monospace; font-size: 13px; margin-top: 20px; page-break-inside: avoid; }
+          @media print { body { margin: 10mm; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 style="margin: 0; font-size: 22px; text-transform: uppercase;">${slipHeading}</h1>
+            <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide Customs Clearance Valuation Slip</p>
+          </div>
+          <div style="text-align: right; font-size: 12px; font-family: monospace;">
+            <div><b>Slip Ref:</b> IG-${calcSerialNo}</div>
+            <div><b>Date:</b> ${dateStr}</div>
+          </div>
+        </div>
+
+        ${itemsDetailHtml}
+
+        <div class="grand-box">
+          <div style="font-weight: bold; font-size: 15px; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px;">GRAND ASSESSMENT SUMMARY (${invoiceItems.length} ITEMS)</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Total Import Value (PKR):</span><span>Rs. ${formatCurr(grandValRs)}</span></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #990000; font-weight: bold;"><span>Total Combined Duties & Taxes:</span><span>Rs. ${formatCurr(grandDutyTaxes)}</span></div>
+          <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #000; padding-top: 6px; font-size: 15px; font-weight: bold; color: #0b4d3b;"><span>GRAND TOTAL LANDED COST:</span><span>Rs. ${formatCurr(grandLanded)}</span></div>
+        </div>
+
+        <div style="margin-top: 25px; text-align: center; font-size: 11px; color: #777; border-top: 1px dashed #aaa; padding-top: 10px;">
+          &copy; 2026 ImportGuide (impguide.online) &middot; Computer Generated Assessment Slip
+        </div>
+        <script>window.onload = function() { window.print(); };<\/script>
+      </body>
+      </html>
+    `;
+
+    printWin.document.write(slipContent);
+    printWin.document.close();
   });
 
-  window.calculateGSTModule = function() {
-    var assessVal = parseFloat(document.getElementById('gstAssessVal') ? document.getElementById('gstAssessVal').value : 0) || 0;
-    var cd = parseFloat(document.getElementById('gstCdVal') ? document.getElementById('gstCdVal').value : 0) || 0;
-    var acd = parseFloat(document.getElementById('gstAcdVal') ? document.getElementById('gstAcdVal').value : 0) || 0;
-    var fed = parseFloat(document.getElementById('gstFedVal') ? document.getElementById('gstFedVal').value : 0) || 0;
-    var qty = parseFloat(document.getElementById('gstQtyVal') ? document.getElementById('gstQtyVal').value : 1) || 1;
-    var enteredRate = parseFloat(document.getElementById('gstEnteredRate') ? document.getElementById('gstEnteredRate').value : 0) || 0;
-    var taxPct = parseFloat(document.getElementById('gstTaxPct') ? document.getElementById('gstTaxPct').value : 18) || 18;
-    var uom = document.getElementById('gstUomVal') ? document.getElementById('gstUomVal').value : 'KGS';
+  // 10. TURSO LIVE SUGGESTIONS & AUTOCOMPLETE
+  const calcDescInput = document.getElementById('calcDesc'); 
+  const descSuggestions = document.getElementById('descSuggestions');
 
-    var landedCost = assessVal + cd + acd + fed;
-    var minTotalRetail = landedCost * 1.30;
-    var minPerUnitRate = minTotalRetail / (qty > 0 ? qty : 1);
-
-    var valBox = document.getElementById('gstValidationBox');
-    var isCompliant = enteredRate >= minPerUnitRate;
-
-    if(valBox) {
-      if (enteredRate <= 0) {
-        valBox.style.background = 'rgba(201,162,39,0.1)';
-        valBox.style.border = '1px solid var(--brass)';
-        valBox.style.color = 'var(--brass)';
-        valBox.innerHTML = '⚠️ <b>Required:</b> Minimum Retail Price for HS/3rd Schedule must be at least <b>Rs. ' + minPerUnitRate.toFixed(2) + '</b> per ' + uom + '.';
-      } else if (isCompliant) {
-        valBox.style.background = 'rgba(92,147,130,0.15)';
-        valBox.style.border = '1px solid var(--green)';
-        valBox.style.color = 'var(--green)';
-        valBox.innerHTML = '✅ <b>Compliant with PSW & 3rd Schedule:</b> Entered rate Rs. ' + enteredRate.toFixed(2) + ' is valid (Min: Rs. ' + minPerUnitRate.toFixed(2) + ').';
-      } else {
-        var diff = (minPerUnitRate - enteredRate).toFixed(2);
-        valBox.style.background = 'rgba(184,80,63,0.15)';
-        valBox.style.border = '1px solid var(--stamp)';
-        valBox.style.color = 'var(--stamp)';
-        valBox.innerHTML = '❌ <b>PSW Submission Error:</b> Retail price cannot be lesser than Rs. ' + minPerUnitRate.toFixed(2) + ' / ' + uom + ' (Short by Rs. ' + diff + ').';
+  if (calcDescInput && descSuggestions) {
+    calcDescInput.addEventListener('input', async function() {
+      const rawQ = String(this.value || '').trim(); 
+      if(rawQ.length < 2) { 
+          descSuggestions.style.display = 'none'; 
+          descSuggestions.innerHTML = ''; 
+          return; 
       }
-    }
+      
+      let html = '';
+      const terms = rawQ.toLowerCase().split(/\s+/).filter(w => w.length > 0);
 
-    var effectiveUnitRate = Math.max(enteredRate, minPerUnitRate);
-    var totalRetailCalculated = effectiveUnitRate * qty;
-    var salesTaxAmt = (totalRetailCalculated * (taxPct / 100));
+      let vrMatches = (ALL_VR_ITEMS_FLAT || []).filter(item => {
+          let text = (String(item.label || '') + " " + String(item.hs_code || '')).toLowerCase();
+          return terms.every(t => text.includes(t));
+      });
 
-    var resBox = document.getElementById('gstResultsBox');
-    if(resBox) {
-      resBox.innerHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;">' +
-          '<div>' +
-            '<div style="color:var(--brass); font-family:\'IBM Plex Mono\',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Landed Cost Breakdown</div>' +
-            '<div class="calc-results-row"><span>Assess Value:</span><span>Rs. ' + formatCurr(assessVal) + '</span></div>' +
-            '<div class="calc-results-row"><span>CD + ACD + FED:</span><span>Rs. ' + formatCurr(cd + acd + fed) + '</span></div>' +
-            '<div class="calc-results-row" style="font-weight:700; border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Landed Cost:</span><span style="color:var(--paper);">Rs. ' + formatCurr(landedCost) + '</span></div>' +
-          '</div>' +
-          '<div>' +
-            '<div style="color:var(--brass); font-family:\'IBM Plex Mono\',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">3rd Schedule Assessment (130%)</div>' +
-            '<div class="calc-results-row"><span>Min. Total Retail (130%):</span><span style="font-weight:600;">Rs. ' + formatCurr(minTotalRetail) + '</span></div>' +
-            '<div class="calc-results-row"><span>Min. Retail Rate / ' + uom + ':</span><span style="color:var(--brass); font-weight:700; font-size:13.5px;">Rs. ' + minPerUnitRate.toFixed(2) + '</span></div>' +
-            '<div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Sales Tax @ ' + taxPct + '%:</span><span style="color:var(--stamp); font-weight:700;">Rs. ' + formatCurr(salesTaxAmt) + '</span></div>' +
-          '</div>' +
-        '</div>';
-    }
+      if (vrMatches.length > 0) {
+          html += `<div style="padding:6px 12px; background:#0F1E2B; color:var(--brass); font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📜 MATCHING VALUATION RULINGS</div>`;
+          vrMatches.slice(0, 15).forEach(vr => {
+              let safeLabel = String(vr.label || '').replace(/'/g, "\\'");
+              let firstHs = String(vr.hs_code || '').split(',')[0].trim();
+              html += `
+                <div class="suggestion-item" onclick="selectVrSuggestion('${firstHs}', '${safeLabel}', ${vr.value}, '${vr.vr_no}')">
+                  <div style="font-weight:600; color:#ECE6D6; font-size:12.5px;">${vr.label}</div>
+                  <div style="color:#5C9382; font-size:11px; margin-top:2px;">HS: <b>${vr.hs_code}</b> &middot; Rate: <b>$${vr.value}</b> &middot; VR: ${vr.vr_no}</div>
+                </div>`;
+          });
+      }
+
+      try {
+          const cleanFtsTokens = terms.map(t => `${t.replace(/[^a-zA-Z0-9]/g, "")}*`).filter(t => t.length > 1);
+          let res = null;
+          
+          if (cleanFtsTokens.length > 0) {
+            const ftsMatch = cleanFtsTokens.join(" AND ");
+            const ftsSql = `
+              SELECT r.item_description, r.assessed_hs_code, r.assessed_unit_value 
+              FROM ref_data_fts f 
+              JOIN ref_data r ON f.rowid = r.id 
+              WHERE ref_data_fts MATCH '${ftsMatch}' 
+              ORDER BY r.id DESC LIMIT 6;
+            `;
+            try {
+              res = await executeRawSql(ftsSql);
+            } catch(ftsErr) {
+              const fallbackSql = `SELECT item_description, assessed_hs_code, assessed_unit_value FROM ref_data WHERE item_description LIKE '%${terms[0]}%' ORDER BY id DESC LIMIT 6;`;
+              res = await executeRawSql(fallbackSql);
+            }
+          }
+          
+          if (res && res.results && res.results[0] && res.results[0].response && res.results[0].response.result) {
+            const cols = res.results[0].response.result.cols.map(c => c.name);
+            const pastGds = res.results[0].response.result.rows.map(row => {
+              let obj = {};
+              row.forEach((val, idx) => { obj[cols[idx]] = val ? val.value : null; });
+              return obj;
+            });
+
+            if (pastGds.length > 0) {
+              html += `<div style="padding:6px 12px; background:#0F1E2B; color:#93A6B3; font-size:10.5px; font-weight:bold; letter-spacing:0.8px; border-bottom:1px solid rgba(201,162,39,0.3);">📦 PAST IMPORT DATA (TURSO VAULT)</div>`;
+              pastGds.forEach(item => {
+                  let safeDesc = String(item.item_description || '').replace(/'/g, "\\'");
+                  let cleanHs = item.assessed_hs_code ? formatHsCodeFull(item.assessed_hs_code) : '—';
+                  let valFormatted = formatSmartNumber(item.assessed_unit_value);
+                  html += `
+                    <div class="suggestion-item" onclick="selectSuggestion('${safeDesc}', '${cleanHs}', '${item.assessed_unit_value||0}')">
+                      <div style="color:#ECE6D6; font-size:12px;">${item.item_description || '—'}</div>
+                      <div style="color:var(--brass); font-size:10.5px;">HS: ${cleanHs} | Val: $${valFormatted}</div>
+                    </div>`;
+              });
+            }
+          }
+      } catch(err){}
+
+      if (html) {
+          descSuggestions.innerHTML = html;
+          descSuggestions.style.display = 'block';
+      } else {
+          descSuggestions.style.display = 'none';
+      }
+    });
+  }
+  
+  window.selectVrSuggestion = function(hs, label, value, vrNo) {
+      document.getElementById('calcDesc').value = label;
+      document.getElementById('calcHsCode').value = hs;
+      document.getElementById('calcVrValue').value = value;
+      
+      loadHsDutySlab();
+      
+      const hsInput = document.getElementById('calcHsCode');
+      hsInput.dispatchEvent(new Event('input', { bubbles: true }));
+      
+      setTimeout(() => {
+          const vrDropdown = document.getElementById('vrMatrixDropdown');
+          if (vrDropdown) {
+              for (let i = 0; i < vrDropdown.options.length; i++) {
+                  if (vrDropdown.options[i].text.includes(label) || parseFloat(vrDropdown.options[i].value) === parseFloat(value)) {
+                      vrDropdown.selectedIndex = i;
+                      break;
+                  }
+              }
+          }
+          calculateDuty();
+      }, 120);
+
+      descSuggestions.style.display = 'none';
   };
 
-  var copyGstBtn = document.getElementById('copyGstSummaryBtn');
-  if(copyGstBtn) {
-    copyGstBtn.addEventListener('click', function() {
-      var assessVal = parseFloat(document.getElementById('gstAssessVal') ? document.getElementById('gstAssessVal').value : 0) || 0;
-      var cd = parseFloat(document.getElementById('gstCdVal') ? document.getElementById('gstCdVal').value : 0) || 0;
-      var acd = parseFloat(document.getElementById('gstAcdVal') ? document.getElementById('gstAcdVal').value : 0) || 0;
-      var qty = parseFloat(document.getElementById('gstQtyVal') ? document.getElementById('gstQtyVal').value : 1) || 1;
-      var uom = document.getElementById('gstUomVal') ? document.getElementById('gstUomVal').value : 'KGS';
-      var landedCost = assessVal + cd + acd;
-      var minRetailTotal = landedCost * 1.30;
-      var minRate = (minRetailTotal / qty).toFixed(2);
+  window.selectSuggestion = function(desc, hs, assessed) {
+    document.getElementById('calcDesc').value = desc;
+    if(hs && hs !== '—') { document.getElementById('calcHsCode').value = hs; loadHsDutySlab(); }
+    if(assessed && !isNaN(parseFloat(assessed))) { 
+      document.getElementById('calcVrValue').value = parseFloat(assessed); 
+    }
+    descSuggestions.style.display = 'none'; 
+    calculateDuty();
+  };
+  document.addEventListener('click', (e) => { if(!calcDescInput.contains(e.target)) descSuggestions.style.display = 'none'; });
 
-      var text = "*ImportGuide - 3rd Schedule Retail Price Calculation*\n\n" +
-        "• Assessed Value: Rs. " + formatCurr(assessVal) + "\n" +
-        "• Duties (CD+ACD): Rs. " + formatCurr(cd + acd) + "\n" +
-        "• Total Landed Cost: Rs. " + formatCurr(landedCost) + "\n" +
-        "--------------------------------\n" +
-        "• 130% Min Retail Value: Rs. " + formatCurr(minRetailTotal) + "\n" +
-        "• Total Quantity: " + qty + " " + uom + "\n" +
-        "👉 *MINIMUM RETAIL PRICE / " + uom + ": Rs. " + minRate + "*\n\n" +
-        "_Generated via ImportGuide Portal_";
+  // 11. TURSO SEARCH ENGINE
+  const searchInput = document.getElementById('searchInput'); 
+  const filterChips = document.getElementById('filterChips'); 
+  const resultsHolder = document.getElementById('resultsHolder'); 
+  const resultCount = document.getElementById('resultCount'); 
+  const filterImporter = document.getElementById('filterImporter'); 
+  const filterExporter = document.getElementById('filterExporter'); 
+  const filterOrigin = document.getElementById('filterOrigin');
+  const sortControl = document.getElementById('sortControl');
+  const vaultReportBar = document.getElementById('vaultReportBar');
+  const selectedCountDisplay = document.getElementById('selectedCountDisplay');
+  const generateVaultReportBtn = document.getElementById('generateVaultReportBtn');
 
-      navigator.clipboard.writeText(text).then(function() {
-        alert("✅ 3rd Schedule Summary WhatsApp ke liye copy ho gaya hai!");
-      });
-    });
-  }
+  let activeFilter = 'all'; 
+  let latestSearchResults = []; 
+  window.currentDisplayedData = []; 
+  let selectedRowIndices = new Set();
+  let searchId = 0;
 
-  var resetGstBtn = document.getElementById('resetGstBtn');
-  if(resetGstBtn) {
-    resetGstBtn.addEventListener('click', function() {
-      document.getElementById('gstAssessVal').value = '';
-      document.getElementById('gstCdVal').value = '';
-      document.getElementById('gstAcdVal').value = '';
-      document.getElementById('gstFedVal').value = '0';
-      document.getElementById('gstEnteredRate').value = '';
-      window.calculateGSTModule();
-    });
-  }
+  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
 
-  // 7. Search input debounce
-  function debounce(fn, ms){ var t; return function(...a){ clearTimeout(t); t=setTimeout(function(){ fn(...a); }, ms); }; }
-
-  var searchIn = document.getElementById('searchInput');
-  if(searchIn) searchIn.addEventListener('input', debounce(function() { window.runSearch(); }, 350));
+  filterChips.addEventListener('click', e => { 
+    if(e.target.tagName !== 'BUTTON') return; 
+    filterChips.querySelectorAll('button').forEach(b => b.classList.remove('active')); 
+    e.target.classList.add('active'); 
+    activeFilter = e.target.dataset.f; 
+    runSearch(); 
+  });
   
-  window.runSearch = async function() {
-    var rawQ = String(searchIn ? searchIn.value : '').trim();
-    var resultsHolder = document.getElementById('resultsHolder');
-    var resultCount = document.getElementById('resultCount');
-    if(resultsHolder) resultsHolder.innerHTML = '';
-    selectedRowIndices.clear();
+  searchInput.addEventListener('input', debounce(runSearch, 350)); 
+  filterImporter.addEventListener('change', renderFilteredResults); 
+  filterExporter.addEventListener('change', renderFilteredResults); 
+  filterOrigin.addEventListener('change', renderFilteredResults); 
+  sortControl.addEventListener('change', renderFilteredResults);
 
-    if(!rawQ || rawQ.length < 2) {
-      if(resultCount) resultCount.textContent = 'Type at least 2 characters to search...';
+  function parseValForSort(v) { 
+    if(!v) return 0; 
+    const parsed = parseFloat(v.toString().replace(/[^0-9.]/g, '')); 
+    return isNaN(parsed) ? 0 : parsed; 
+  }
+
+  async function runSearch(){
+    const rawQ = String(searchInput.value || '').trim(); 
+    resultsHolder.innerHTML = '';
+    selectedRowIndices.clear();
+    updateSelectionUI();
+    
+    if(!rawQ || rawQ.length < 2){ 
+      resultCount.textContent = 'Type at least 2 characters to search...'; 
+      filterImporter.innerHTML = '<option value="">All Importers</option>'; 
+      filterExporter.innerHTML = '<option value="">All Suppliers</option>'; 
+      filterOrigin.innerHTML = '<option value="">All Origins</option>'; 
+      latestSearchResults = []; 
+      return; 
+    }
+    
+    resultCount.innerHTML = '<span class="loader"></span> Scanning Turso Vault...'; 
+    const currentSearchId = ++searchId;
+    
+    try {
+      const cleanRaw = rawQ.replace(/'/g, "''");
+      const terms = cleanRaw.split(/\s+/).filter(w => w.length > 0);
+      const digitsOnly = rawQ.replace(/\D/g, "");
+      const trimmedDigits = digitsOnly.replace(/0+$/, ''); 
+
+      let queryStr = '';
+
+      if (activeFilter === "all" || activeFilter === "item_description") {
+        const ftsTerms = terms.map(t => `${t.replace(/[^a-zA-Z0-9]/g, "")}*`).filter(t => t.length > 1);
+        if (ftsTerms.length > 0) {
+          const matchExpr = ftsTerms.join(" AND ");
+          queryStr = `
+            SELECT r.* 
+            FROM ref_data_fts f 
+            JOIN ref_data r ON f.rowid = r.id 
+            WHERE ref_data_fts MATCH '${matchExpr}' 
+            ORDER BY r.id DESC LIMIT 1500;
+          `;
+        }
+      }
+
+      if (!queryStr) {
+        let whereClauses = [];
+        if (activeFilter === "assessed_hs_code") {
+          let hsSub = [`assessed_hs_code LIKE '%${cleanRaw}%'`];
+          if(digitsOnly) hsSub.push(`REPLACE(assessed_hs_code, '.', '') LIKE '%${digitsOnly}%'`);
+          if(trimmedDigits.length >= 4) hsSub.push(`REPLACE(assessed_hs_code, '.', '') LIKE '%${trimmedDigits}%'`);
+          whereClauses.push(`(${hsSub.join(' OR ')})`);
+        } else {
+          terms.forEach(term => {
+            whereClauses.push(`${activeFilter === 'all' ? 'item_description' : activeFilter} LIKE '%${term}%'`);
+          });
+        }
+        queryStr = `SELECT * FROM ref_data WHERE ${whereClauses.join(' AND ')} ORDER BY id DESC LIMIT 1500;`;
+      }
+
+      let res = null;
+      try {
+        res = await executeRawSql(queryStr);
+      } catch (innerErr) {
+        let fallbackClauses = terms.map(t => `item_description LIKE '%${t}%'`).join(' AND ');
+        let fallbackQuery = `SELECT * FROM ref_data WHERE ${fallbackClauses} ORDER BY id DESC LIMIT 1500;`;
+        res = await executeRawSql(fallbackQuery);
+      }
+      
+      if (currentSearchId !== searchId) return;
+
+      if (!res || !res.results || !res.results[0] || !res.results[0].response || !res.results[0].response.result) {
+        resultCount.textContent = 'No match found in Turso Vault.';
+        return;
+      }
+
+      const cols = res.results[0].response.result.cols.map(c => c.name);
+      const data = res.results[0].response.result.rows.map(row => {
+        let obj = {};
+        row.forEach((val, idx) => { obj[cols[idx]] = val ? val.value : null; });
+        return obj;
+      });
+      
+      if (data.length === 0) { 
+        resultCount.textContent = 'No match found in Turso Vault.'; 
+        return; 
+      }
+      
+      latestSearchResults = data; 
+      populateDropdowns(data); 
+      renderFilteredResults();
+    } catch (err) { 
+      if (currentSearchId === searchId) {
+        console.error("Turso Search Error:", err);
+        resultCount.textContent = `Error: ${err.message || 'Timeout'}`; 
+      }
+    }
+  }
+
+  function populateDropdowns(data) {
+    const importers = [...new Set(data.map(m => m.importer_name).filter(Boolean))].sort(); 
+    const exporters = [...new Set(data.map(m => m.supplier_name).filter(Boolean))].sort(); 
+    const origins = [...new Set(data.map(m => m.origin).filter(Boolean))].sort(); 
+    
+    let impHtml = '<option value="">All Importers</option>'; 
+    importers.forEach(i => impHtml += `<option value="${i}">${i}</option>`); 
+    filterImporter.innerHTML = impHtml;
+    
+    let expHtml = '<option value="">All Suppliers</option>'; 
+    exporters.forEach(e => expHtml += `<option value="${e}">${e}</option>`); 
+    filterExporter.innerHTML = expHtml;
+    
+    let orgHtml = '<option value="">All Origins</option>'; 
+    origins.forEach(o => orgHtml += `<option value="${o}">${o}</option>`); 
+    filterOrigin.innerHTML = orgHtml;
+  }
+  
+  function escapeAttr(v){ return (v||'').toString().replace(/"/g,'&quot;'); }
+
+  function renderFilteredResults() {
+    if(!latestSearchResults || latestSearchResults.length === 0) return; 
+    let filtered = [...latestSearchResults];
+    
+    if(filterImporter.value) filtered = filtered.filter(m => m.importer_name === filterImporter.value); 
+    if(filterExporter.value) filtered = filtered.filter(m => m.supplier_name === filterExporter.value); 
+    if(filterOrigin.value) filtered = filtered.filter(m => m.origin === filterOrigin.value);
+    
+    const sortVal = sortControl.value;
+    if (sortVal === 'date_desc') {
+      filtered.sort((a, b) => {
+        let diff = parseGdDate(b.gd_number) - parseGdDate(a.gd_number);
+        return diff !== 0 ? diff : (b.id - a.id);
+      });
+    } else if (sortVal === 'date_asc') {
+      filtered.sort((a, b) => {
+        let diff = parseGdDate(a.gd_number) - parseGdDate(b.gd_number);
+        return diff !== 0 ? diff : (a.id - b.id);
+      });
+    } else if (sortVal === 'price_asc') {
+      filtered.sort((a, b) => parseValForSort(a.assessed_unit_value) - parseValForSort(b.assessed_unit_value));
+    } else if (sortVal === 'price_desc') {
+      filtered.sort((a, b) => parseValForSort(b.assessed_unit_value) - parseValForSort(a.assessed_unit_value));
+    }
+
+    resultsHolder.innerHTML = ''; 
+    resultCount.textContent = `Found ${filtered.length} records.`;
+    window.currentDisplayedData = filtered; 
+    
+    let tableHtml = `
+      <div class="table-container">
+        <table class="customs-table">
+          <tr>
+            <th style="width:30px; text-align:center;"><input type="checkbox" id="selectAllCheckbox" class="vault-checkbox" onchange="toggleSelectAll(this)"></th>
+            <th>GD Number</th>
+            <th>HS Code</th>
+            <th>Description</th>
+            <th>Origin</th>
+            <th>Assessed Value</th>
+            <th>Action</th>
+          </tr>`;
+
+    filtered.forEach((m, idx) => { 
+      let shortDesc = m.item_description || '—'; 
+      if(shortDesc.length > 60) shortDesc = shortDesc.substring(0, 60) + '...'; 
+      
+      let displayAssVal = '—';
+      if (m.assessed_unit_value !== undefined && m.assessed_unit_value !== null && m.assessed_unit_value !== '') {
+        displayAssVal = `${(m.currency || 'USD').toUpperCase()} ${formatSmartNumber(m.assessed_unit_value)}`;
+      }
+
+      let formattedHs = formatHsCodeFull(m.assessed_hs_code) || '—';
+      let isChecked = selectedRowIndices.has(idx) ? 'checked' : '';
+
+      tableHtml += `
+        <tr class="clickable-row">
+          <td style="text-align:center;" onclick="event.stopPropagation()">
+            <input type="checkbox" class="vault-checkbox row-select-checkbox" data-index="${idx}" ${isChecked} onchange="toggleRowSelection(${idx}, this.checked)">
+          </td>
+          <td onclick="openDetailModal(${idx})"><b>${m.gd_number||'—'}</b></td>
+          <td onclick="openDetailModal(${idx})"><code>${formattedHs}</code></td>
+          <td onclick="openDetailModal(${idx})" title="${escapeAttr(m.item_description)}">${shortDesc}</td>
+          <td onclick="openDetailModal(${idx})">${m.origin||'—'}</td>
+          <td onclick="openDetailModal(${idx})"><b style="color:var(--brass);">${displayAssVal}</b></td>
+          <td onclick="openDetailModal(${idx})" style="color:var(--green); font-weight:600; font-size:10px; cursor:pointer;">VIEW &rarr;</td>
+        </tr>`; 
+    });
+    resultsHolder.innerHTML = tableHtml + `</table></div>`;
+    updateSelectionUI();
+  }
+
+  window.toggleRowSelection = function(idx, isChecked) {
+    if(isChecked) {
+      selectedRowIndices.add(idx);
+    } else {
+      selectedRowIndices.delete(idx);
+    }
+    updateSelectionUI();
+  };
+
+  window.toggleSelectAll = function(masterCheckbox) {
+    const isChecked = masterCheckbox.checked;
+    selectedRowIndices.clear();
+    if(isChecked) {
+      window.currentDisplayedData.forEach((_, idx) => selectedRowIndices.add(idx));
+    }
+    document.querySelectorAll('.row-select-checkbox').forEach(cb => {
+      cb.checked = isChecked;
+    });
+    updateSelectionUI();
+  };
+
+  function updateSelectionUI() {
+    const count = selectedRowIndices.size;
+    if(count > 0) {
+      vaultReportBar.style.display = 'flex';
+      selectedCountDisplay.textContent = count;
+    } else {
+      vaultReportBar.style.display = 'none';
+    }
+  }
+
+  // PDF REPORT GENERATOR
+  generateVaultReportBtn.addEventListener('click', () => {
+    if(selectedRowIndices.size === 0) {
+      alert("Pehle kisi record par tick lagayein!");
       return;
     }
 
-    if(resultCount) resultCount.innerHTML = '<span class="loader"></span> Scanning Turso Vault...';
-    try {
-      var queryStr = "SELECT * FROM ref_data WHERE item_description LIKE '%" + rawQ.replace(/'/g, "''") + "%' ORDER BY id DESC LIMIT 100;";
-      var res = await executeRawSql(queryStr);
-      if(!res || !res.results || !res.results[0] || !res.results[0].response || !res.results[0].response.result) {
-        if(resultCount) resultCount.textContent = 'No match found.';
-        return;
-      }
-      var cols = res.results[0].response.result.cols.map(function(c){ return c.name; });
-      var data = res.results[0].response.result.rows.map(function(row){
-        var o = {};
-        row.forEach(function(v, i){ o[cols[i]] = v ? v.value : null; });
-        return o;
-      });
-      latestSearchResults = data;
-      window.currentDisplayedData = data;
-      if(resultCount) resultCount.textContent = 'Found ' + data.length + ' records.';
+    const selectedItems = Array.from(selectedRowIndices).map(idx => window.currentDisplayedData[idx]).filter(Boolean);
+    const dateStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+    
+    let reportWindow = window.open('', '_blank');
+    let rowsHtml = '';
+    
+    selectedItems.forEach((item, i) => {
+      let hs = formatHsCodeFull(item.assessed_hs_code) || '—';
+      let val = formatSmartNumber(item.assessed_unit_value);
+      let decVal = formatSmartNumber(item.dec_unit_value);
+      let uom = resolveCleanUom(item.uom, item.item_description);
       
-      var tableHtml = '<div class="table-container"><table class="customs-table"><tr><th>GD Number</th><th>HS Code</th><th>Description</th><th>Assessed Value</th></tr>';
-      data.forEach(function(m, idx) {
-        tableHtml += '<tr class="clickable-row" onclick="openDetailModal(' + idx + ')"><td><b>' + (m.gd_number||'—') + '</b></td><td>' + formatHsCodeFull(m.assessed_hs_code) + '</td><td>' + (m.item_description||'—') + '</td><td style="color:var(--brass);">' + formatSmartNumber(m.assessed_unit_value) + '</td></tr>';
-      });
-      if(resultsHolder) resultsHolder.innerHTML = tableHtml + '</table></div>';
-    } catch(err) {
-      if(resultCount) resultCount.textContent = 'Search Error';
-    }
+      rowsHtml += `
+        <tr style="border-bottom: 1px solid #ccc; font-size: 11px;">
+          <td style="padding: 8px; text-align: center;">${i+1}</td>
+          <td style="padding: 8px;"><b>${item.gd_number || '—'}</b></td>
+          <td style="padding: 8px;"><code>${hs}</code></td>
+          <td style="padding: 8px; line-height: 1.4;">${item.item_description || '—'}</td>
+          <td style="padding: 8px;">${item.importer_name || '—'}</td>
+          <td style="padding: 8px;">${item.origin || '—'}</td>
+          <td style="padding: 8px; text-align: right;">${item.quantity || 0} ${uom}</td>
+          <td style="padding: 8px; text-align: right;">$${decVal}</td>
+          <td style="padding: 8px; text-align: right; font-weight: bold; color: #0b4d3b;">$${val}</td>
+        </tr>
+      `;
+    });
+
+    const reportContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>ImportGuide - Customs Clearance Vault Assessment Report</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #111; }
+          .header { border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .title h1 { margin: 0 0 4px; font-size: 24px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .title p { margin: 0; font-size: 12px; color: #666; }
+          .meta { text-align: right; font-size: 12px; line-height: 1.5; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th { background: #f0f0f0; border: 1px solid #ddd; padding: 9px 8px; text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; }
+          td { border: 1px solid #ddd; }
+          .footer { margin-top: 30px; font-size: 11px; text-align: center; color: #777; border-top: 1px dashed #ccc; padding-top: 10px; }
+          @media print {
+            body { margin: 10mm; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">
+            <h1>Customs Clearance Assessment Report</h1>
+            <p>Generated via <b>ImportGuide Cloud Vault</b></p>
+          </div>
+          <div class="meta">
+            <div><b>Report Date:</b> ${dateStr}</div>
+            <div><b>Selected Entries:</b> ${selectedItems.length} Records</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 30px; text-align: center;">#</th>
+              <th>GD Number</th>
+              <th>HS Code</th>
+              <th style="width: 30%;">Item Description</th>
+              <th>Importer</th>
+              <th>Origin</th>
+              <th style="text-align: right;">Qty/UOM</th>
+              <th style="text-align: right;">Dec. Val</th>
+              <th style="text-align: right;">Assessed Val</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          &copy; 2026 ImportGuide (impguide.online) &middot; Confidential Customs Valuation Ledger
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); };
+        <\/script>
+      </body>
+      </html>
+    `;
+
+    reportWindow.document.write(reportContent);
+    reportWindow.document.close();
+  });
+
+  // DETAIL MODAL
+  window.openDetailModal = function(idx) {
+    const m = window.currentDisplayedData[idx]; if(!m) return;
+    
+    const getFieldVal = (targetKey) => {
+      if (m[targetKey] !== undefined && m[targetKey] !== null && m[targetKey] !== '') return m[targetKey];
+      const lower = targetKey.toLowerCase();
+      for (let k in m) {
+        if (k.toLowerCase() === lower && m[k] !== undefined && m[k] !== null && m[k] !== '') {
+          return m[k];
+        }
+      }
+      return '—';
+    };
+
+    let itemDesc = getFieldVal('item_description');
+    let rawUom = getFieldVal('uom');
+    let cleanUom = resolveCleanUom(rawUom, itemDesc);
+
+    document.getElementById('detailModalBody').innerHTML = `
+      <div style="margin-bottom:18px; padding:16px; background:rgba(201,162,39,0.06); border:1px solid var(--hairline); border-radius:3px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--brass); text-transform:uppercase; margin-bottom:6px;">Full Item Description</div>
+        <div style="font-size:15px; line-height:1.5;">${itemDesc}</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:16px;">
+        ${['gd_number','assessed_hs_code','importer_name','supplier_name','agent_name','channel','origin','quantity','uom','currency','dec_unit_value','assessed_unit_value','bl_number'].map(k => {
+          let label = k.replace(/_/g, ' ').toUpperCase(); 
+          let rawVal = getFieldVal(k);
+          
+          let val = rawVal;
+          if (k === 'assessed_hs_code') {
+            val = formatHsCodeFull(rawVal) || '—';
+          } else if (k === 'uom') {
+            val = cleanUom;
+          } else if (k === 'assessed_unit_value' || k === 'dec_unit_value') {
+            val = formatSmartNumber(rawVal);
+          }
+
+          let border = k === 'assessed_unit_value' ? 'border-color:var(--brass); background:rgba(201,162,39,0.08);' : ''; 
+          let valStyle = k === 'assessed_unit_value' ? 'color:var(--brass); font-weight:700; font-size:16px;' : '';
+          
+          return `<div style="background:rgba(15, 30, 43, 0.5); border:1px solid rgba(201, 162, 39, 0.15); padding:14px; border-radius:4px; ${border}">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--paper-dim); text-transform:uppercase; margin-bottom:6px;">${label}</div>
+            <div style="font-size:14px; word-wrap:break-word; ${valStyle}">${val}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    document.getElementById('detailModalOverlay').style.display = 'flex';
   };
 
-  // 8. Auto Role Restore
-  var curRole = localStorage.getItem('cv_role');
-  var curUser = localStorage.getItem('cv_username');
-  if(curRole && curUser) {
-    applyRole(curRole, curUser);
+  window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
+  document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
+
+  // 12. VALUATION RULINGS SEARCH (SUPABASE CORE)
+  function runVrSearch() {
+    const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
+    const list = vrDataList.filter(i => 
+        (i.vr_title && i.vr_title.toLowerCase().includes(q)) || 
+        i.vr_no.toLowerCase().includes(q) || 
+        (i.hs_codes && i.hs_codes.includes(q))
+    );
+    
+    document.getElementById('vrResultCount').textContent = `Showing ${list.length} Applicable Rulings`;
+    if(list.length > 0) { 
+        let tableHtml = `<table class="customs-table"><tr><th style="width:60%;">Valuation Ruling & Main Title</th><th>Status</th><th>Action</th></tr>`; 
+        list.forEach(item => {
+            tableHtml += `
+              <tr>
+                <td>
+                  <div style="font-size:14px; font-weight:bold; color:var(--paper);">
+                    ${item.vr_no} &mdash; <span style="color:var(--brass); font-family:'Source Serif 4',serif;">${item.vr_title}</span>
+                  </div>
+                  <div style="color:var(--paper-dim); font-size:11px; margin-top:4px;">Applicable on HS: ${item.hs_codes}</div>
+                </td>
+                <td><span style="color:var(--green); font-size:11px;">${item.date}</span></td>
+                <td><a href="${item.link}" target="_blank" style="color:var(--brass); text-decoration:underline; font-weight:500;">Download PDF</a></td>
+              </tr>`; 
+        }); 
+        document.getElementById('vrResultsHolder').innerHTML = tableHtml + `</table>`; 
+    } else { 
+        document.getElementById('vrResultsHolder').innerHTML = `<div style="padding:15px; color:var(--paper-dim);">No Valuation Ruling found matching your query.</div>`; 
+    }
+  }
+  document.getElementById('vrSearchInput').addEventListener('input', debounce(runVrSearch, 300));
+
+  // 13. CLIENT SUB MANAGEMENT (SUPABASE CORE)
+  if(document.getElementById('createSubBtn')) {
+      document.getElementById('createSubBtn').addEventListener('click', async () => {
+        const u = document.getElementById('newSubUser').value.trim().toLowerCase(); const p = document.getElementById('newSubPass').value.trim(); if(!u || !p) return;
+        document.getElementById('createSubBtn').disabled = true; document.getElementById('subMsg').innerHTML = '<span class="loader"></span> Saving...';
+        const exp = new Date(); exp.setDate(exp.getDate() + 30); const { error } = await db.from('user_accounts').insert([{ username: u, password: p, is_active: true, expiry_date: exp.toISOString() }]);
+        document.getElementById('createSubBtn').disabled = false;
+        if(error) { document.getElementById('subMsg').textContent = 'Error: ' + error.message; } else { document.getElementById('subMsg').textContent = 'Account created!'; document.getElementById('newSubUser').value=''; document.getElementById('newSubPass').value=''; loadSubscriptionsList(); }
+      });
+  }
+  
+  async function loadSubscriptionsList() {
+    const cont = document.getElementById('subsListContainer'); if(!cont) return; cont.innerHTML = '<div class="loader"></div> Loading...';
+    const { data, error } = await db.from('user_accounts').select('*').order('created_at', { ascending: false });
+    if(error || !data) { cont.innerHTML = `Error loading clients.`; return; }
+    let html = `<table class="sub-table"><tr><th>Username</th><th>Company</th><th>Email</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr>`;
+    data.forEach(acc => {
+      const exp = new Date(acc.expiry_date); const isExp = new Date() > exp;
+      html += `<tr><td><b>${acc.username}</b></td><td>${acc.company_name||'—'}</td><td>${acc.email||'—'}</td><td>${exp.toLocaleDateString()}</td><td><span class="${(acc.is_active && !isExp) ? 'badge-active' : 'badge-expired'}">${!acc.is_active ? 'Deactivated' : (isExp ? 'Expired' : 'Active')}</span></td><td><button class="ghost" style="padding:4px; font-size:10px;" onclick="toggleAccount('${acc.username}', ${!acc.is_active})">${acc.is_active?'Deactivate':'Activate'}</button> <button class="ghost" style="padding:4px; font-size:10px; color:red;" onclick="renewAccount('${acc.username}')">+30 Days</button></td></tr>`;
+    }); cont.innerHTML = html + `</table>`;
+  }
+  
+  window.toggleAccount = async function(u, active) { await db.from('user_accounts').update({ is_active: active }).eq('username', u); loadSubscriptionsList(); };
+  window.renewAccount = async function(u) { const exp = new Date(); exp.setDate(exp.getDate() + 30); await db.from('user_accounts').update({ expiry_date: exp.toISOString(), is_active: true }).eq('username', u); loadSubscriptionsList(); };
+
+  // 14. HS CODE TARIFF DIRECTORY
+  window.runTariffSearch = function() {
+      const q = document.getElementById('tariffSearchInput').value.trim().toLowerCase();
+      let results = [];
+      
+      for (let hs in AUTO_HS_DUTY_SLABS) {
+          let slab = AUTO_HS_DUTY_SLABS[hs];
+          if (!q || hs.includes(q) || (slab.description && slab.description.toLowerCase().includes(q))) {
+              results.push({ hs_code: hs, ...slab });
+          }
+      }
+      
+      document.getElementById('tariffResultCount').textContent = `Showing ${results.length} HS Codes`;
+      
+      if (results.length > 0) {
+          let html = `<table class="customs-table"><tr><th>HS Code</th><th>Description</th><th>CD</th><th>ST</th><th>AST</th><th>IT</th><th>Action</th></tr>`;
+          results.slice(0, 100).forEach(r => {
+              let shortDesc = r.description || '—';
+              if(shortDesc.length > 50) shortDesc = shortDesc.substring(0, 50) + '...';
+              
+              html += `<tr>
+                  <td><b>${r.hs_code}</b></td>
+                  <td title="${r.description}">${shortDesc}</td>
+                  <td>${r.cd}%</td>
+                  <td>${r.st}%</td>
+                  <td>${r.addSt}%</td>
+                  <td>${r.it}%</td>
+                  <td><button class="primary" style="padding:4px 10px; font-size:10.5px; background:var(--green); color:#fff;" onclick="sendToCalculator('${r.hs_code}')">Calculate ➡️</button></td>
+              </tr>`;
+          });
+          document.getElementById('tariffResultsHolder').innerHTML = html + `</table>`;
+      } else {
+          document.getElementById('tariffResultsHolder').innerHTML = `<div style="color:var(--paper-dim);">No HS Code or Item found in database.</div>`;
+      }
+  };
+
+  if (document.getElementById('tariffSearchInput')) {
+      document.getElementById('tariffSearchInput').addEventListener('input', debounce(runTariffSearch, 300));
   }
 
-  // Initial Calculation Run
-  window.calculateDuty();
-});
+  window.sendToCalculator = function(hsCode) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      
+      document.getElementById('tabCalcBtn').classList.add('active');
+      document.getElementById('panel-calculator').classList.add('active');
+      
+      const calcHsInput = document.getElementById('calcHsCode');
+      calcHsInput.value = hsCode;
+      
+      setTimeout(() => {
+          calcHsInput.dispatchEvent(new Event('input', { bubbles: true }));
+          calcHsInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      }, 100);
+      
+      window.scrollTo({top: 0, behavior: 'smooth'});
+  };
+
+  // 15. GST & 3RD SCHEDULE RETAIL ENGINE
+  const gstInputs = ['gstAssessVal', 'gstCdVal', 'gstAcdVal', 'gstFedVal', 'gstQtyVal', 'gstEnteredRate', 'gstTaxPct', 'gstUomVal'];
+  gstInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', calculateGSTModule);
+      el.addEventListener('change', calculateGSTModule);
+    }
+  });
+
+  function calculateGSTModule() {
+    const assessVal = parseFloat(document.getElementById('gstAssessVal').value) || 0;
+    const cd = parseFloat(document.getElementById('gstCdVal').value) || 0;
+    const acd = parseFloat(document.getElementById('gstAcdVal').value) || 0;
+    const fed = parseFloat(document.getElementById('gstFedVal').value) || 0;
+    const qty = parseFloat(document.getElementById('gstQtyVal').value) || 1;
+    const enteredRate = parseFloat(document.getElementById('gstEnteredRate').value) || 0;
+    const taxPct = parseFloat(document.getElementById('gstTaxPct').value) || 18;
+    const uom = document.getElementById('gstUomVal').value || 'KGS';
+
+    const landedCost = assessVal + cd + acd + fed;
+    const minTotalRetail = landedCost * 1.30;
+    const minPerUnitRate = minTotalRetail / (qty > 0 ? qty : 1);
+
+    const valBox = document.getElementById('gstValidationBox');
+    const isCompliant = enteredRate >= minPerUnitRate;
+
+    if (enteredRate <= 0) {
+      valBox.style.background = 'rgba(201,162,39,0.1)';
+      valBox.style.border = '1px solid var(--brass)';
+      valBox.style.color = 'var(--brass)';
+      valBox.innerHTML = `⚠️ <b>Required:</b> Minimum Retail Price for HS/3rd Schedule must be at least <b>Rs. ${minPerUnitRate.toFixed(2)}</b> per ${uom}.`;
+    } else if (isCompliant) {
+      valBox.style.background = 'rgba(92,147,130,0.15)';
+      valBox.style.border = '1px solid var(--green)';
+      valBox.style.color = 'var(--green)';
+      valBox.innerHTML = `✅ <b>Compliant with PSW & 3rd Schedule:</b> Entered rate Rs. ${enteredRate.toFixed(2)} is valid (Min: Rs. ${minPerUnitRate.toFixed(2)}).`;
+    } else {
+      const diff = (minPerUnitRate - enteredRate).toFixed(2);
+      valBox.style.background = 'rgba(184,80,63,0.15)';
+      valBox.style.border = '1px solid var(--stamp)';
+      valBox.style.color = 'var(--stamp)';
+      valBox.innerHTML = `❌ <b>PSW Submission Error:</b> Retail price cannot be lesser than Rs. ${minPerUnitRate.toFixed(2)} / ${uom} (Short by Rs. ${diff}).`;
+    }
+
+    const effectiveUnitRate = Math.max(enteredRate, minPerUnitRate);
+    const totalRetailCalculated = effectiveUnitRate * qty;
+    const salesTaxAmt = (totalRetailCalculated * (taxPct / 100));
+
+    document.getElementById('gstResultsBox').innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;">
+        <div>
+          <div style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">Landed Cost Breakdown</div>
+          <div class="calc-results-row"><span>Assess Value:</span><span>Rs. ${formatCurr(assessVal)}</span></div>
+          <div class="calc-results-row"><span>CD + ACD + FED:</span><span>Rs. ${formatCurr(cd + acd + fed)}</span></div>
+          <div class="calc-results-row" style="font-weight:700; border-top:1px dashed var(--hairline); padding-top:8px;"><span>Total Landed Cost:</span><span style="color:var(--paper);">Rs. ${formatCurr(landedCost)}</span></div>
+        </div>
+        <div>
+          <div style="color:var(--brass); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--hairline); padding-bottom:6px; margin-bottom:10px;">3rd Schedule Assessment (130%)</div>
+          <div class="calc-results-row"><span>Min. Total Retail (130%):</span><span style="font-weight:600;">Rs. ${formatCurr(minTotalRetail)}</span></div>
+          <div class="calc-results-row"><span>Min. Retail Rate / ${uom}:</span><span style="color:var(--brass); font-weight:700; font-size:13.5px;">Rs. ${minPerUnitRate.toFixed(2)}</span></div>
+          <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Sales Tax @ ${taxPct}%:</span><span style="color:var(--stamp); font-weight:700;">Rs. ${formatCurr(salesTaxAmt)}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('copyGstSummaryBtn')?.addEventListener('click', () => {
+    const assessVal = parseFloat(document.getElementById('gstAssessVal').value) || 0;
+    const cd = parseFloat(document.getElementById('gstCdVal').value) || 0;
+    const acd = parseFloat(document.getElementById('gstAcdVal').value) || 0;
+    const qty = parseFloat(document.getElementById('gstQtyVal').value) || 1;
+    const uom = document.getElementById('gstUomVal').value;
+    const landedCost = assessVal + cd + acd;
+    const minRetailTotal = landedCost * 1.30;
+    const minRate = (minRetailTotal / qty).toFixed(2);
+
+    const text = `*ImportGuide - 3rd Schedule Retail Price Calculation*\n\n` +
+      `• Assessed Value: Rs. ${formatCurr(assessVal)}\n` +
+      `• Duties (CD+ACD): Rs. ${formatCurr(cd + acd)}\n` +
+      `• Total Landed Cost: Rs. ${formatCurr(landedCost)}\n` +
+      `--------------------------------\n` +
+      `• 130% Min Retail Value: Rs. ${formatCurr(minRetailTotal)}\n` +
+      `• Total Quantity: ${qty} ${uom}\n` +
+      `👉 *MINIMUM RETAIL PRICE / ${uom}: Rs. ${minRate}*\n\n` +
+      `_Generated via ImportGuide Portal_`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert("✅ 3rd Schedule Summary WhatsApp ke liye copy ho gaya hai!");
+    });
+  });
+
+  document.getElementById('resetGstBtn')?.addEventListener('click', () => {
+    document.getElementById('gstAssessVal').value = '';
+    document.getElementById('gstCdVal').value = '';
+    document.getElementById('gstAcdVal').value = '';
+    document.getElementById('gstFedVal').value = '0';
+    document.getElementById('gstEnteredRate').value = '';
+    calculateGSTModule();
+  });
+
+  // 16. SESSION & AUTO-LOGOUT LOGIC
+  let inactivityTimer;
+  const INACTIVITY_TIME = 15 * 60 * 1000;
+
+  function autoLogout() {
+      alert("Inactivity ki wajah se aap ka session expire ho gaya hai. Barae meharbani dobara login karein.");
+      localStorage.clear();
+      location.reload();
+  }
+
+  function resetTimer() {
+      clearTimeout(inactivityTimer);
+      const role = localStorage.getItem('cv_role');
+      if (role === 'viewer') {
+          inactivityTimer = setTimeout(autoLogout, INACTIVITY_TIME);
+      }
+  }
+
+  ['mousemove', 'keydown', 'click', 'scroll'].forEach(event => {
+      document.addEventListener(event, resetTimer);
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+      const role = localStorage.getItem('cv_role');
+      const user = localStorage.getItem('cv_username');
+      if (role && user) {
+          applyRole(role, user);
+          resetTimer();
+      }
+  });
+  
+})();
 </script>
 </body>
 </html>
