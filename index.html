@@ -373,7 +373,17 @@
           <div class="calc-field"><label>ACD %</label><input type="number" id="calcAcd" value="2" step="0.1"></div>
           <div class="calc-field"><label>RD %</label><input type="number" id="calcRd" value="0" step="0.1"></div>
           <div class="calc-field"><label>Sales Tax % (ST)</label><input type="number" id="calcSt" value="18" step="0.1"></div>
-          <div class="calc-field"><label>Add S.Tax / GST %</label><input type="number" id="calcAddSt" value="3" step="0.1"></div>
+          
+          <!-- SEPARATE AST & GST INPUT BOXES -->
+          <div class="calc-field">
+            <label>Add S.Tax % (AST)</label>
+            <input type="number" id="calcAddSt" value="3" step="0.1">
+          </div>
+          <div class="calc-field">
+            <label>GST % (3rd Sch / Retail)</label>
+            <input type="number" id="calcGstRate" value="0" step="0.1" placeholder="0 if none">
+          </div>
+
           <div class="calc-field"><label>Income Tax % (IT)</label><input type="number" id="calcIt" value="6" step="0.1"></div>
           <div class="calc-field"><label>Anti-Dumping %</label><input type="number" id="calcAd" value="0" step="0.1"></div>
         </div>
@@ -990,10 +1000,14 @@
     let finalAst = slab.addSt !== undefined ? slab.addSt : 3;
     let finalIt = slab.it !== undefined ? slab.it : 6;
     const isInd = document.getElementById('calcType').value === 'industry';
-    if (isInd) {
+    const gstRateCurrent = parseFloat(document.getElementById('calcGstRate')?.value) || 0;
+    
+    if (isInd || gstRateCurrent > 0) {
         finalAst = 0;
-        if (finalIt === 6) finalIt = 5.5;
-        else if (finalIt === 3.5) finalIt = 2;
+        if (isInd) {
+          if (finalIt === 6) finalIt = 5.5;
+          else if (finalIt === 3.5) finalIt = 2;
+        }
     }
 
     if (slab.cd !== undefined) document.getElementById("calcDuty").value = slab.cd;
@@ -1059,10 +1073,13 @@
 
   document.getElementById('calcType').addEventListener('change', function() {
       const itEl = document.getElementById('calcIt'); const astEl = document.getElementById('calcAddSt');
+      const gstRateCurrent = parseFloat(document.getElementById('calcGstRate')?.value) || 0;
       let currentIt = parseFloat(itEl.value) || 0;
-      if (this.value === 'industry') {
+      if (this.value === 'industry' || gstRateCurrent > 0) {
           astEl.value = 0;
-          if (currentIt === 6) itEl.value = 5.5; else if (currentIt === 3.5) itEl.value = 2;
+          if (this.value === 'industry') {
+            if (currentIt === 6) itEl.value = 5.5; else if (currentIt === 3.5) itEl.value = 2;
+          }
       } else {
           const hsCode = document.getElementById("calcHsCode").value.trim().replace(/\D/g, "");
           let baseAst = 3;
@@ -1245,8 +1262,25 @@
   let invoiceItems = [];
   let calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
 
-  const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcIt', 'calcAd'];
-  calcInputs.forEach(id => { const el = document.getElementById(id); if(el && id !== 'calcType') { el.addEventListener('input', calculateDuty); el.addEventListener('change', calculateDuty); } });
+  const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcGstRate', 'calcIt', 'calcAd'];
+  calcInputs.forEach(id => { 
+    const el = document.getElementById(id); 
+    if(el && id !== 'calcType') { 
+      el.addEventListener('input', calculateDuty); 
+      el.addEventListener('change', calculateDuty); 
+    } 
+  });
+
+  // GST INPUT EVENT LISTENER: GST ENTER KARTE HI AST AUTOMATIC 0 HOJAYEGA
+  const gstInputEl = document.getElementById('calcGstRate');
+  if (gstInputEl) {
+    gstInputEl.addEventListener('input', function() {
+      const val = parseFloat(this.value) || 0;
+      if (val > 0) {
+        document.getElementById('calcAddSt').value = 0;
+      }
+    });
+  }
 
   const formatCurr = (val) => val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -1254,7 +1288,7 @@
     const obj = {
       type: document.getElementById('calcType').value, hsCode: document.getElementById('calcHsCode').value, desc: document.getElementById('calcDesc').value, origin: document.getElementById('calcOrigin').value,
       unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0, vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0, qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
-      dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
+      dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', gstPct: document.getElementById('calcGstRate') ? (document.getElementById('calcGstRate').value || '0') : '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
 
     let invTotal = obj.unitPrice * obj.qty;
@@ -1277,12 +1311,26 @@
       }
     }
 
-    const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
+    const dRate = parseFloat(obj.dutyPct)/100; const acdRate = parseFloat(obj.acdPct)/100; const rdRate = parseFloat(obj.rdPct)/100; const stRate = parseFloat(obj.stPct)/100; const addStRate = parseFloat(obj.addStPct)/100; const gstRate = parseFloat(obj.gstPct)/100; const itRate = parseFloat(obj.itPct)/100; const adRate = parseFloat(obj.adPct)/100;
     
     let baseUsd = assessedUnitPrice * obj.qty; let insUsd = baseUsd * 0.01; let landingUsd = (baseUsd + insUsd) * 0.01; obj.impValUsd = baseUsd + insUsd + landingUsd;
     obj.impValRs = obj.impValUsd * obj.exRate;
     obj.dutyAmt = obj.impValRs * dRate; obj.acdAmt = obj.impValRs * acdRate; obj.rdAmt = obj.impValRs * rdRate;
-    let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt; obj.stAmt = valueForSt * stRate; obj.addStAmt = valueForSt * addStRate;
+    let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt; 
+
+    // GST 3RD SCHEDULE CHECK: AGAR GST DALA HOGA TOH 130% RETAIL FORMULA LAGEGA OR AST 0 RAHEGA
+    if (gstRate > 0) {
+      let landedForGst = obj.impValRs + obj.dutyAmt + obj.acdAmt;
+      let minRetail130 = landedForGst * 1.30;
+      obj.stAmt = minRetail130 * gstRate;
+      obj.addStAmt = 0;
+      obj.isGstActive = true;
+    } else {
+      obj.stAmt = valueForSt * stRate; 
+      obj.addStAmt = valueForSt * addStRate;
+      obj.isGstActive = false;
+    }
+
     let valueForIt = valueForSt + obj.stAmt + obj.addStAmt; obj.itAmt = valueForIt * itRate;
     obj.adAmt = obj.impValRs * adRate;
     obj.totalDutyTaxes = obj.dutyAmt + obj.acdAmt + obj.rdAmt + obj.stAmt + obj.addStAmt + obj.itAmt + obj.adAmt;
@@ -1292,6 +1340,12 @@
   }
 
   function generateBreakdownHTML(data) {
+    const taxLabelRow = data.isGstActive 
+      ? `<div class="calc-results-row"><span>GST (3rd Sch 130%) @ ${data.gstPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
+         <div class="calc-results-row"><span>Add S.Tax (AST):</span><span>Rs. 0.00 (Exempt)</span></div>`
+      : `<div class="calc-results-row"><span>Sales Tax @ ${data.stPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
+         <div class="calc-results-row"><span>Add S.Tax @ ${data.addStPct}%:</span><span>Rs. ${formatCurr(data.addStAmt)}</span></div>`;
+
     return `
       <div class="print-breakdown-wrapper" style="display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 10px;">
         <div class="print-grid-col" style="flex: 1; min-width: 250px;">
@@ -1312,8 +1366,7 @@
           <div class="calc-results-row"><span>ACD Amount @ ${data.acdPct}%:</span><span>Rs. ${formatCurr(data.acdAmt)}</span></div>
           <div class="calc-results-row"><span>RD Amount @ ${data.rdPct}%:</span><span>Rs. ${formatCurr(data.rdAmt)}</span></div>
           <div class="calc-results-row"><span>Anti-Dumping @ ${data.adPct}%:</span><span>Rs. ${formatCurr(data.adAmt)}</span></div>
-          <div class="calc-results-row"><span>Sales Tax @ ${data.stPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
-          <div class="calc-results-row"><span>Add S.Tax @ ${data.addStPct}%:</span><span>Rs. ${formatCurr(data.addStAmt)}</span></div>
+          ${taxLabelRow}
           <div class="calc-results-row"><span>Income Tax @ ${data.itPct}%:</span><span>Rs. ${formatCurr(data.itAmt)}</span></div>
           <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp); font-weight:700;">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
         </div>
@@ -1337,6 +1390,7 @@
 
   document.getElementById('resetCalcBtn').addEventListener('click', () => {
     document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcAd').value = '0'; document.getElementById('calcVrValue').value = '';
+    if(document.getElementById('calcGstRate')) document.getElementById('calcGstRate').value = '0';
     showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); invoiceItems = []; document.getElementById('invoiceListContainer').style.display = 'none'; calculateDuty();
   });
 
@@ -1432,10 +1486,16 @@
       grandDutyTaxes += item.totalDutyTaxes;
       grandLanded += item.totalLandedCost;
 
+      const taxPrintLines = item.isGstActive
+        ? `<div><b>GST (3rd Sch 130% @ ${item.gstPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
+           <div><b>AST:</b> Rs. 0.00 (Exempt)</div>`
+        : `<div><b>ST (${item.stPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
+           <div><b>AST (${item.addStPct}%):</b> Rs. ${formatCurr(item.addStAmt)}</div>`;
+
       itemsDetailHtml += `
         <div style="border: 1px solid #ccc; border-radius: 4px; padding: 14px; margin-bottom: 15px; page-break-inside: avoid; background: #fafafa;">
           <div style="font-weight: bold; font-size: 14px; border-bottom: 1.5px solid #333; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between;">
-            <span>Item ${idx+1}: ${item.desc} (HS: ${item.hsCode || '—'})</span>
+            <span>Item ${idx+1}: ${item.desc} (HS: ${item.hsCode || '—'}) ${item.isGstActive ? '[3rd Sch GST]' : ''}</span>
             <span style="color: #990000;">Duty & Taxes: Rs. ${formatCurr(item.totalDutyTaxes)}</span>
           </div>
           <div style="display: flex; gap: 20px; font-size: 12px; font-family: monospace;">
@@ -1452,8 +1512,7 @@
               <div><b>CD (${item.dutyPct}%):</b> Rs. ${formatCurr(item.dutyAmt)}</div>
               <div><b>ACD (${item.acdPct}%):</b> Rs. ${formatCurr(item.acdAmt)}</div>
               <div><b>RD (${item.rdPct}%):</b> Rs. ${formatCurr(item.rdAmt)}</div>
-              <div><b>ST (${item.stPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
-              <div><b>AST (${item.addStPct}%):</b> Rs. ${formatCurr(item.addStAmt)}</div>
+              ${taxPrintLines}
               <div><b>IT (${item.itPct}%):</b> Rs. ${formatCurr(item.itAmt)}</div>
             </div>
           </div>
