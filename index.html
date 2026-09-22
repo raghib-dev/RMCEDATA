@@ -1285,10 +1285,22 @@
   const formatCurr = (val) => val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   function getCalcData() {
+    let rawAst = document.getElementById('calcAddSt').value || '0';
+    let rawGst = document.getElementById('calcGstRate') ? (document.getElementById('calcGstRate').value || '0') : '0';
+
+    // AUTO ZERO AST JAB GST LAGAYA GAYA HO
+    if (parseFloat(rawGst) > 0) {
+      rawAst = '0';
+      const astInput = document.getElementById('calcAddSt');
+      if (astInput && parseFloat(astInput.value) !== 0) {
+        astInput.value = '0';
+      }
+    }
+
     const obj = {
       type: document.getElementById('calcType').value, hsCode: document.getElementById('calcHsCode').value, desc: document.getElementById('calcDesc').value, origin: document.getElementById('calcOrigin').value,
       unitPrice: parseFloat(document.getElementById('calcUnitPrice').value) || 0, vrValue: parseFloat(document.getElementById('calcVrValue').value) || 0, qty: parseFloat(document.getElementById('calcQty').value) || 1, uom: document.getElementById('calcUom').value || 'KG', exRate: parseFloat(document.getElementById('calcExRate').value) || 0,
-      dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: document.getElementById('calcAddSt').value || '0', gstPct: document.getElementById('calcGstRate') ? (document.getElementById('calcGstRate').value || '0') : '0', itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
+      dutyPct: document.getElementById('calcDuty').value || '0', acdPct: document.getElementById('calcAcd').value || '0', rdPct: document.getElementById('calcRd').value || '0', stPct: document.getElementById('calcSt').value || '0', addStPct: rawAst, gstPct: rawGst, itPct: document.getElementById('calcIt').value || '0', adPct: document.getElementById('calcAd').value || '0'
     };
 
     let invTotal = obj.unitPrice * obj.qty;
@@ -1318,33 +1330,38 @@
     obj.dutyAmt = obj.impValRs * dRate; obj.acdAmt = obj.impValRs * acdRate; obj.rdAmt = obj.impValRs * rdRate;
     let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt; 
 
-    // GST 3RD SCHEDULE CHECK: AGAR GST DALA HOGA TOH 130% RETAIL FORMULA LAGEGA OR AST 0 RAHEGA
+    // 1. STANDARD SALES TAX HAMESHA VALUE FOR ST PER NIKLEGA
+    obj.stAmt = valueForSt * stRate;
+
+    // 2. GST (3RD SCHEDULE 130%) ALAG SE CALCULATE HOGA AGAR GST % ENTER HAI
     if (gstRate > 0) {
       let landedForGst = obj.impValRs + obj.dutyAmt + obj.acdAmt;
       let minRetail130 = landedForGst * 1.30;
-      obj.stAmt = minRetail130 * gstRate;
-      obj.addStAmt = 0;
+      obj.gstAmt = minRetail130 * gstRate;
+      obj.addStAmt = 0; // GST lagte hi AST 0
       obj.isGstActive = true;
     } else {
-      obj.stAmt = valueForSt * stRate; 
+      obj.gstAmt = 0;
       obj.addStAmt = valueForSt * addStRate;
       obj.isGstActive = false;
     }
 
-    let valueForIt = valueForSt + obj.stAmt + obj.addStAmt; obj.itAmt = valueForIt * itRate;
+    let valueForIt = valueForSt + obj.stAmt + obj.gstAmt + obj.addStAmt; obj.itAmt = valueForIt * itRate;
     obj.adAmt = obj.impValRs * adRate;
-    obj.totalDutyTaxes = obj.dutyAmt + obj.acdAmt + obj.rdAmt + obj.stAmt + obj.addStAmt + obj.itAmt + obj.adAmt;
+    obj.totalDutyTaxes = obj.dutyAmt + obj.acdAmt + obj.rdAmt + obj.stAmt + obj.gstAmt + obj.addStAmt + obj.itAmt + obj.adAmt;
     obj.totalLandedCost = obj.impValRs + obj.totalDutyTaxes;
     obj.dutyPerKg = obj.totalDutyTaxes / (obj.qty > 0 ? obj.qty : 1); obj.costPerKg = obj.totalLandedCost / (obj.qty > 0 ? obj.qty : 1);
     return obj;
   }
 
   function generateBreakdownHTML(data) {
-    const taxLabelRow = data.isGstActive 
-      ? `<div class="calc-results-row"><span>GST (3rd Sch 130%) @ ${data.gstPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
-         <div class="calc-results-row"><span>Add S.Tax (AST):</span><span>Rs. 0.00 (Exempt)</span></div>`
-      : `<div class="calc-results-row"><span>Sales Tax @ ${data.stPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
-         <div class="calc-results-row"><span>Add S.Tax @ ${data.addStPct}%:</span><span>Rs. ${formatCurr(data.addStAmt)}</span></div>`;
+    const astRowHtml = data.isGstActive
+      ? `<div class="calc-results-row"><span>Add S.Tax (AST):</span><span>Rs. 0.00 (Auto-Exempt)</span></div>`
+      : `<div class="calc-results-row"><span>Add S.Tax @ ${data.addStPct}%:</span><span>Rs. ${formatCurr(data.addStAmt)}</span></div>`;
+
+    const gstRowHtml = data.isGstActive
+      ? `<div class="calc-results-row"><span>GST (3rd Sch 130%) @ ${data.gstPct}%:</span><span style="color:var(--brass); font-weight:600;">Rs. ${formatCurr(data.gstAmt)}</span></div>`
+      : '';
 
     return `
       <div class="print-breakdown-wrapper" style="display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 10px;">
@@ -1366,7 +1383,9 @@
           <div class="calc-results-row"><span>ACD Amount @ ${data.acdPct}%:</span><span>Rs. ${formatCurr(data.acdAmt)}</span></div>
           <div class="calc-results-row"><span>RD Amount @ ${data.rdPct}%:</span><span>Rs. ${formatCurr(data.rdAmt)}</span></div>
           <div class="calc-results-row"><span>Anti-Dumping @ ${data.adPct}%:</span><span>Rs. ${formatCurr(data.adAmt)}</span></div>
-          ${taxLabelRow}
+          <div class="calc-results-row"><span>Sales Tax @ ${data.stPct}%:</span><span>Rs. ${formatCurr(data.stAmt)}</span></div>
+          ${gstRowHtml}
+          ${astRowHtml}
           <div class="calc-results-row"><span>Income Tax @ ${data.itPct}%:</span><span>Rs. ${formatCurr(data.itAmt)}</span></div>
           <div class="calc-results-row" style="border-top:1px dashed var(--hairline); padding-top:8px;"><span>Item Duty & Taxes:</span><span style="color:var(--stamp); font-weight:700;">Rs. ${formatCurr(data.totalDutyTaxes)}</span></div>
         </div>
@@ -1486,11 +1505,11 @@
       grandDutyTaxes += item.totalDutyTaxes;
       grandLanded += item.totalLandedCost;
 
-      const taxPrintLines = item.isGstActive
-        ? `<div><b>GST (3rd Sch 130% @ ${item.gstPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
-           <div><b>AST:</b> Rs. 0.00 (Exempt)</div>`
-        : `<div><b>ST (${item.stPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
-           <div><b>AST (${item.addStPct}%):</b> Rs. ${formatCurr(item.addStAmt)}</div>`;
+      const taxPrintLines = `
+        <div><b>ST (${item.stPct}%):</b> Rs. ${formatCurr(item.stAmt)}</div>
+        ${item.isGstActive ? `<div><b>GST (3rd Sch 130% @ ${item.gstPct}%):</b> Rs. ${formatCurr(item.gstAmt)}</div>` : ''}
+        <div><b>AST:</b> ${item.isGstActive ? 'Rs. 0.00 (Auto-Exempt)' : `Rs. ${formatCurr(item.addStAmt)} (${item.addStPct}%)`}</div>
+      `;
 
       itemsDetailHtml += `
         <div style="border: 1px solid #ccc; border-radius: 4px; padding: 14px; margin-bottom: 15px; page-break-inside: avoid; background: #fafafa;">
