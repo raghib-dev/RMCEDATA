@@ -319,6 +319,16 @@
       
       <div class="calc-section">
         <div class="calc-section-head">Step 1: Item &amp; Origin Details</div>
+        
+        <!-- JOB NUMBER & RECALL BAR -->
+        <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; background:rgba(0,0,0,0.22); padding:12px 14px; border-radius:6px; border:1px solid var(--hairline); flex-wrap:wrap;">
+          <div class="calc-field" style="flex:1; min-width:240px; margin-bottom:0;">
+            <label style="color:var(--brass); font-weight:600;">Job # / Reference (Optional - Leave blank for Auto Serial)</label>
+            <input type="text" id="calcJobNumber" placeholder="e.g. JM1050/26 (Blank rakhein toh Auto # lag jayega)" style="border-color:var(--brass);">
+          </div>
+          <button type="button" class="primary" id="loadJobBtn" style="padding:10px 18px; white-space:nowrap; height:42px;">🔍 Load Saved Job</button>
+        </div>
+
         <div class="calc-grid">
           <div class="calc-field"><label>Import Type</label><select id="calcType"><option value="commercial">Commercial</option><option value="industry">Industrial</option></select></div>
           <div class="calc-field" style="position:relative;">
@@ -1262,6 +1272,67 @@
   let invoiceItems = [];
   let calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
 
+  // JOB RECALL & SAVE IN STORAGE
+  function saveJobToVault(jobRef, items) {
+    if (!jobRef || !items || items.length === 0) return;
+    try {
+      let savedJobs = JSON.parse(localStorage.getItem('ig_saved_jobs_ledger') || '{}');
+      savedJobs[jobRef.trim().toUpperCase()] = {
+        jobRef: jobRef.trim(),
+        savedAt: new Date().toISOString(),
+        items: items
+      };
+      localStorage.setItem('ig_saved_jobs_ledger', JSON.stringify(savedJobs));
+    } catch(e) {}
+  }
+
+  // LOAD SAVED JOB
+  document.getElementById('loadJobBtn')?.addEventListener('click', () => {
+    const rawInput = document.getElementById('calcJobNumber').value.trim();
+    if (!rawInput) {
+      alert("Pehle Job # enter karein jise recall/load karna hai (e.g. JM1050/26 ya Job # -1062)!");
+      return;
+    }
+
+    const savedJobs = JSON.parse(localStorage.getItem('ig_saved_jobs_ledger') || '{}');
+    const matchedKey = Object.keys(savedJobs).find(k => k === rawInput.toUpperCase() || k.replace(/\s+/g,'') === rawInput.toUpperCase().replace(/\s+/g,''));
+    const jobData = matchedKey ? savedJobs[matchedKey] : null;
+
+    if (!jobData || !jobData.items || jobData.items.length === 0) {
+      alert(`Job # "${rawInput}" ka koi saved record nahi mila! Check karein ke Job Number sahi likha hai.`);
+      return;
+    }
+
+    invoiceItems = JSON.parse(JSON.stringify(jobData.items));
+    document.getElementById('invoiceListContainer').style.display = 'block';
+    renderInvoiceList();
+
+    // Pehla item direct calculator input box mein load kar dein
+    const first = invoiceItems[0];
+    if (first) {
+      document.getElementById('calcType').value = first.type || 'commercial';
+      document.getElementById('calcHsCode').value = first.hsCode || '';
+      document.getElementById('calcDesc').value = first.desc || '';
+      document.getElementById('calcOrigin').value = first.origin || '';
+      document.getElementById('calcUnitPrice').value = first.unitPrice || 1.0;
+      document.getElementById('calcVrValue').value = first.vrValue || 0;
+      document.getElementById('calcQty').value = first.qty || 1000;
+      document.getElementById('calcUom').value = first.uom || 'KG';
+      document.getElementById('calcExRate').value = first.exRate || 279;
+      document.getElementById('calcDuty').value = first.dutyPct || 20;
+      document.getElementById('calcAcd').value = first.acdPct || 2;
+      document.getElementById('calcRd').value = first.rdPct || 0;
+      document.getElementById('calcSt').value = first.stPct || 18;
+      document.getElementById('calcAddSt').value = first.addStPct || 0;
+      if (document.getElementById('calcGstRate')) document.getElementById('calcGstRate').value = first.gstPct || 0;
+      document.getElementById('calcIt').value = first.itPct || 6;
+      document.getElementById('calcAd').value = first.adPct || 0;
+      calculateDuty();
+    }
+
+    alert(`✅ Job # "${jobData.jobRef}" kamyabi se load ho gaya hai! Aap exchange rate ya value update kar ke dobara print ya save kar sakte hain.`);
+  });
+
   const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcGstRate', 'calcIt', 'calcAd'];
   calcInputs.forEach(id => { 
     const el = document.getElementById(id); 
@@ -1404,6 +1475,11 @@
     const data = getCalcData(); if(!data.desc) { alert('Please enter an Item Description first.'); return; }
     if(data.hsCode) { autoSaveCurrentSlab(data.hsCode); }
     invoiceItems.push(data); document.getElementById('invoiceListContainer').style.display = 'block'; renderInvoiceList();
+    
+    // CURRENT JOB AUTO-SAVE IN LOCAL DB
+    const currentJobRef = document.getElementById('calcJobNumber').value.trim() || `Job # -${calcSerialNo}`;
+    saveJobToVault(currentJobRef, invoiceItems);
+
     document.getElementById('calcDesc').value = ''; document.getElementById('calcHsCode').value = ''; document.getElementById('calcVrValue').value = ''; showHsSlabMessage("Enter HS Code to load applicable duty & taxes.", "normal"); calculateDuty();
   });
 
@@ -1487,8 +1563,23 @@
   // DEDICATED INVOICE PRINT SLIP
   document.getElementById('printCalcBtn').addEventListener('click', () => { 
     if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
-    calcSerialNo++; localStorage.setItem('ig_calc_serial', calcSerialNo);
     
+    // CUSTOM VS AUTO JOB NUMBER HANDLING
+    const manualJob = document.getElementById('calcJobNumber').value.trim();
+    let finalJobRef = "";
+
+    if (manualJob) {
+      finalJobRef = manualJob;
+    } else {
+      calcSerialNo++;
+      localStorage.setItem('ig_calc_serial', calcSerialNo);
+      finalJobRef = `Job # -${calcSerialNo}`;
+      document.getElementById('calcJobNumber').value = finalJobRef;
+    }
+
+    // SAVE JOB RECORD TO STORAGE
+    saveJobToVault(finalJobRef, invoiceItems);
+
     const dateStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
     let printWin = window.open('', '_blank');
     
@@ -1548,7 +1639,7 @@
       <!DOCTYPE html>
       <html>
       <head>
-        <title>${slipHeading} - Slip #${calcSerialNo}</title>
+        <title>${slipHeading} - Slip Ref: ${finalJobRef}</title>
         <style>
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #111; }
           .header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -1563,7 +1654,7 @@
             <p style="margin: 3px 0 0; font-size: 12px; color: #555;">ImportGuide : Estimated Duty Calculation Slip</p>
           </div>
           <div style="text-align: right; font-size: 12px; font-family: monospace;">
-            <div><b>Slip Ref:</b> Job # -${calcSerialNo}</div>
+            <div><b>Slip Ref:</b> ${finalJobRef}</div>
             <div><b>Date:</b> ${dateStr}</div>
           </div>
         </div>
