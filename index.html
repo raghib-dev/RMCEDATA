@@ -124,6 +124,22 @@
 
   .vault-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--brass); margin: 0; vertical-align: middle; }
   .vault-report-bar { display: none; align-items: center; justify-content: space-between; background: var(--ink-3); border: 1.5px solid var(--brass); padding: 10px 16px; border-radius: 6px; margin-top: 14px; }
+
+  /* EXPENSE DEMAND MODAL STYLES */
+  .demand-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-family: Calibri, 'IBM Plex Sans', sans-serif; }
+  .demand-table td, .demand-table th { border: 1px solid #777; padding: 5px 8px; font-size: 13px; color: #000; }
+  .yellow-box { background-color: #ffff00; font-weight: bold; text-align: center; color: #000; }
+  .edit-input { width: 100%; border: 1px solid transparent; outline: none; background: transparent; font-family: Calibri, 'IBM Plex Sans', sans-serif; font-size: 13px; color: #000; }
+  .edit-input:focus { background-color: #f0fdf4; border-color: #2563eb; }
+  .text-right { text-align: right; }
+  .font-bold { font-weight: bold; }
+  @media print {
+    body * { visibility: hidden; }
+    #printableDemandSheet, #printableDemandSheet * { visibility: visible; }
+    #printableDemandSheet { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; background: #fff; color: #000; }
+    .no-print { display: none !important; }
+    .edit-input { border: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -412,7 +428,12 @@
         <h2 class="invoice-header-title" id="invoiceMainTitle">📋 ESTIMATED DUTY AS PER INVOICE (<span id="invoiceItemCount">0</span> Items)</h2>
         <div id="invoiceItemsWrapper"></div>
         <div id="invoiceGrandTotalWrapper"></div>
-        <button class="primary" id="printCalcBtn" style="background:var(--green); color:#fff; width: 100%; margin-top:20px; font-size: 15px;">🖨️ Print Complete Invoice Slip</button>
+        
+        <!-- BUTTON ROW: INVOICE SLIP & EXPENSE DEMAND SHEET -->
+        <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+          <button class="primary" id="printCalcBtn" style="background:var(--green); color:#fff; flex: 1; min-width: 250px; font-size: 15px;">🖨️ Print Complete Invoice Slip</button>
+          <button class="primary" id="openDemandBtn" onclick="openExpenseDemandModal()" style="background:#f59e0b; color:#000; font-weight:700; flex: 1; min-width: 250px; font-size: 15px;">📋 Create Expense Demand Sheet</button>
+        </div>
       </div>
     </div>
   </div>
@@ -552,6 +573,127 @@
   </div>
 </div>
 
+<!-- EXPENSE DEMAND SHEET MODAL -->
+<div id="demandModal" style="display:none; position:fixed; z-index:999999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(5px); overflow-y:auto;">
+  <div style="background:#fff; color:#000; width:880px; max-width:95%; margin:30px auto; padding:25px; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+    
+    <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:10px; margin-bottom:15px;">
+      <h3 style="margin:0; font-size:18px; font-weight:bold; color:#111;">Customs Clearance Consignment Expense Demand</h3>
+      <button onclick="closeExpenseDemandModal()" style="font-size:24px; border:none; background:transparent; cursor:pointer; font-weight:bold; color:#555;">&times;</button>
+    </div>
+
+    <!-- Printable Excel Sheet Representation -->
+    <div id="printableDemandSheet">
+      <table class="demand-table" style="margin-bottom: 0;">
+        <tr>
+          <td style="width: 50%; font-weight: bold; font-size: 13.5px; vertical-align: top; border-bottom: none;">
+            EXPENSE DEMAND SHEET OF CONSIGNMENT
+          </td>
+          <td colspan="2" class="yellow-box" style="width: 50%;">
+            Date: <input type="text" id="d_date" class="edit-input" style="width:110px; display:inline; font-weight:bold; text-align:center;">
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top:none; border-bottom:none;">
+            <input type="text" id="d_party" class="edit-input font-bold" placeholder="POWER HOUSE (PVT) LTD">
+          </td>
+          <td colspan="2" class="font-bold" style="text-align:center; background:#f4f4f4;">JOB DETAILS</td>
+        </tr>
+        <tr>
+          <td style="border-top:none; border-bottom:none;">
+            JOB # <input type="text" id="d_job" class="edit-input font-bold" style="width:75%; display:inline;" placeholder="JM1083/26">
+          </td>
+          <td class="font-bold" style="width:25%;">VESSEL ARRIVAL:-</td>
+          <td style="width:25%;"><input type="text" id="d_vessel" class="edit-input" placeholder="22/09/2026"></td>
+        </tr>
+        <tr>
+          <td style="border-top:none; border-bottom:none;">
+            HBL # <input type="text" id="d_hbl" class="edit-input" style="width:34%; display:inline;" placeholder="SDNBSE26080985"> 
+            MBL # <input type="text" id="d_mbl" class="edit-input" style="width:34%; display:inline;" placeholder="—">
+          </td>
+          <td class="font-bold">IGM NUMBER</td>
+          <td><input type="text" id="d_igm" class="edit-input" placeholder="095710"></td>
+        </tr>
+        <tr>
+          <td style="border-top:none; border-bottom:none;">
+            DESCRIPTION: <input type="text" id="d_desc" class="edit-input font-bold" style="width:65%; display:inline;" placeholder="SENSORS">
+          </td>
+          <td class="font-bold">INDEX NUMBER</td>
+          <td><input type="text" id="d_index" class="edit-input" placeholder="N/A"></td>
+        </tr>
+        <tr>
+          <td style="border-top:none;">
+            PKGS: <input type="text" id="d_pkgs" class="edit-input" style="width:75%; display:inline;" placeholder="40 CTNS LCL">
+          </td>
+          <td class="font-bold">DOCUMENTS RCVD:-</td>
+          <td><input type="text" id="d_doc_rcvd" class="edit-input" placeholder="7-Sep-26"></td>
+        </tr>
+        <tr>
+          <td style="border-top:none; border-left:none; border-bottom:none;"></td>
+          <td class="font-bold">F.I APPROVED ON:-</td>
+          <td style="background-color: #86efac;"><input type="text" id="d_fi_approved" class="edit-input font-bold" value="PENDING" style="text-align:center; color:#065f46;"></td>
+        </tr>
+      </table>
+
+      <div style="height: 15px;"></div>
+
+      <!-- EDITABLE AMOUNTS TABLE -->
+      <table class="demand-table">
+        <tr>
+          <td class="font-bold" style="width: 30%;">TOTAL DUTY TAXES & CESS:</td>
+          <td style="width: 18%;">
+            <input type="number" id="amt_duty" class="edit-input text-right font-bold" oninput="calculateDemandGrandTotal()" placeholder="0">
+          </td>
+          <td id="words_duty" style="width: 52%; color:#222; font-style: italic;">Zero Rupees</td>
+        </tr>
+        <tr>
+          <td class="font-bold">SHIPPING CHARGES:</td>
+          <td>
+            <input type="number" id="amt_shipping" class="edit-input text-right font-bold" oninput="calculateDemandGrandTotal()" placeholder="0">
+          </td>
+          <td id="words_shipping" style="color:#222; font-style: italic;">Zero Rupees</td>
+        </tr>
+        <tr>
+          <td class="font-bold">PORT PAYMENT:</td>
+          <td>
+            <input type="number" id="amt_port" class="edit-input text-right font-bold" oninput="calculateDemandGrandTotal()" placeholder="0">
+          </td>
+          <td id="words_port" style="color:#222; font-style: italic;">Zero Rupees</td>
+        </tr>
+        <tr>
+          <td class="font-bold">OTHER EXPENSES:</td>
+          <td>
+            <input type="number" id="amt_other" class="edit-input text-right font-bold" oninput="calculateDemandGrandTotal()" placeholder="0">
+          </td>
+          <td id="words_other" style="color:#222; font-style: italic;">Zero Rupees</td>
+        </tr>
+      </table>
+
+      <!-- GRAND TOTAL YELLOW BOX -->
+      <div style="background-color: #ffff00; border: 1px solid #777; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 14.5px; margin-bottom: 15px; color: #000;">
+        <div style="width: 32%; text-align: right; padding-right: 25px;" id="disp_grand_total">0</div>
+        <div style="width: 68%;" id="disp_grand_total_words">Zero Rupees</div>
+      </div>
+
+      <!-- FOOTER ESTIMATION NOTE -->
+      <div style="background-color: #ffff00; border: 1px solid #777; padding: 7px 10px; font-weight: bold; font-size: 11.5px; margin-bottom: 12px; color: #000;">
+        ***All provided amounts are estimated slightly and may vary due to exchange rates.
+      </div>
+
+      <div style="border: 1px solid #777; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12.5px; color: #000;">
+        This is a computer-generated document. No signature is required.
+      </div>
+    </div>
+
+    <!-- MODAL FOOTER BUTTONS -->
+    <div class="no-print" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" class="ghost" onclick="closeExpenseDemandModal()" style="color:#333; border-color:#aaa;">Close</button>
+      <button type="button" class="primary" onclick="window.print()" style="background:#2563eb; color:#fff;">🖨️ Print / Save PDF</button>
+    </div>
+
+  </div>
+</div>
+
 <script>
 (function(){
 
@@ -596,7 +738,7 @@
     return `'${String(val).replace(/'/g, "''")}'`;
   }
 
-  // HS CODE NORMALIZATION (Preserves full 8-digit dot format)
+  // HS CODE NORMALIZATION
   function formatHsCodeFull(raw) {
     if (!raw) return '';
     let s = String(raw).trim();
@@ -724,7 +866,7 @@
     });
   });
 
-  // 4. AUTH & LOGIN (SUPABASE CORE)
+  // 4. AUTH & LOGIN
   async function handleLogin() {
     const u = headerUser.value.trim().toLowerCase(); const p = headerPass.value.trim();
     if (!u || !p) { alert('Please enter username and password.'); return; }
@@ -773,7 +915,7 @@
     else { trialMsg.textContent = 'Account Created! Auto-logging in...'; trialMsg.className='status-line ok'; setTimeout(() => { document.getElementById('signupModalOverlay').style.display = 'none'; headerUser.value = u; headerPass.value = p; handleLogin(); }, 1500); }
   });
 
-  // 6. HIGH-SPEED TRANSACTIONAL TURSO BULK UPLOADER
+  // 6. TURSO BULK UPLOADER
   const triggerTursoUploadBtn = document.getElementById('triggerTursoUploadBtn');
   const tursoFileInput = document.getElementById('tursoFileInput');
   const tursoUploadStatus = document.getElementById('tursoUploadStatus');
@@ -893,7 +1035,7 @@
     });
   }
 
-  // 7. TARIFF AUTO-SLAB & VR CLOUD SYSTEM (SUPABASE CORE)
+  // 7. TARIFF AUTO-SLAB & VR CLOUD SYSTEM
   let AUTO_HS_DUTY_SLABS = {};
   let VR_MATRIX_DB = {};
   let ALL_VR_ITEMS_FLAT = [];
@@ -1103,7 +1245,7 @@
       calculateDuty();
   });
 
-  // 8. ADMIN SAVE TARIFF & VR (SUPABASE CORE)
+  // 8. ADMIN SAVE TARIFF & VR
   async function loadAdminTariffList() {
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
@@ -1272,19 +1414,16 @@
   let invoiceItems = [];
   let calcSerialNo = localStorage.getItem('ig_calc_serial') || 1050;
 
-  // SUPABASE CLOUD SAVE JOB
   async function saveJobToVault(jobRef, items) {
     if (!jobRef || !items || items.length === 0) return;
     const cleanRef = jobRef.trim();
     
-    // Fallback local backup
     try {
       let savedJobs = JSON.parse(localStorage.getItem('ig_saved_jobs_ledger') || '{}');
       savedJobs[cleanRef.toUpperCase()] = { jobRef: cleanRef, items: items };
       localStorage.setItem('ig_saved_jobs_ledger', JSON.stringify(savedJobs));
     } catch(e) {}
 
-    // Cloud DB Upsert in Supabase
     if (db) {
       try {
         await db.from('saved_duty_jobs').upsert([
@@ -1296,7 +1435,6 @@
     }
   }
 
-  // SUPABASE CLOUD LOAD JOB
   document.getElementById('loadJobBtn')?.addEventListener('click', async () => {
     const rawInput = document.getElementById('calcJobNumber').value.trim();
     if (!rawInput) {
@@ -1310,7 +1448,6 @@
 
     let jobData = null;
 
-    // 1. Supabase Cloud se fetch
     if (db) {
       try {
         const { data, error } = await db.from('saved_duty_jobs')
@@ -1324,7 +1461,6 @@
       } catch(e) {}
     }
 
-    // 2. Fallback to LocalStorage agar cloud par na mile
     if (!jobData) {
       const savedJobs = JSON.parse(localStorage.getItem('ig_saved_jobs_ledger') || '{}');
       const matchedKey = Object.keys(savedJobs).find(k => k === rawInput.toUpperCase() || k.replace(/\s+/g,'') === rawInput.toUpperCase().replace(/\s+/g,''));
@@ -1343,7 +1479,6 @@
     document.getElementById('invoiceListContainer').style.display = 'block';
     renderInvoiceList();
 
-    // Pehla item direct calculator input box mein load kar dein
     const first = invoiceItems[0];
     if (first) {
       document.getElementById('calcType').value = first.type || 'commercial';
@@ -1378,7 +1513,6 @@
     } 
   });
 
-  // GST INPUT EVENT LISTENER: GST ENTER KARTE HI AST AUTOMATIC 0 HOJAYEGA
   const gstInputEl = document.getElementById('calcGstRate');
   if (gstInputEl) {
     gstInputEl.addEventListener('input', function() {
@@ -1395,7 +1529,6 @@
     let rawAst = document.getElementById('calcAddSt').value || '0';
     let rawGst = document.getElementById('calcGstRate') ? (document.getElementById('calcGstRate').value || '0') : '0';
 
-    // AUTO ZERO AST JAB GST LAGAYA GAYA HO
     if (parseFloat(rawGst) > 0) {
       rawAst = '0';
       const astInput = document.getElementById('calcAddSt');
@@ -1437,15 +1570,13 @@
     obj.dutyAmt = obj.impValRs * dRate; obj.acdAmt = obj.impValRs * acdRate; obj.rdAmt = obj.impValRs * rdRate;
     let valueForSt = obj.impValRs + obj.dutyAmt + obj.acdAmt + obj.rdAmt; 
 
-    // 1. STANDARD SALES TAX HAMESHA VALUE FOR ST PER NIKLEGA
     obj.stAmt = valueForSt * stRate;
 
-    // 2. GST (3RD SCHEDULE 130%) ALAG SE CALCULATE HOGA AGAR GST % ENTER HAI
     if (gstRate > 0) {
       let landedForGst = obj.impValRs + obj.dutyAmt + obj.acdAmt;
       let minRetail130 = landedForGst * 1.30;
       obj.gstAmt = minRetail130 * gstRate;
-      obj.addStAmt = 0; // GST lagte hi AST 0
+      obj.addStAmt = 0;
       obj.isGstActive = true;
     } else {
       obj.gstAmt = 0;
@@ -1512,7 +1643,6 @@
     if(data.hsCode) { autoSaveCurrentSlab(data.hsCode); }
     invoiceItems.push(data); document.getElementById('invoiceListContainer').style.display = 'block'; renderInvoiceList();
     
-    // CURRENT JOB AUTO-SAVE IN SUPABASE CLOUD
     const currentJobRef = document.getElementById('calcJobNumber').value.trim() || `Job # -${calcSerialNo}`;
     await saveJobToVault(currentJobRef, invoiceItems);
 
@@ -1600,7 +1730,6 @@
   document.getElementById('printCalcBtn').addEventListener('click', async () => { 
     if(invoiceItems.length === 0) { alert("Please Add an item to the Invoice list first!"); return; }
     
-    // CUSTOM VS AUTO JOB NUMBER HANDLING
     const manualJob = document.getElementById('calcJobNumber').value.trim();
     let finalJobRef = "";
 
@@ -1613,7 +1742,6 @@
       document.getElementById('calcJobNumber').value = finalJobRef;
     }
 
-    // SAVE JOB RECORD TO SUPABASE CLOUD
     await saveJobToVault(finalJobRef, invoiceItems);
 
     const dateStr = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1714,6 +1842,99 @@
 
     printWin.document.write(slipContent);
     printWin.document.close();
+  });
+
+  // ==========================================
+  // EXPENSE DEMAND SHEET SYSTEM FUNCTIONS
+  // ==========================================
+  window.convertNumberToWords = function(num) {
+    if (!num || isNaN(num) || num == 0) return "Zero Rupees";
+    num = Math.round(Number(num));
+    
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function inWords(n) {
+      if ((n = n.toString()).length > 9) return 'overflow';
+      let n_array = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+      if (!n_array) return '';
+      let str = '';
+      str += (n_array[1] != 0) ? (a[Number(n_array[1])] || b[n_array[1][0]] + ' ' + a[n_array[1][1]]) + 'Crore ' : '';
+      str += (n_array[2] != 0) ? (a[Number(n_array[2])] || b[n_array[2][0]] + ' ' + a[n_array[2][1]]) + 'Lakh ' : '';
+      str += (n_array[3] != 0) ? (a[Number(n_array[3])] || b[n_array[3][0]] + ' ' + a[n_array[3][1]]) + 'Thousand ' : '';
+      str += (n_array[4] != 0) ? (a[Number(n_array[4])] || b[n_array[4][0]] + ' ' + a[n_array[4][1]]) + 'Hundred ' : '';
+      str += (n_array[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_array[5])] || b[n_array[5][0]] + ' ' + a[n_array[5][1]]) : '';
+      return str.trim();
+    }
+
+    return inWords(num) + " Rupees";
+  };
+
+  window.openExpenseDemandModal = function() {
+    const today = new Date();
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const formattedDate = `${today.getDate()}-${months[today.getMonth()]}-${String(today.getFullYear()).slice(-2)}`;
+    document.getElementById("d_date").value = formattedDate;
+
+    // Fetch Job & Party from Calculator
+    const jobVal = document.getElementById("calcJobNumber") ? document.getElementById("calcJobNumber").value.trim() : "";
+    if (jobVal) {
+      document.getElementById("d_job").value = jobVal;
+      document.getElementById("d_party").value = jobVal;
+    }
+
+    // Fetch Description from Calculator
+    const descVal = document.getElementById("calcDesc") ? document.getElementById("calcDesc").value.trim() : "";
+    if (descVal) {
+      document.getElementById("d_desc").value = descVal;
+    } else if (invoiceItems.length > 0) {
+      document.getElementById("d_desc").value = invoiceItems.map(it => it.desc).join(", ");
+    }
+
+    // Calculate Total Duty from Invoice items or Live current calculation
+    let totalDutyAmt = 0;
+    if (invoiceItems.length > 0) {
+      totalDutyAmt = invoiceItems.reduce((acc, curr) => acc + (curr.totalDutyTaxes || 0), 0);
+    } else {
+      const curData = getCalcData();
+      totalDutyAmt = curData.totalDutyTaxes || 0;
+    }
+
+    // Set Amounts to Editable Fields
+    document.getElementById("amt_duty").value = Math.round(totalDutyAmt) || 500000;
+    if (!document.getElementById("amt_shipping").value) document.getElementById("amt_shipping").value = 50000;
+    if (!document.getElementById("amt_port").value) document.getElementById("amt_port").value = 50000;
+    if (!document.getElementById("amt_other").value) document.getElementById("amt_other").value = 250000;
+
+    calculateDemandGrandTotal();
+    document.getElementById("demandModal").style.display = "block";
+  };
+
+  window.closeExpenseDemandModal = function() {
+    document.getElementById("demandModal").style.display = "none";
+  };
+
+  window.calculateDemandGrandTotal = function() {
+    const duty = parseFloat(document.getElementById("amt_duty").value) || 0;
+    const shipping = parseFloat(document.getElementById("amt_shipping").value) || 0;
+    const port = parseFloat(document.getElementById("amt_port").value) || 0;
+    const other = parseFloat(document.getElementById("amt_other").value) || 0;
+
+    // Update words for each editable row
+    document.getElementById("words_duty").innerText = convertNumberToWords(duty);
+    document.getElementById("words_shipping").innerText = convertNumberToWords(shipping);
+    document.getElementById("words_port").innerText = convertNumberToWords(port);
+    document.getElementById("words_other").innerText = convertNumberToWords(other);
+
+    // Calculate Grand Total
+    const grandTotal = duty + shipping + port + other;
+    document.getElementById("disp_grand_total").innerText = grandTotal.toLocaleString('en-US');
+    document.getElementById("disp_grand_total_words").innerText = convertNumberToWords(grandTotal);
+  };
+
+  // Close modal when clicking outside
+  document.getElementById("demandModal")?.addEventListener("click", function(e) {
+    if (e.target === this) closeExpenseDemandModal();
   });
 
   // 10. TURSO LIVE SUGGESTIONS & AUTOCOMPLETE
@@ -2252,7 +2473,7 @@
   window.closeDetailModal = function() { document.getElementById('detailModalOverlay').style.display = 'none'; };
   document.getElementById('detailModalOverlay').addEventListener('click', function(e) { if(e.target === this) closeDetailModal(); });
 
-  // 12. VALUATION RULINGS SEARCH (SUPABASE CORE)
+  // 12. VALUATION RULINGS SEARCH
   function runVrSearch() {
     const q = document.getElementById('vrSearchInput').value.trim().toLowerCase(); 
     const list = vrDataList.filter(i => 
@@ -2284,7 +2505,7 @@
   }
   document.getElementById('vrSearchInput').addEventListener('input', debounce(runVrSearch, 300));
 
-  // 13. CLIENT SUB MANAGEMENT (SUPABASE CORE)
+  // 13. CLIENT SUB MANAGEMENT
   if(document.getElementById('createSubBtn')) {
       document.getElementById('createSubBtn').addEventListener('click', async () => {
         const u = document.getElementById('newSubUser').value.trim().toLowerCase(); const p = document.getElementById('newSubPass').value.trim(); if(!u || !p) return;
