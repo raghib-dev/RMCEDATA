@@ -595,7 +595,7 @@
         </tr>
         <tr>
           <td style="border-top:none; border-bottom:none;">
-            <input type="text" id="d_party" class="edit-input font-bold" placeholder="POWER HOUSE (PVT) LTD">
+            <input type="text" id="d_party" class="edit-input font-bold" placeholder="PARTY / IMPORTER NAME">
           </td>
           <td colspan="2" class="font-bold" style="text-align:center; background:#f4f4f4;">JOB DETAILS</td>
         </tr>
@@ -1847,27 +1847,51 @@
   // ==========================================
   // EXPENSE DEMAND SHEET SYSTEM FUNCTIONS
   // ==========================================
+  
+  // INTERNATIONAL NUMBERING FORMAT (MILLION / HUNDRED THOUSAND)
   window.convertNumberToWords = function(num) {
     if (!num || isNaN(num) || num == 0) return "Zero Rupees";
     num = Math.round(Number(num));
-    
-    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
-    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-    function inWords(n) {
-      if ((n = n.toString()).length > 9) return 'overflow';
-      let n_array = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-      if (!n_array) return '';
-      let str = '';
-      str += (n_array[1] != 0) ? (a[Number(n_array[1])] || b[n_array[1][0]] + ' ' + a[n_array[1][1]]) + 'Crore ' : '';
-      str += (n_array[2] != 0) ? (a[Number(n_array[2])] || b[n_array[2][0]] + ' ' + a[n_array[2][1]]) + 'Lakh ' : '';
-      str += (n_array[3] != 0) ? (a[Number(n_array[3])] || b[n_array[3][0]] + ' ' + a[n_array[3][1]]) + 'Thousand ' : '';
-      str += (n_array[4] != 0) ? (a[Number(n_array[4])] || b[n_array[4][0]] + ' ' + a[n_array[4][1]]) + 'Hundred ' : '';
-      str += (n_array[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_array[5])] || b[n_array[5][0]] + ' ' + a[n_array[5][1]]) : '';
-      return str.trim();
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function convertGroup(n) {
+      let output = '';
+      if (n >= 100) {
+        output += ones[Math.floor(n / 100)] + ' Hundred ';
+        n %= 100;
+      }
+      if (n >= 20) {
+        output += tens[Math.floor(n / 10)] + ' ';
+        n %= 10;
+      }
+      if (n > 0) {
+        output += ones[n] + ' ';
+      }
+      return output;
     }
 
-    return inWords(num) + " Rupees";
+    let result = '';
+    const billions = Math.floor(num / 1000000000);
+    const millions = Math.floor((num % 1000000000) / 1000000);
+    const thousands = Math.floor((num % 1000000) / 1000);
+    const remainder = num % 1000;
+
+    if (billions > 0) {
+      result += convertGroup(billions) + 'Billion ';
+    }
+    if (millions > 0) {
+      result += convertGroup(millions) + 'Million ';
+    }
+    if (thousands > 0) {
+      result += convertGroup(thousands) + 'Thousand ';
+    }
+    if (remainder > 0) {
+      result += convertGroup(remainder);
+    }
+
+    return result.trim().replace(/\s+/g, ' ') + ' Rupees';
   };
 
   window.openExpenseDemandModal = function() {
@@ -1876,11 +1900,17 @@
     const formattedDate = `${today.getDate()}-${months[today.getMonth()]}-${String(today.getFullYear()).slice(-2)}`;
     document.getElementById("d_date").value = formattedDate;
 
-    // Fetch Job & Party from Calculator
-    const jobVal = document.getElementById("calcJobNumber") ? document.getElementById("calcJobNumber").value.trim() : "";
-    if (jobVal) {
-      document.getElementById("d_job").value = jobVal;
-      document.getElementById("d_party").value = jobVal;
+    // AUTO-SPLIT: JOB NUMBER AUR PARTY NAME KO ALAG ALAG SET KARNA
+    const rawJobVal = document.getElementById("calcJobNumber") ? document.getElementById("calcJobNumber").value.trim() : "";
+    if (rawJobVal) {
+      const parts = rawJobVal.split(/\s+(.+)/);
+      if (parts.length > 1 && (parts[0].includes("/") || parts[0].toUpperCase().startsWith("JM") || parts[0].toUpperCase().startsWith("JOB"))) {
+        document.getElementById("d_job").value = parts[0].trim();
+        document.getElementById("d_party").value = parts[1].trim();
+      } else {
+        document.getElementById("d_job").value = rawJobVal;
+        document.getElementById("d_party").value = rawJobVal;
+      }
     }
 
     // Fetch Description from Calculator
@@ -1901,10 +1931,10 @@
     }
 
     // Set Amounts to Editable Fields
-    document.getElementById("amt_duty").value = Math.round(totalDutyAmt) || 500000;
-    if (!document.getElementById("amt_shipping").value) document.getElementById("amt_shipping").value = 50000;
-    if (!document.getElementById("amt_port").value) document.getElementById("amt_port").value = 50000;
-    if (!document.getElementById("amt_other").value) document.getElementById("amt_other").value = 250000;
+    document.getElementById("amt_duty").value = Math.round(totalDutyAmt) || 2000000;
+    if (!document.getElementById("amt_shipping").value) document.getElementById("amt_shipping").value = 150000;
+    if (!document.getElementById("amt_port").value) document.getElementById("amt_port").value = 100000;
+    if (!document.getElementById("amt_other").value) document.getElementById("amt_other").value = 500000;
 
     calculateDemandGrandTotal();
     document.getElementById("demandModal").style.display = "block";
