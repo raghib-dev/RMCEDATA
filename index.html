@@ -134,7 +134,7 @@
   .text-right { text-align: right; }
   .font-bold { font-weight: bold; }
 
-  /* PERFECT 1-PAGE PRINT SETTINGS (NO BLUE BG & NO EXTRA PAGES) */
+  /* CLEAN 1-PAGE PRINT SETTINGS (NO BLUE BG & NO EXTRA PAGES) */
   @media print {
     html, body {
       background: #ffffff !important;
@@ -272,7 +272,33 @@
 
   <!-- ADMIN PANEL -->
   <div class="panel" id="panel-upload">
+    
+    <!-- 1. SAVED DUTY CALCULATIONS DATABASE -->
     <div class="card" style="border: 1.5px solid var(--brass);">
+      <span class="eyebrow">Cloud Vault Database</span>
+      <h2>📂 Saved Duty Calculations / Invoices (Supabase Cloud)</h2>
+      <p style="font-size:12px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:12px;">
+        Database mein moujood tamam saved Duty Jobs aur Invoices ki list. Yahan se kisi bhi job ko direct recall ya delete kar sakte hain.
+      </p>
+      <div class="table-container" id="adminSavedJobsContainer">
+        <div class="loader"></div> Loading saved duty calculations...
+      </div>
+    </div>
+
+    <!-- 2. SAVED CONSIGNMENT EXPENSE DEMANDS DATABASE -->
+    <div class="card" style="border: 1.5px solid var(--green);">
+      <span class="eyebrow" style="color:var(--green);">Demand Registry</span>
+      <h2>📋 Saved Consignment Expense Demands (Database)</h2>
+      <p style="font-size:12px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:12px;">
+        Generate aur print kiye gaye tamam Expense Demand Slips ka mukammal record. Yahan se slip dobara khol kar edit ya print karein.
+      </p>
+      <div class="table-container" id="adminSavedDemandsContainer">
+        <div class="loader"></div> Loading saved demands...
+      </div>
+    </div>
+
+    <!-- 3. BULK UPLOAD CLEARANCE DATA -->
+    <div class="card" style="border: 1.5px solid var(--hairline);">
       <span class="eyebrow" style="color:var(--brass);">Turso libSQL Database (5 GB Cloud Storage)</span>
       <h2>🚀 Bulk Upload Clearance Data (Excel / CSV)</h2>
       <p style="font-size:12px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:15px;">
@@ -288,7 +314,7 @@
       </div>
     </div>
 
-    <!-- ADMIN TARIFF UPLOAD -->
+    <!-- 4. ADMIN TARIFF UPLOAD -->
     <div class="card" id="adminTariffCard">
       <span class="eyebrow">Tariff Database</span>
       <h2>Add / Update HS Code Duty Slabs</h2>
@@ -313,7 +339,7 @@
       </div>
     </div>
 
-    <!-- ADMIN VR MATRIX UPLOAD -->
+    <!-- 5. ADMIN VR MATRIX UPLOAD -->
     <div class="card" id="adminVrCard">
       <span class="eyebrow">Valuation Matrix Database</span>
       <h2>Add / Update VR Category</h2>
@@ -389,7 +415,6 @@
       <div class="calc-section">
         <div class="calc-section-head">Step 1: Item &amp; Origin Details</div>
         
-        <!-- SUPABASE CLOUD JOB RECALL & REFERENCE BAR -->
         <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; background:rgba(0,0,0,0.22); padding:12px 14px; border-radius:6px; border:1px solid var(--hairline); flex-wrap:wrap;">
           <div class="calc-field" style="flex:1; min-width:240px; margin-bottom:0;">
             <label style="color:var(--brass); font-weight:600;">Job # / Reference (Optional - Leave blank for Auto Serial)</label>
@@ -453,7 +478,6 @@
           <div class="calc-field"><label>RD %</label><input type="number" id="calcRd" value="0" step="0.1"></div>
           <div class="calc-field"><label>Sales Tax % (ST)</label><input type="number" id="calcSt" value="18" step="0.1"></div>
           
-          <!-- SEPARATE AST & GST INPUT BOXES -->
           <div class="calc-field">
             <label>Add S.Tax % (AST)</label>
             <input type="number" id="calcAddSt" value="3" step="0.1">
@@ -482,7 +506,6 @@
         <div id="invoiceItemsWrapper"></div>
         <div id="invoiceGrandTotalWrapper"></div>
         
-        <!-- BUTTON ROW: INVOICE SLIP & EXPENSE DEMAND SHEET -->
         <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
           <button class="primary" id="printCalcBtn" style="background:var(--green); color:#fff; flex: 1; min-width: 250px; font-size: 15px;">🖨️ Print Complete Invoice Slip</button>
           <button class="primary" id="openDemandBtn" onclick="openExpenseDemandModal()" style="background:#f59e0b; color:#000; font-weight:700; flex: 1; min-width: 250px; font-size: 15px;">📋 Create Expense Demand Sheet</button>
@@ -741,7 +764,7 @@
     <!-- MODAL FOOTER BUTTONS -->
     <div class="no-print" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
       <button type="button" class="ghost" onclick="closeExpenseDemandModal()" style="color:#333; border-color:#aaa;">Close</button>
-      <button type="button" class="primary" onclick="window.print()" style="background:#2563eb; color:#fff;">🖨️ Print / Save PDF</button>
+      <button type="button" class="primary" onclick="printExpenseDemandSlip()" style="background:#2563eb; color:#fff;">🖨️ Print / Save PDF</button>
     </div>
 
   </div>
@@ -750,12 +773,12 @@
 <script>
 (function(){
 
-  // 1. SUPABASE CORE (AUTH, TARIFF, VR, JOBS)
+  // 1. SUPABASE CORE (AUTH, TARIFF, VR, JOBS, DEMANDS)
   const SUPABASE_CORE_URL = 'https://ivoydzqrgmqwaijuhsht.supabase.co'; 
   const SUPABASE_CORE_ANON_KEY = 'sb_publishable_US2jdD13wfAP62qvWE_o9Q_sxrQ5Oaa';
   const db = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_CORE_URL, SUPABASE_CORE_ANON_KEY) : null;
 
-  // 2. ULTRA-FAST TURSO RAW SQL ENGINE (CONNECTED DATABASE)
+  // 2. ULTRA-FAST TURSO RAW SQL ENGINE
   const TURSO_HTTP_URL = 'https://td-db-impguide.aws-ap-south-1.turso.io/v2/pipeline';
   const TURSO_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODk4MjMyMzUsImlkIjoiMDFhMGI5YzYtZjAwMS03NDMzLTg0YmQtZDM4MGViZDBmMjMyIiwia2lkIjoiVzZxR0xHZHdPc3ozMjhmQTRjTklsTEtkYnN4RlpGU2VMY3l6TFhZMnRBbyIsInJpZCI6IjAxY2ZiYjk0LWVjYjItNGU2ZS1hZTUyLTg5ZTJlZDFhZmExZSJ9.2H9gCo4Va-uYK8hL-GxlWHaUVv88u6J71-XKyihzGrU9yRHEwordKQunvGsRPCa3VFNi5Ehg_0TeUndO_ZguAA';
 
@@ -791,19 +814,16 @@
     return `'${String(val).replace(/'/g, "''")}'`;
   }
 
-  // HS CODE NORMALIZATION
   function formatHsCodeFull(raw) {
     if (!raw) return '';
     let s = String(raw).trim();
     if (!s) return '';
-    
     if (s.includes('.')) {
       let parts = s.split('.');
       let prefix = parts[0].replace(/\D/g, '').padStart(4, '0');
       let suffix = parts[1] ? parts[1].replace(/\D/g, '').padEnd(4, '0').substring(0, 4) : '0000';
       return `${prefix}.${suffix}`;
     }
-    
     let digits = s.replace(/\D/g, '');
     if (digits.length > 4) {
       let d8 = digits.padEnd(8, '0').substring(0, 8);
@@ -814,21 +834,18 @@
     return s;
   }
 
-  // Value Formatter
   function formatSmartNumber(num) {
     if (num === null || num === undefined || num === '' || num === '—') return '0.00';
     let strVal = String(num).trim();
     let n = parseFloat(strVal);
     if (isNaN(n)) return '0.00';
     if (n === 0) return '0.00';
-    
     if (strVal.includes('.')) {
       let decimals = strVal.split('.')[1];
       if (decimals.length > 2) {
         return n.toFixed(Math.min(decimals.length, 4));
       }
     }
-    
     if (Math.abs(n) < 0.01) return n.toFixed(4);
     return n.toFixed(2);
   }
@@ -848,7 +865,6 @@
   function resolveCleanUom(uomVal, descText) {
     let u = String(uomVal || '').trim();
     let isNumericRate = !isNaN(parseFloat(u)) && isFinite(u) && parseFloat(u) > 0 && parseFloat(u) < 50;
-    
     if (!u || u === '—' || isNumericRate || u === 'NULL') {
       if (descText) {
         let m = String(descText).match(/\b(PCS|KGS?|UNITS?|SETS?|DOZ|MTRS?|ROLLS?|BAGS?|PKTS?|PRS|PAIRS?|U)\b/i);
@@ -888,6 +904,8 @@
         document.getElementById('tabUploadBtn').style.display = 'inline-block'; 
         document.getElementById('tabSubBtn').style.display = 'inline-block'; 
         loadAdminTariffList();
+        loadAdminSavedJobsList();
+        loadAdminSavedDemandsList();
     }
 
     if(toolName === 'calculator') {
@@ -915,7 +933,11 @@
       if(btn.dataset.tab==='gst') calculateGSTModule();
       if(btn.dataset.tab==='vr') runVrSearch();
       if(btn.dataset.tab==='tariff') runTariffSearch();
-      if(btn.dataset.tab==='upload' && localStorage.getItem('cv_role')==='admin') loadAdminTariffList();
+      if(btn.dataset.tab==='upload' && localStorage.getItem('cv_role')==='admin') {
+        loadAdminTariffList();
+        loadAdminSavedJobsList();
+        loadAdminSavedDemandsList();
+      }
     });
   });
 
@@ -946,7 +968,13 @@
       const expDate = new Date(expiry); const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
       banner.style.display = 'flex'; banner.innerHTML = `<div style="background:var(--ink-2); padding:10px; width:100%; border-bottom:1px solid var(--hairline); margin-bottom:15px; text-align:center; font-size:13px; color:var(--brass);">👋 Welcome, <b>${username}</b>! Subscription expires on: <b>${expDate.toLocaleDateString()}</b> (${daysLeft > 0 ? daysLeft + ' days remaining' : 'Expired'})</div>`;
     }
-    if (role === 'admin') { document.getElementById('tabUploadBtn').style.display = 'inline-block'; document.getElementById('tabSubBtn').style.display = 'inline-block'; }
+    if (role === 'admin') { 
+      document.getElementById('tabUploadBtn').style.display = 'inline-block'; 
+      document.getElementById('tabSubBtn').style.display = 'inline-block'; 
+      loadAdminTariffList();
+      loadAdminSavedJobsList();
+      loadAdminSavedDemandsList();
+    }
   }
   document.getElementById('headerLogoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
   if(document.getElementById('logoutBtn')) { document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); }); }
@@ -1112,14 +1140,12 @@
       const container = document.getElementById('adminVrListContainer');
       try {
           const { data, error } = await db.from('vr_matrix').select('*');
-          
           if (error) {
               if (container && localStorage.getItem('cv_role') === 'admin') {
                   container.innerHTML = `<span style="color:var(--stamp);">Error: ${error.message}</span>`;
               }
               return;
           }
-
           if (data) {
               VR_MATRIX_DB = {};
               ALL_VR_ITEMS_FLAT = [];
@@ -1127,7 +1153,6 @@
 
               data.forEach(row => {
                   if(!row.hs_code) return;
-                  
                   let rawHs = String(row.hs_code);
                   let hsList = rawHs.split(/[,;\/\s]+/).map(h => formatHsCodeFull(h)).filter(h => h.length >= 4);
                   let hsCombined = hsList.join(', ');
@@ -1298,7 +1323,195 @@
       calculateDuty();
   });
 
-  // 8. ADMIN SAVE TARIFF & VR
+  // 8. ADMIN LISTINGS (SAVED JOBS, SAVED DEMANDS, TARIFF & VR)
+  
+  // A. LOAD SAVED DUTY CALCULATIONS IN ADMIN PANEL
+  async function loadAdminSavedJobsList() {
+    const container = document.getElementById('adminSavedJobsContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="loader"></div> Loading saved duty calculations...';
+
+    let jobs = [];
+    if (db) {
+      try {
+        const { data, error } = await db.from('saved_duty_jobs').select('*').order('created_at', { ascending: false });
+        if (data && !error) jobs = data;
+      } catch (e) {}
+    }
+
+    // Fallback to local storage if cloud is empty or unreachable
+    if (jobs.length === 0) {
+      try {
+        const localJobs = JSON.parse(localStorage.getItem('ig_saved_jobs_ledger') || '{}');
+        jobs = Object.values(localJobs).map(j => ({ job_ref: j.jobRef, items: j.items, created_at: 'Local Storage' }));
+      } catch (e) {}
+    }
+
+    if (jobs.length === 0) {
+      container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px; padding:10px;">Koi Duty Calculation / Job save nahi hui hai.</div>`;
+      return;
+    }
+
+    let html = `<table class="sub-table">
+      <tr>
+        <th>Job # / Reference</th>
+        <th>Total Items</th>
+        <th>Created / Synced</th>
+        <th>Actions</th>
+      </tr>`;
+
+    jobs.forEach(row => {
+      const itemsCount = (row.items && Array.isArray(row.items)) ? row.items.length : (row.items ? 'Available' : 0);
+      const safeJob = (row.job_ref || '').replace(/'/g, "\\'");
+      const dateStr = row.created_at ? (row.created_at.includes('T') ? new Date(row.created_at).toLocaleString() : row.created_at) : '—';
+
+      html += `<tr>
+        <td><b>${row.job_ref}</b></td>
+        <td><span style="color:var(--brass); font-weight:600;">${itemsCount} Items</span></td>
+        <td>${dateStr}</td>
+        <td>
+          <button class="primary" style="padding:4px 8px; font-size:10.5px; background:var(--green); color:#fff; margin-right:6px;" onclick="loadJobDirectly('${safeJob}')">Load & View ➡️</button>
+          <button class="ghost" style="padding:4px 8px; font-size:10.5px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteSavedJob('${safeJob}')">Delete</button>
+        </td>
+      </tr>`;
+    });
+
+    container.innerHTML = html + `</table>`;
+  }
+
+  window.loadJobDirectly = function(jobRef) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tabCalcBtn').classList.add('active');
+    document.getElementById('panel-calculator').classList.add('active');
+    document.getElementById('calcJobNumber').value = jobRef;
+    document.getElementById('loadJobBtn').click();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.deleteSavedJob = async function(jobRef) {
+    if (!confirm(`Kya aap "${jobRef}" ko database se delete karna chahte hain?`)) return;
+    if (db) {
+      try { await db.from('saved_duty_jobs').delete().eq('job_ref', jobRef); } catch(e) {}
+    }
+    try {
+      let savedJobs = JSON.parse(localStorage.getItem('ig_saved_jobs_ledger') || '{}');
+      delete savedJobs[jobRef.toUpperCase()];
+      localStorage.setItem('ig_saved_jobs_ledger', JSON.stringify(savedJobs));
+    } catch(e) {}
+    loadAdminSavedJobsList();
+  };
+
+  // B. LOAD SAVED EXPENSE DEMANDS IN ADMIN PANEL
+  async function loadAdminSavedDemandsList() {
+    const container = document.getElementById('adminSavedDemandsContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="loader"></div> Loading saved demands...';
+
+    let demands = [];
+    if (db) {
+      try {
+        const { data, error } = await db.from('saved_expense_demands').select('*').order('created_at', { ascending: false });
+        if (data && !error) demands = data;
+      } catch (e) {}
+    }
+
+    if (demands.length === 0) {
+      try {
+        const localDemands = JSON.parse(localStorage.getItem('ig_saved_demands_ledger') || '{}');
+        demands = Object.values(localDemands);
+      } catch (e) {}
+    }
+
+    if (demands.length === 0) {
+      container.innerHTML = `<div style="color:var(--paper-dim); font-size:12px; padding:10px;">Koi Expense Demand Sheet save nahi hui hai.</div>`;
+      return;
+    }
+
+    let html = `<table class="sub-table">
+      <tr>
+        <th>Date</th>
+        <th>Job #</th>
+        <th>Party Name</th>
+        <th>Grand Total (PKR)</th>
+        <th>Actions</th>
+      </tr>`;
+
+    demands.forEach(row => {
+      const safeJob = (row.job_ref || '').replace(/'/g, "\\'");
+      const gTotalFormatted = Number(row.grand_total || 0).toLocaleString('en-US');
+
+      html += `<tr>
+        <td>${row.demand_date || '—'}</td>
+        <td><b>${row.job_ref}</b></td>
+        <td style="color:var(--paper);">${row.party_name || '—'}</td>
+        <td><b style="color:var(--brass); font-size:13px;">Rs. ${gTotalFormatted}</b></td>
+        <td>
+          <button class="primary" style="padding:4px 8px; font-size:10.5px; background:#f59e0b; color:#000; font-weight:700; margin-right:6px;" onclick="openSavedDemandDirectly('${safeJob}')">Open Slip 📋</button>
+          <button class="ghost" style="padding:4px 8px; font-size:10.5px; color:var(--stamp); border-color:var(--stamp-dim);" onclick="deleteSavedDemand('${safeJob}')">Delete</button>
+        </td>
+      </tr>`;
+    });
+
+    container.innerHTML = html + `</table>`;
+  }
+
+  window.openSavedDemandDirectly = async function(jobRef) {
+    let rec = null;
+    if (db) {
+      try {
+        const { data } = await db.from('saved_expense_demands').select('*').eq('job_ref', jobRef).single();
+        if (data) rec = data;
+      } catch(e) {}
+    }
+    if (!rec) {
+      try {
+        const localDemands = JSON.parse(localStorage.getItem('ig_saved_demands_ledger') || '{}');
+        rec = localDemands[jobRef.toUpperCase()];
+      } catch(e) {}
+    }
+
+    if (!rec) {
+      alert("Demand record open nahi ho saka!");
+      return;
+    }
+
+    document.getElementById("d_date").value = rec.demand_date || '';
+    document.getElementById("d_job").value = rec.job_ref || '';
+    document.getElementById("d_party").value = rec.party_name || '';
+    document.getElementById("d_vessel").value = rec.vessel_arrival || '';
+    document.getElementById("d_hbl").value = rec.hbl_no || '';
+    document.getElementById("d_mbl").value = rec.mbl_no || '';
+    document.getElementById("d_igm").value = rec.igm_no || '';
+    document.getElementById("d_index").value = rec.index_no || '';
+    document.getElementById("d_desc").value = rec.description || '';
+    document.getElementById("d_pkgs").value = rec.pkgs || '';
+    document.getElementById("d_doc_rcvd").value = rec.doc_rcvd || '';
+    document.getElementById("d_fi_approved").value = rec.fi_approved || 'PENDING';
+
+    document.getElementById("amt_duty").value = rec.amt_duty || 0;
+    document.getElementById("amt_shipping").value = rec.amt_shipping || 0;
+    document.getElementById("amt_port").value = rec.amt_port || 0;
+    document.getElementById("amt_other").value = rec.amt_other || 0;
+
+    calculateDemandGrandTotal();
+    document.getElementById("demandModal").style.display = "block";
+  };
+
+  window.deleteSavedDemand = async function(jobRef) {
+    if (!confirm(`Kya aap "${jobRef}" ki Demand Sheet delete karna chahte hain?`)) return;
+    if (db) {
+      try { await db.from('saved_expense_demands').delete().eq('job_ref', jobRef); } catch(e) {}
+    }
+    try {
+      let localDemands = JSON.parse(localStorage.getItem('ig_saved_demands_ledger') || '{}');
+      delete localDemands[jobRef.toUpperCase()];
+      localStorage.setItem('ig_saved_demands_ledger', JSON.stringify(localDemands));
+    } catch(e) {}
+    loadAdminSavedDemandsList();
+  };
+
+  // C. TARIFF & VR ADMIN
   async function loadAdminTariffList() {
       const container = document.getElementById('adminTariffListContainer');
       if(!container) return;
@@ -1486,6 +1699,7 @@
         console.error("Supabase Job Save Error:", err);
       }
     }
+    if (localStorage.getItem('cv_role') === 'admin') loadAdminSavedJobsList();
   }
 
   document.getElementById('loadJobBtn')?.addEventListener('click', async () => {
@@ -1554,7 +1768,7 @@
       calculateDuty();
     }
 
-    alert(`☁️ Job # "${jobData.jobRef}" Supabase Cloud se kamyabi se load ho gaya hai! Aap rate ya value update kar ke dobara calculate aur print kar sakte hain.`);
+    alert(`☁️ Job # "${jobData.jobRef}" Supabase Cloud se kamyabi se load ho gaya hai!`);
   });
 
   const calcInputs = ['calcType', 'calcHsCode', 'calcDesc', 'calcOrigin', 'calcUnitPrice', 'calcVrValue', 'calcQty', 'calcUom', 'calcExRate', 'calcDuty', 'calcAcd', 'calcRd', 'calcSt', 'calcAddSt', 'calcGstRate', 'calcIt', 'calcAd'];
@@ -1953,7 +2167,6 @@
     const formattedDate = `${today.getDate()}-${months[today.getMonth()]}-${String(today.getFullYear()).slice(-2)}`;
     document.getElementById("d_date").value = formattedDate;
 
-    // AUTO-SPLIT: JOB NUMBER AUR PARTY NAME KO ALAG ALAG SET KARNA
     const rawJobVal = document.getElementById("calcJobNumber") ? document.getElementById("calcJobNumber").value.trim() : "";
     if (rawJobVal) {
       const parts = rawJobVal.split(/\s+(.+)/);
@@ -1966,7 +2179,6 @@
       }
     }
 
-    // Fetch Description from Calculator
     const descVal = document.getElementById("calcDesc") ? document.getElementById("calcDesc").value.trim() : "";
     if (descVal) {
       document.getElementById("d_desc").value = descVal;
@@ -1974,7 +2186,6 @@
       document.getElementById("d_desc").value = invoiceItems.map(it => it.desc).join(", ");
     }
 
-    // Calculate Total Duty from Invoice items or Live current calculation
     let totalDutyAmt = 0;
     if (invoiceItems.length > 0) {
       totalDutyAmt = invoiceItems.reduce((acc, curr) => acc + (curr.totalDutyTaxes || 0), 0);
@@ -1983,7 +2194,6 @@
       totalDutyAmt = curData.totalDutyTaxes || 0;
     }
 
-    // Set Amounts to Editable Fields
     document.getElementById("amt_duty").value = Math.round(totalDutyAmt) || 2000000;
     if (!document.getElementById("amt_shipping").value) document.getElementById("amt_shipping").value = 150000;
     if (!document.getElementById("amt_port").value) document.getElementById("amt_port").value = 100000;
@@ -2003,19 +2213,62 @@
     const port = parseFloat(document.getElementById("amt_port").value) || 0;
     const other = parseFloat(document.getElementById("amt_other").value) || 0;
 
-    // Update words for each editable row
     document.getElementById("words_duty").innerText = convertNumberToWords(duty);
     document.getElementById("words_shipping").innerText = convertNumberToWords(shipping);
     document.getElementById("words_port").innerText = convertNumberToWords(port);
     document.getElementById("words_other").innerText = convertNumberToWords(other);
 
-    // Calculate Grand Total
     const grandTotal = duty + shipping + port + other;
     document.getElementById("disp_grand_total").innerText = grandTotal.toLocaleString('en-US');
     document.getElementById("disp_grand_total_words").innerText = convertNumberToWords(grandTotal);
   };
 
-  // Close modal when clicking outside
+  // CLOUD SAVE EXPENSE DEMAND RECORD & PRINT
+  window.printExpenseDemandSlip = async function() {
+    const demandObj = {
+      demand_date: document.getElementById("d_date").value.trim(),
+      party_name: document.getElementById("d_party").value.trim(),
+      job_ref: document.getElementById("d_job").value.trim() || `Demand-${Date.now()}`,
+      vessel_arrival: document.getElementById("d_vessel").value.trim(),
+      hbl_no: document.getElementById("d_hbl").value.trim(),
+      mbl_no: document.getElementById("d_mbl").value.trim(),
+      igm_no: document.getElementById("d_igm").value.trim(),
+      index_no: document.getElementById("d_index").value.trim(),
+      description: document.getElementById("d_desc").value.trim(),
+      pkgs: document.getElementById("d_pkgs").value.trim(),
+      doc_rcvd: document.getElementById("d_doc_rcvd").value.trim(),
+      fi_approved: document.getElementById("d_fi_approved").value.trim(),
+      amt_duty: parseFloat(document.getElementById("amt_duty").value) || 0,
+      amt_shipping: parseFloat(document.getElementById("amt_shipping").value) || 0,
+      amt_port: parseFloat(document.getElementById("amt_port").value) || 0,
+      amt_other: parseFloat(document.getElementById("amt_other").value) || 0,
+      grand_total: (parseFloat(document.getElementById("amt_duty").value) || 0) +
+                   (parseFloat(document.getElementById("amt_shipping").value) || 0) +
+                   (parseFloat(document.getElementById("amt_port").value) || 0) +
+                   (parseFloat(document.getElementById("amt_other").value) || 0),
+      created_at: new Date().toISOString()
+    };
+
+    // Save to Local Backup
+    try {
+      let localDemands = JSON.parse(localStorage.getItem('ig_saved_demands_ledger') || '{}');
+      localDemands[demandObj.job_ref.toUpperCase()] = demandObj;
+      localStorage.setItem('ig_saved_demands_ledger', JSON.stringify(localDemands));
+    } catch(e) {}
+
+    // Save to Supabase Cloud Database
+    if (db) {
+      try {
+        await db.from('saved_expense_demands').upsert([demandObj], { onConflict: 'job_ref' });
+      } catch(err) {
+        console.error("Demand Cloud Save Error:", err);
+      }
+    }
+
+    if (localStorage.getItem('cv_role') === 'admin') loadAdminSavedDemandsList();
+    window.print();
+  };
+
   document.getElementById("demandModal")?.addEventListener("click", function(e) {
     if (e.target === this) closeExpenseDemandModal();
   });
@@ -2112,12 +2365,9 @@
       document.getElementById('calcDesc').value = label;
       document.getElementById('calcHsCode').value = hs;
       document.getElementById('calcVrValue').value = value;
-      
       loadHsDutySlab();
-      
       const hsInput = document.getElementById('calcHsCode');
       hsInput.dispatchEvent(new Event('input', { bubbles: true }));
-      
       setTimeout(() => {
           const vrDropdown = document.getElementById('vrMatrixDropdown');
           if (vrDropdown) {
@@ -2130,7 +2380,6 @@
           }
           calculateDuty();
       }, 120);
-
       descSuggestions.style.display = 'none';
   };
 
